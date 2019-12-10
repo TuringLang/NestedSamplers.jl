@@ -1,82 +1,136 @@
-using AbstractMCMC: AbstractSampler,
-    AbstractSamplerState,
-    VarInfo,
-    Sampler,
-    step!,
-    Model,
-    Transition,
-    sample_init!,
-    set_resume!,
-    initialize_parameters
+using Distributions
+using Random
+import MCMCChains: Chains
+import AbstractMCMC: step!, AbstractSampler, AbstractTransition, transition_type, bundle_samples, AbstractModel
 
-struct Nested{space} <: AbstractSampler 
-    method::Symbol
+abstract type NestedAlgorithm end
+struct Single <: NestedAlgorithm end
+struct Multi <: NestedAlgorithm end
+
+
+"""
+    Nested{<:NestedAlgorithm}(nactive, enlarge)
+
+Nested Sampler
+
+The two `NestedAlgorithm`s are `Single`, which uses a single bounding ellipsoid, and `Multi`, which finds an optimal clustering of ellipsoids.
+"""
+struct Nested{<:NestedAlgorithm} <: AbstractSampler 
     nactive::Integer
-    maxiter::Integer
     enlarge::Float64
+    starting_points::Matrix
 end
 
-function Nested(nactive=100, maxiter=1000, enlarge=1.5; method=:single)
-    if method ∉ [:single, :multi]
-        error("Invalid Nested method $method")
-    end
-    return Nested{()}(method, nactive, maxiter, enlarge)
+Nested(nactive=100, enlarge=1.5) =  Nested{Single}(nactive, enlarge)
+
+struct NestedModel{F<:Function, D<:Distribution} <: AbstractModel
+    loglike::F
+    priors::Vector{D}
 end
 
-mutable struct NestedState{V<:VarInfo} <: AbstractSamplerState
-    vi::V
-    live_points_u::Matrix
-    live_points_p::Matrix
-    active_logl::Vector
-    log_wt::Float64
+struct NestedTransition{T} <: AbstractTransition
+    active_points ::Matrix{T}
+    active_logl   ::Vector{T}
+    samples       ::Vector{T}
+    log_vol       ::Float64
+    log_wt        ::Float64
+    log_z         ::Float64
+    h             ::Float64
 end
 
-NestedState(m::Model) = NestedState(VarInfo(m), zeros(0, 0), zeros(0, 0), zeros(0), 0.0)
+function NestedTransition(model::NestedModel, p::Matrix)
+    # Get info from uniform space into prior space
+    logls = [model.loglike(p[:, i]) for i in 1:size(p, 2)]
 
-function Sampler(alg::Nested, model::Model, s::Selector)
-    info = Dict{Symbol, Any}()
-    state = NestedState(model)
-    return Sampler(alg, info, s, state)
+    # log prior volume
+    logv = log(1 - exp(-1/size(p, 2)))
+
+    # log evidence
+    logl_star, mindx = findmin(logls)
+
+    log_wt = logv + logl_star
+
+    # samples from least_likely
+    s = p[:, mindx]
+
+    return NestedTransition(p, logls, s, logv, log_wt, -Inf, 0)
 end
 
-function sample_init!(
+transition_type(model::NestedModel, spl::Nested) = NestedTransition
+
+function step!(
     rng::AbstractRNG,
-    model::Model,
-    spl::Sampler,
+    model::NestedModel,
+    spl::Nested{Single},
     N::Integer;
     kwargs...
 )
-    set_resume!(spl; kwargs...)
+    return NestedTransition(model, spl.starting_points)
+end
 
-    ndim = length(Turing.get_pvars(model))
-    spl.state.active_points_u = rand(rng, ndim, spl.nactive)
-    for i in 1:spl.nactive
-        spl.state.active_logl = 
-        spl.state.active_points_v = 
+function propose(ell::Ellipsoid, model::NestedModel, logl_star)
+    while true
+        u = rand(ell)
+        all(0 .< u .< 1) || continue
+        v = quantile.(model.priors, u)
+        logl = model.loglike(v)
+        if logl > logl_star
+            return v, logl
+        end
+    end
+end
+
+function step!(
+    rng::AbstractRNG,
+    model::NestedModel,
+    spl::Nested{Single},
+    N::Integer,
+    prev::NestedTransition;
+    kwargs...
+)
+    logl_star, mindx = findmin(prev.active_logl)
+    log_wt = prev.log_vol + logl_star
+
+    logz_new = logaddexp(prev.logz, log_wt)
+    h = (exp(log_wt - logz_new) * logl_star + 
+        exp(prev.logz - logz_new) * (h + prev.logz) - logz_new)
+    
+    samples = prev.active_points[:, mindx]
+
+    # Get points in unit space
+    u = cdf.(hcat(model.priors), prev.active_points)
+
+    # Get bounding ellipsoid
+    enlarge_linear = spl.enlarge^(1/size(prev.active_points, 1))
+    ell = fit(Ellipsoid, u, enlarge_linear)
+    p, logl = propose(ell, model, logl_star)
+
+    log_vol = prev.log_vol - 1/size(prev.active_points, 2)
+    newp = prev.active_points
+    newp[:, mindx] = p
+    newlogl = prev.active_logl
+    newlogl[mindx] = logl
+
+
+    return NestedTransition(newp, newlogl, samples, log_vol, log_wt, logz_new, h)
+end
+
+function bundle_samples(
+
+    rng::AbstractRNG, 
+    ℓ::AbstractModel, 
+    s::MetropolisHastings, 
+    N::Integer, 
+    ts::Vector{<:AbstractTransition}; 
+    param_names=missing,
+    kwargs...
+)
+    vals = copy(reduce(hcat, [vcat(t.samples, t.logz, t.h) for t in ts])')
+    if param_names === missing
+        param_names = ["Parameter $i" for i in 1:length(first(vals)) - 2]
     end
 
-    enlarge_linear = spl.enlarge^(1/ndim)
+    push!(param_names, "logz", "h")
 
-    pounts_u = rand()
-
-end
-
-function step!(::AbstractRNG, model::Model, spl::Sampler{<:Nested}, ::Integer; kwargs...)
-
-    empty!(spl.state.vi)
-    model(spl.state.vi, spl)
-end
-
-function Turing.step!(::AbstractRNG, model::Model, spl::Sampler{<:Nested}, ::Integer, ::Transition; kwargs...)
-
-    empty!(spl.state.vi)
-    model(spl.state.vi, spl)
-end
-
-
-transition_type(::Sampler{<:Nested}) = Transition
-
-function assume(spl::Sampler{<:Nested}, dist::Distribution, vn::VarName, vi::VarInfo)
-    x = rand(spl.nactive)
-    v = 
+    return Chains(vals, param_names, (internals=["logz", "h"],))
 end
