@@ -1,7 +1,9 @@
-using Distributions
+using Distributions: Distribution, quantile, cdf
 using Random
 import MCMCChains: Chains
 import AbstractMCMC: step!, AbstractSampler, AbstractTransition, transition_type, bundle_samples, AbstractModel
+
+export NestedModel, Nested, Single, Multi
 
 abstract type NestedAlgorithm end
 struct Single <: NestedAlgorithm end
@@ -15,27 +17,33 @@ Nested Sampler
 
 The two `NestedAlgorithm`s are `Single`, which uses a single bounding ellipsoid, and `Multi`, which finds an optimal clustering of ellipsoids.
 """
-struct Nested{<:NestedAlgorithm} <: AbstractSampler 
+struct Nested{A <: NestedAlgorithm} <: AbstractSampler 
     nactive::Integer
     enlarge::Float64
-    starting_points::Matrix
 end
 
-Nested(nactive=100, enlarge=1.5) =  Nested{Single}(nactive, enlarge)
+Nested(nactive = 100, enlarge = 1.5) =  Nested{Single}(nactive, enlarge)
 
-struct NestedModel{F<:Function, D<:Distribution} <: AbstractModel
+struct NestedModel{F <: Function,D <: Distribution} <: AbstractModel
     loglike::F
     priors::Vector{D}
 end
 
 struct NestedTransition{T} <: AbstractTransition
-    active_points ::Matrix{T}
-    active_logl   ::Vector{T}
-    samples       ::Vector{T}
-    log_vol       ::Float64
-    log_wt        ::Float64
-    log_z         ::Float64
-    h             ::Float64
+    active_points::Matrix{T}
+    active_logl::Vector{T}
+    samples::Vector{T}
+    log_vol
+    log_wt
+    log_z
+    h
+end
+
+function NestedTransition(model::NestedModel, nactive)
+    ndim = length(model.priors)
+    us = rand(ndim, nactive)
+    ps = quantile.(hcat(model.priors), us)
+    return NestedTransition(model, ps)
 end
 
 function NestedTransition(model::NestedModel, p::Matrix)
@@ -43,7 +51,7 @@ function NestedTransition(model::NestedModel, p::Matrix)
     logls = [model.loglike(p[:, i]) for i in 1:size(p, 2)]
 
     # log prior volume
-    logv = log(1 - exp(-1/size(p, 2)))
+    logv = log(1 - exp(-1 / size(p, 2)))
 
     # log evidence
     logl_star, mindx = findmin(logls)
@@ -58,14 +66,12 @@ end
 
 transition_type(model::NestedModel, spl::Nested) = NestedTransition
 
-function step!(
-    rng::AbstractRNG,
+function step!(rng::AbstractRNG,
     model::NestedModel,
     spl::Nested{Single},
     N::Integer;
-    kwargs...
-)
-    return NestedTransition(model, spl.starting_points)
+    kwargs...)
+    return NestedTransition(model, spl.nactive)
 end
 
 function propose(ell::Ellipsoid, model::NestedModel, logl_star)
@@ -80,20 +86,18 @@ function propose(ell::Ellipsoid, model::NestedModel, logl_star)
     end
 end
 
-function step!(
-    rng::AbstractRNG,
+function step!(rng::AbstractRNG,
     model::NestedModel,
     spl::Nested{Single},
     N::Integer,
     prev::NestedTransition;
-    kwargs...
-)
+    kwargs...)
     logl_star, mindx = findmin(prev.active_logl)
     log_wt = prev.log_vol + logl_star
 
-    logz_new = logaddexp(prev.logz, log_wt)
+    logz_new = logaddexp(prev.log_z, log_wt)
     h = (exp(log_wt - logz_new) * logl_star + 
-        exp(prev.logz - logz_new) * (h + prev.logz) - logz_new)
+        exp(prev.log_z - logz_new) * (prev.h + prev.log_z) - logz_new)
     
     samples = prev.active_points[:, mindx]
 
@@ -101,11 +105,11 @@ function step!(
     u = cdf.(hcat(model.priors), prev.active_points)
 
     # Get bounding ellipsoid
-    enlarge_linear = spl.enlarge^(1/size(prev.active_points, 1))
+    enlarge_linear = spl.enlarge^(1 / size(prev.active_points, 1))
     ell = fit(Ellipsoid, u, enlarge_linear)
     p, logl = propose(ell, model, logl_star)
 
-    log_vol = prev.log_vol - 1/size(prev.active_points, 2)
+    log_vol = prev.log_vol - 1 / size(prev.active_points, 2)
     newp = prev.active_points
     newp[:, mindx] = p
     newlogl = prev.active_logl
@@ -115,22 +119,19 @@ function step!(
     return NestedTransition(newp, newlogl, samples, log_vol, log_wt, logz_new, h)
 end
 
-function bundle_samples(
-
-    rng::AbstractRNG, 
+function bundle_samples(rng::AbstractRNG, 
     ℓ::AbstractModel, 
-    s::MetropolisHastings, 
+    s::Nested, 
     N::Integer, 
     ts::Vector{<:AbstractTransition}; 
-    param_names=missing,
-    kwargs...
-)
-    vals = copy(reduce(hcat, [vcat(t.samples, t.logz, t.h) for t in ts])')
+    param_names = missing,
+    kwargs...)
+    vals = copy(reduce(hcat, [vcat(t.samples, t.log_z, t.h) for t in ts])')
     if param_names === missing
         param_names = ["Parameter $i" for i in 1:length(first(vals)) - 2]
     end
 
     push!(param_names, "logz", "h")
 
-    return Chains(vals, param_names, (internals=["logz", "h"],))
+    return Chains(vals, param_names, (internals = ["logz", "h"],))
 end
