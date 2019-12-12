@@ -3,26 +3,32 @@ using Random
 import MCMCChains: Chains
 import AbstractMCMC: step!, AbstractSampler, AbstractTransition, transition_type, bundle_samples, AbstractModel
 
-export NestedModel, Nested, Single, Multi
-
-abstract type NestedAlgorithm end
-struct Single <: NestedAlgorithm end
-struct Multi <: NestedAlgorithm end
+export NestedModel, Nested
 
 
 """
-    Nested{<:NestedAlgorithm}(nactive, enlarge)
+    Nested(nactive, enlarge, method=:single)
 
 Nested Sampler
 
-The two `NestedAlgorithm`s are `Single`, which uses a single bounding ellipsoid, and `Multi`, which finds an optimal clustering of ellipsoids.
+The two `NestedAlgorithm`s are `:single`, which uses a single bounding ellipsoid, and `:multi`, which finds an optimal clustering of ellipsoids.
 """
-struct Nested{A <: NestedAlgorithm} <: AbstractSampler 
+struct Nested <: AbstractSampler 
     nactive::Integer
     enlarge::Float64
+    method::Function
 end
 
-Nested(nactive = 100, enlarge = 1.5) =  Nested{Single}(nactive, enlarge)
+function Nested(nactive = 100, enlarge = 1.5; method=:single)
+    if method === :single
+        m(x, e) = fit(Ellipsoid, x, e)
+    elseif method === :multi
+        error("Not implemented")
+    else
+        error("Invalid method $method")
+    end
+    Nested(nactive, enlarge, m)
+end
 
 struct NestedModel{F <: Function,D <: Distribution} <: AbstractModel
     loglike::F
@@ -34,7 +40,6 @@ struct NestedTransition{T} <: AbstractTransition
     active_logl::Vector{T}
     samples::Vector{T}
     log_vol
-    log_wt
     log_z
     h
 end
@@ -56,19 +61,17 @@ function NestedTransition(model::NestedModel, p::Matrix)
     # log evidence
     logl_star, mindx = findmin(logls)
 
-    log_wt = logv + logl_star
-
     # samples from least_likely
     s = p[:, mindx]
 
-    return NestedTransition(p, logls, s, logv, log_wt, -Inf, 0)
+    return NestedTransition(p, logls, s, logv, -Inf, 0)
 end
 
 transition_type(model::NestedModel, spl::Nested) = NestedTransition
 
 function step!(rng::AbstractRNG,
     model::NestedModel,
-    spl::Nested{Single},
+    spl::Nested,
     N::Integer;
     kwargs...)
     return NestedTransition(model, spl.nactive)
@@ -88,16 +91,33 @@ end
 
 function step!(rng::AbstractRNG,
     model::NestedModel,
-    spl::Nested{Single},
+    spl::Nested,
     N::Integer,
     prev::NestedTransition;
     kwargs...)
+    # We need to flush the remaining points in the ellipse at N-nactive
+    if get(kwargs, :iteration, NaN) > N - spl.nactive
+        i = spl.nactive - N + kwargs[:iteration]
+        logl_star = prev.active_logl[i]
+        log_wt = prev.log_vol + logl_star
+        logz_new = log(exp(prev.log_z) + exp(log_wt))
+        h = (exp(log_wt - logz_new) * logl_star + 
+            exp(prev.log_z - logz_new) * (prev.h + prev.log_z) - logz_new)
+        h = isnan(h) ? prev.h : h
+
+        samples = prev.active_points[:, i]
+        
+        return NestedTransition(prev.active_points, prev.active_logl, samples, prev.log_vol, logz_new, h)
+    end
+
     logl_star, mindx = findmin(prev.active_logl)
     log_wt = prev.log_vol + logl_star
 
-    logz_new = logaddexp(prev.log_z, log_wt)
+    logz_new = log(exp(prev.log_z) + exp(log_wt))
+
     h = (exp(log_wt - logz_new) * logl_star + 
         exp(prev.log_z - logz_new) * (prev.h + prev.log_z) - logz_new)
+    h = isnan(h) ? prev.h : h
     
     samples = prev.active_points[:, mindx]
 
@@ -106,17 +126,17 @@ function step!(rng::AbstractRNG,
 
     # Get bounding ellipsoid
     enlarge_linear = spl.enlarge^(1 / size(prev.active_points, 1))
-    ell = fit(Ellipsoid, u, enlarge_linear)
+    ell = spl.method(u, enlarge_linear)
     p, logl = propose(ell, model, logl_star)
 
-    log_vol = prev.log_vol - 1 / size(prev.active_points, 2)
+    log_vol = prev.log_vol - 1 / spl.nactive
     newp = prev.active_points
     newp[:, mindx] = p
     newlogl = prev.active_logl
     newlogl[mindx] = logl
 
 
-    return NestedTransition(newp, newlogl, samples, log_vol, log_wt, logz_new, h)
+    return NestedTransition(newp, newlogl, samples, log_vol, logz_new, h)
 end
 
 function bundle_samples(rng::AbstractRNG, 
