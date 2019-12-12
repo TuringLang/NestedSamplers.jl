@@ -1,6 +1,6 @@
 module NestedSamplers
 
 include("ellipsoids.jl")
-include("EllipticalSampler.jl")
+include("sampler.jl")
 
 end

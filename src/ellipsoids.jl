@@ -1,7 +1,9 @@
 using LinearAlgebra
 using StatsBase: mean_and_cov
 
-struct Ellipsoid{T <: Number}
+abstract type AbstractEllipsoid end
+
+struct Ellipsoid{T <: Number} <: AbstractEllipsoid
     center::Vector{T}
     A::Matrix{T}
     invA::Matrix{T}

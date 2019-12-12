@@ -16,18 +16,19 @@ The two `NestedAlgorithm`s are `:single`, which uses a single bounding ellipsoid
 struct Nested <: AbstractSampler 
     nactive::Integer
     enlarge::Float64
-    method::Function
+    ellipsoid::Type{<:AbstractEllipsoid}
 end
 
 function Nested(nactive = 100, enlarge = 1.5; method=:single)
     if method === :single
-        m(x, e) = fit(Ellipsoid, x, e)
+        E = Ellipsoid
     elseif method === :multi
         error("Not implemented")
     else
         error("Invalid method $method")
     end
-    Nested(nactive, enlarge, m)
+
+    return Nested(nactive, enlarge, E)
 end
 
 struct NestedModel{F <: Function,D <: Distribution} <: AbstractModel
@@ -77,7 +78,7 @@ function step!(rng::AbstractRNG,
     return NestedTransition(model, spl.nactive)
 end
 
-function propose(ell::Ellipsoid, model::NestedModel, logl_star)
+function propose(ell::AbstractEllipsoid, model::NestedModel, logl_star)
     while true
         u = rand(ell)
         all(0 .< u .< 1) || continue
@@ -126,7 +127,7 @@ function step!(rng::AbstractRNG,
 
     # Get bounding ellipsoid
     enlarge_linear = spl.enlarge^(1 / size(prev.active_points, 1))
-    ell = spl.method(u, enlarge_linear)
+    ell = fit(spl.ellipsoid, u, enlarge_linear)
     p, logl = propose(ell, model, logl_star)
 
     log_vol = prev.log_vol - 1 / spl.nactive
