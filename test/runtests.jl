@@ -1,6 +1,7 @@
 using NestedSamplers
 using Test
+using Random
 
-@testset "NestedSamplers.jl" begin
-    # Write your tests here.
-end
+Random.seed!(8462852)
+
+include("helpers.jl")

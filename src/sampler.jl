@@ -1,5 +1,4 @@
 using Distributions: Distribution, quantile, cdf
-using Random
 import MCMCChains: Chains
 import AbstractMCMC: step!, AbstractSampler, AbstractTransition, transition_type, bundle_samples, AbstractModel
 
@@ -19,11 +18,11 @@ struct Nested <: AbstractSampler
     ellipsoid::Type{<:AbstractEllipsoid}
 end
 
-function Nested(nactive = 100, enlarge = 1.5; method=:single)
+function Nested(nactive = 100, enlarge = 1.2; method=:single)
     if method === :single
         E = Ellipsoid
     elseif method === :multi
-        error("Not implemented")
+        E = MultiEllipsoid
     else
         error("Invalid method $method")
     end
@@ -45,12 +44,14 @@ struct NestedTransition{T} <: AbstractTransition
     h
 end
 
-function NestedTransition(model::NestedModel, nactive)
+function NestedTransition(rng::AbstractRNG, model::NestedModel, nactive)
     ndim = length(model.priors)
-    us = rand(ndim, nactive)
+    us = rand(rng, ndim, nactive)
     ps = quantile.(hcat(model.priors), us)
     return NestedTransition(model, ps)
 end
+
+NestedTransition(model::NestedModel, nactive) = NestedTransition(Random.GLOBAL_RNG, model, nactive)
 
 function NestedTransition(model::NestedModel, p::Matrix)
     # Get info from uniform space into prior space
@@ -75,12 +76,12 @@ function step!(rng::AbstractRNG,
     spl::Nested,
     N::Integer;
     kwargs...)
-    return NestedTransition(model, spl.nactive)
+    return NestedTransition(rng, model, spl.nactive)
 end
 
-function propose(ell::AbstractEllipsoid, model::NestedModel, logl_star)
+function propose(rng::AbstractRNG, ell::AbstractEllipsoid, model::NestedModel, logl_star)
     while true
-        u = rand(ell)
+        u = rand(rng, ell)
         all(0 .< u .< 1) || continue
         v = quantile.(model.priors, u)
         logl = model.loglike(v)
@@ -98,9 +99,10 @@ function step!(rng::AbstractRNG,
     kwargs...)
     # We need to flush the remaining points in the ellipse at N-nactive
     if get(kwargs, :iteration, NaN) > N - spl.nactive
+        log_vol = -kwargs[:iteration] / spl.nactive - log(spl.nactive)
         i = spl.nactive - N + kwargs[:iteration]
         logl_star = prev.active_logl[i]
-        log_wt = prev.log_vol + logl_star
+        log_wt = log_vol + logl_star
         logz_new = log(exp(prev.log_z) + exp(log_wt))
         h = (exp(log_wt - logz_new) * logl_star + 
             exp(prev.log_z - logz_new) * (prev.h + prev.log_z) - logz_new)
@@ -126,9 +128,9 @@ function step!(rng::AbstractRNG,
     u = cdf.(hcat(model.priors), prev.active_points)
 
     # Get bounding ellipsoid
-    enlarge_linear = spl.enlarge^(1 / size(prev.active_points, 1))
-    ell = fit(spl.ellipsoid, u, enlarge_linear)
-    p, logl = propose(ell, model, logl_star)
+    pointvol = exp(-get(kwargs, :iteration, NaN) / spl.nactive) / spl.nactive
+    ell = scale!(fit(spl.ellipsoid, u, pointvol), spl.enlarge)
+    p, logl = propose(rng, ell, model, logl_star)
 
     log_vol = prev.log_vol - 1 / spl.nactive
     newp = prev.active_points
