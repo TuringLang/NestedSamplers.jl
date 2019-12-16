@@ -151,10 +151,9 @@ function bundle_samples(rng::AbstractRNG,
     kwargs...)
     vals = copy(reduce(hcat, [vcat(t.samples, t.log_z, t.h) for t in ts])')
     if param_names === missing
-        param_names = ["Parameter $i" for i in 1:length(first(vals)) - 2]
+        param_names = ["Parameter $i" for i in 1:length(vals[1, :]) - 2]
     end
 
     push!(param_names, "logz", "h")
-
     return Chains(vals, param_names, (internals = ["logz", "h"],))
 end

@@ -67,6 +67,7 @@ where `size(center) == (N,)` and `size(A) == (N,N)`.
 struct Ellipsoid{T <: Number} <: AbstractEllipsoid
     center::Vector{T}
     A::Matrix{T}
+    volume::T
 end
 
 Ellipsoid(center::AbstractVector, A::AbstractMatrix) =  Ellipsoid(center, A, _volume(A))
@@ -74,7 +75,7 @@ Ellipsoid(center::AbstractVector, A::AbstractMatrix) =  Ellipsoid(center, A, _vo
 Base.ndims(e::Ellipsoid) = length(e.center)
 
 # Returns the volume of an ellipsoid given its axes matrix
-volume(ell::Ellipsoid) = unit_volume(ndims(ell)) / sqrt(det(ell.A))
+_volume(A::AbstractMatrix) = unit_volume(size(A, 1)) / sqrt(det(A))
 
 # Returns the principal axes and their lengths
 function decompose(ell::Ellipsoid)
@@ -86,7 +87,7 @@ end
 
 # Scale to new volume
 function scale!(ell::Ellipsoid, vol)
-    f = (vol / volume(ell))^(1/ndims(ell))
+    f = (vol / ell.volume)^(1/ndims(ell))
     ell.A ./= f^2
     return ell
 end
@@ -141,7 +142,7 @@ function fit(::Type{Ellipsoid}, x::AbstractMatrix, pointvol=0.0; minvol=false)
     fmax = -Inf
     for k in 1:npoints
         f = 0.0
-        for i in 1:ndim, j in 1:ndim
+        @inbounds for i in 1:ndim, j in 1:ndim
             f += A[i, j] * delta[i, k] * delta[j, k]
         end
         fmax = max(fmax, f)
@@ -157,7 +158,7 @@ function fit(::Type{Ellipsoid}, x::AbstractMatrix, pointvol=0.0; minvol=false)
 
     if minvol
         v = npoints * pointvol
-        volume(ell) < v && scale!(ell, v)
+        ell.volume < v && scale!(ell, v)
     end
 
     return ell
@@ -170,16 +171,16 @@ end
 Base.length(me::MultiEllipsoid) = length(me.ellipsoids)
 Base.size(me::MultiEllipsoid, i) = size(me.ellipsoids, i)
 Base.getindex(me::MultiEllipsoid, idx) = me.ellipsoids[idx]
-function Base.setindex!(me::MultiEllipsoid, idx, e::Ellipsoid)
-    me.ellipsoids[idx] = e
-    return me
-end
+Base.setindex!(me::MultiEllipsoid, idx, e::Ellipsoid) = setindex!(me.ellipsoids, idx, e)
 Base.broadcastable(me::MultiEllipsoid) = Ref(me)
 Base.eachindex(me::MultiEllipsoid) = eachindex(me.ellipsoids)
 Base.firstindex(me::MultiEllipsoid) = firstindex(me.ellipsoids)
 Base.lastindex(me::MultiEllipsoid) = lastindex(me.ellipsoids)
 Base.iterate(me::MultiEllipsoid) = iterate(me.ellipsoids)
+Base.iterate(me::MultiEllipsoid, i::Integer) = iterate(me.ellipsoids, i)
 Base.collect(me::MultiEllipsoid) = collect(me.ellipsoids)
+
+contains(me::MultiEllipsoid, x) = any(contains.(me.ellipsoids, Ref(x)))
 
 function scale!(me::MultiEllipsoid, vol)
     scale!.(me.ellipsoids, vol)
@@ -204,25 +205,24 @@ function fit(::Type{MultiEllipsoid}, x::AbstractMatrix, parent::Ellipsoid, point
 
     # if either cluster has fewer than ndim points, it is ill-defined
     if size(x1, 2) < 2ndim || size(x2, 2) < 2ndim
-        return [ell]
+        return [parent]
     end
 
     # Getting bounding ellipsoid for each cluster
     ell1, ell2 = fit.(Ellipsoid, (x1, x2), pointvol, minvol=true)
 
     # If total volume decreased by over half, recurse
-    if volume(ell1) + volume(ell2) < 0.5volume(parent)
-        @info "recursing"
+    if ell1.volume + ell2.volume < 0.5parent.volume
         return vcat(fit(MultiEllipsoid, x1, ell1, pointvol), 
                     fit(MultiEllipsoid, x2, ell2, pointvol))
     end
 
     # Otherwise see if total volume is much larger than expected 
     # and split into more than 2 clusters
-    if volume(parent) > 2npoints * pointvol
+    if parent.volume > 2npoints * pointvol
         out = vcat(fit(MultiEllipsoid, x1, ell1, pointvol), 
                     fit(MultiEllipsoid, x2, ell2, pointvol))
-        sum(volume.(out)) < 0.5volume(parent) && return out
+        sum([o.volume for o in out]) < 0.5parent.volume && return out
     end
 
     # Otherwise, return single bounding ellipse
@@ -233,7 +233,7 @@ function Base.rand(rng::AbstractRNG, me::MultiEllipsoid)
     length(me) == 1 && return rand(rng, me[1])
 
     # Select random ellipsoid
-    vols = volume.(me)
+    vols = [m.volume for m in me]
     idx = rand(rng, Categorical(vols ./ sum(vols)))
     ell = me[idx]
 
