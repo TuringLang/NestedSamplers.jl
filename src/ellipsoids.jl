@@ -20,8 +20,8 @@ function unit_volume(n::Integer)
         end
     else
         f = 2.0
-        for i in 3:3:n
-            f *= (2.0 / i * π)
+        for i in 3:2:n
+            f *= 2π / i
         end
     end
     return f
