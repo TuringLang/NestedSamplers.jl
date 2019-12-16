@@ -93,7 +93,7 @@ function propose(rng::AbstractRNG, ell::AbstractEllipsoid, model::NestedModel, l
         all(0 .< u .< 1) || continue
         v = quantile.(model.priors, u)
         logl = model.loglike(v)
-        if logl > logl_star
+        if logl ≥ logl_star
             return v, logl
         end
     end

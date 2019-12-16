@@ -206,9 +206,11 @@ end
 function fit(::Type{MultiEllipsoid}, x::AbstractMatrix, parent::Ellipsoid; pointvol=0.0)
     ndim, npoints = size(x)
 
+    # Clustering will fail with fewer than k=2 points
+    npoints ≤ 2 && return [parent]
+
     p1, p2 = endpoints(parent)
     starting_points = hcat(p1, p2)
-
     R = kmeans!(x, starting_points; maxiter=10)
     labels = assignments(R)
     x1, x2 = [x[:, l .== labels] for l in unique(labels)] 
