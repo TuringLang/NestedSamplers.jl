@@ -89,7 +89,7 @@ end
     for npoints in 1:N
         ell = fit(Ellipsoid, x[:, 1:npoints], pointvol=ell_gen.volume / npoints)
 
-        @test ell.volume ≈ ell_gen.volume atol=1e-6
+        @test ell.volume ≈ ell_gen.volume rtol=1e-5
         @test all([x[:, i] ∈ ell for i in 1:npoints])
     end
 end
