@@ -69,7 +69,8 @@ struct Ellipsoid{T <: Number} <: AbstractEllipsoid
     A::Matrix{T}
     volume::T
 end
-
+# Unit ellipsoid
+Ellipsoid(ndim::Integer) = Ellipsoid(zeros(ndim), diagm(0=>ones(ndim)))
 Ellipsoid(center::AbstractVector, A::AbstractMatrix) =  Ellipsoid(center, A, _volume(A))
 
 Base.ndims(e::Ellipsoid) = length(e.center)
@@ -86,8 +87,8 @@ function decompose(ell::Ellipsoid)
 end
 
 # Scale to new volume
-function scale!(ell::Ellipsoid, vol)
-    f = (vol / ell.volume)^(1/ndims(ell))
+function scale!(ell::Ellipsoid, factor)
+    f = factor^(1/ndims(ell))
     ell.A ./= f^2
     return ell
 end
@@ -158,7 +159,7 @@ function fit(::Type{Ellipsoid}, x::AbstractMatrix, pointvol=0.0; minvol=false)
 
     if minvol
         v = npoints * pointvol
-        ell.volume < v && scale!(ell, v)
+        ell.volume < v && scale!(ell, v / ell.volume)
     end
 
     return ell
@@ -180,10 +181,8 @@ Base.iterate(me::MultiEllipsoid) = iterate(me.ellipsoids)
 Base.iterate(me::MultiEllipsoid, i::Integer) = iterate(me.ellipsoids, i)
 Base.collect(me::MultiEllipsoid) = collect(me.ellipsoids)
 
-contains(me::MultiEllipsoid, x) = any(contains.(me.ellipsoids, Ref(x)))
-
-function scale!(me::MultiEllipsoid, vol)
-    scale!.(me.ellipsoids, vol)
+function scale!(me::MultiEllipsoid, factor)
+    scale!.(me.ellipsoids, factor)
     return me
 end
 
@@ -241,14 +240,10 @@ function Base.rand(rng::AbstractRNG, me::MultiEllipsoid)
     x = rand(rng, ell)
 
     # How many ellipsoids is the sample in
-    n = count(contains.(me, Ref(x)))
+    n = count(contains.(me.ellipsoids, Ref(x)))
 
     # Only accept with probability 1/n
-    if n == 1 || rand(rng) < 1/n
-        return x
-    else
-        return rand(rng, me)
-    end
+    return n == 1 || rand(rng) < 1/n ? x : rand(rng, me)
 end
 
 Base.rand(me::MultiEllipsoid) = rand(Random.GLOBAL_RNG, me)
