@@ -16,8 +16,11 @@ StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 julia = "1"
 
 [extras]
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+AbstractMCMC = "80f14c24-f653-4e6a-9b94-39d6b0f70001"
+Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+IterTools = "c8e1da08-722c-5040-9ed9-7db0dc04731e"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test", "LinearAlgebra"]
+test = ["Test", "LinearAlgebra", "AbstractMCMC", "Distributions", "IterTools"]
