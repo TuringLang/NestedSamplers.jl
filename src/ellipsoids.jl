@@ -41,10 +41,10 @@ function make_eigvals_positive!(cov::AbstractMatrix, targetprod)
     E = eigen(cov)
     mask = E.values .< 1e-10
     if any(mask)
-        nzprod = product(E.values[.!mask])
+        nzprod = prod(E.values[.!mask])
         nzeros = count(mask)
-        E.values[mask] = (targetprod / nzprod)^(1/nzeros)
-        cov .= E.vectors * Diagonal(E.values) * inv(E.vectors)
+        E.values[mask] .= (targetprod / nzprod)^(1/nzeros)
+        cov .= E.vectors * Diagonal(E.values) / E.vectors
     end
     return cov
 end
@@ -72,6 +72,8 @@ end
 # Unit ellipsoid
 Ellipsoid(ndim::Integer) = Ellipsoid(zeros(ndim), diagm(0=>ones(ndim)))
 Ellipsoid(center::AbstractVector, A::AbstractMatrix) =  Ellipsoid(center, A, _volume(A))
+
+Base.broadcastable(e::Ellipsoid) = Ref(e)
 
 Base.ndims(e::Ellipsoid) = length(e.center)
 
@@ -108,7 +110,7 @@ function endpoints(ell::Ellipsoid)
     return ell.center .- major_axis, ell.center .+ major_axis
 end
 
-function Base.in(x, ell::Ellipsoid)
+function Base.in(x::AbstractVector, ell::Ellipsoid)
     d = x .- ell.center
     return d' * ell.A * d ≤ 1.0
 end
@@ -121,17 +123,22 @@ function Base.rand(rng::AbstractRNG, ell::Ellipsoid)
 end
 
 Base.rand(ell::Ellipsoid) = rand(Random.GLOBAL_RNG, ell)
-Base.rand(rng::AbstractRNG, ell::Ellipsoid, n) = hcat([rand(rng, ell) for _ in 1:n])
-Base.rand(ell::Ellipsoid, n) = rand(Random.GLOBAL_RNG, ell, n)
+Base.rand(rng::AbstractRNG, ell::Ellipsoid, n::Integer) = reduce(hcat, [rand(rng, ell) for _ in 1:n])
+Base.rand(ell::Ellipsoid, n::Integer) = rand(Random.GLOBAL_RNG, ell, n)
 
-function fit(::Type{Ellipsoid}, x::AbstractMatrix, pointvol=0.0; minvol=false)
+function fit(::Type{Ellipsoid}, x::AbstractMatrix; pointvol=0.0, minvol=false)
     ndim, npoints = size(x)
 
     center, cov = mean_and_cov(x, 2)
     delta = x .- center
 
+    # single element covariance will return NaN, but we want 0
+    if npoints == 1 
+        cov = zeros(eltype(center), ndim, ndim)
+    end
+
     # Covariance is smaller than r^2 by a factor of 1/(n+2)
-    cov .*= (ndim + 2)
+    cov .*= ndim + 2
 
     # Ensure cov is nonsingular
     targetprod = (npoints * pointvol / unit_volume(ndim))^2
@@ -141,18 +148,19 @@ function fit(::Type{Ellipsoid}, x::AbstractMatrix, pointvol=0.0; minvol=false)
 
     # calculate expansion factor necessary to bound each points
     fmax = -Inf
-    for k in 1:npoints
+    @inbounds for k in 1:npoints
         f = 0.0
-        @inbounds for i in 1:ndim, j in 1:ndim
-            f += A[i, j] * delta[i, k] * delta[j, k]
+        for j=1:ndim, i=1:ndim
+            f += delta[i, k] * A[i, j] * delta[j, k]
         end
         fmax = max(fmax, f)
     end
 
     # try to avoid round-off errors s.t. furthest point obeys
     # x^T A x < 1 - √eps
-    if fmax > 1 - sqrt(eps(eltype(A)))
-        A .*= (1 - sqrt(eps(eltype(A)))) / fmax
+    flex = 1 - sqrt(eps(eltype(A)))
+    if fmax > flex
+        A .*= flex / fmax
     end
 
     ell = Ellipsoid(reshape(center, ndim), A)
@@ -189,13 +197,13 @@ function scale!(me::MultiEllipsoid, factor)
     return me
 end
 
-function fit(::Type{MultiEllipsoid}, x::AbstractMatrix, pointvol=0.0)
-    parent = fit(Ellipsoid, x, pointvol, minvol=true)
-    ells = fit(MultiEllipsoid, x, parent, pointvol)
+function fit(::Type{MultiEllipsoid}, x::AbstractMatrix; pointvol=0.0)
+    parent = fit(Ellipsoid, x, pointvol=pointvol, minvol=true)
+    ells = fit(MultiEllipsoid, x, parent, pointvol=pointvol)
     return MultiEllipsoid(ells)
 end
 
-function fit(::Type{MultiEllipsoid}, x::AbstractMatrix, parent::Ellipsoid, pointvol=0.0)
+function fit(::Type{MultiEllipsoid}, x::AbstractMatrix, parent::Ellipsoid; pointvol=0.0)
     ndim, npoints = size(x)
 
     p1, p2 = endpoints(parent)
@@ -211,19 +219,19 @@ function fit(::Type{MultiEllipsoid}, x::AbstractMatrix, parent::Ellipsoid, point
     end
 
     # Getting bounding ellipsoid for each cluster
-    ell1, ell2 = fit.(Ellipsoid, (x1, x2), pointvol, minvol=true)
+    ell1, ell2 = fit.(Ellipsoid, (x1, x2), pointvol=pointvol, minvol=true)
 
     # If total volume decreased by over half, recurse
     if ell1.volume + ell2.volume < 0.5parent.volume
-        return vcat(fit(MultiEllipsoid, x1, ell1, pointvol), 
-                    fit(MultiEllipsoid, x2, ell2, pointvol))
+        return vcat(fit(MultiEllipsoid, x1, ell1, pointvol=pointvol), 
+                    fit(MultiEllipsoid, x2, ell2, pointvol=pointvol))
     end
 
     # Otherwise see if total volume is much larger than expected 
     # and split into more than 2 clusters
     if parent.volume > 2npoints * pointvol
-        out = vcat(fit(MultiEllipsoid, x1, ell1, pointvol), 
-                    fit(MultiEllipsoid, x2, ell2, pointvol))
+        out = vcat(fit(MultiEllipsoid, x1, ell1, pointvol=pointvol), 
+                    fit(MultiEllipsoid, x2, ell2, pointvol=pointvol))
         sum([o.volume for o in out]) < 0.5parent.volume && return out
     end
 
@@ -250,3 +258,5 @@ function Base.rand(rng::AbstractRNG, me::MultiEllipsoid)
 end
 
 Base.rand(me::MultiEllipsoid) = rand(Random.GLOBAL_RNG, me)
+Base.rand(rng::AbstractRNG, me::MultiEllipsoid, n::Integer) = reduce(hcat, [rand(rng, me) for _ in 1:n])
+Base.rand(me::MultiEllipsoid, n::Integer) = rand(Random.GLOBAL_RNG, me, n)

@@ -140,8 +140,8 @@ function step!(rng::AbstractRNG,
 
     # Get bounding ellipsoid (only every update_interval)
     if prev.it % spl.update_interval == 0
-        pointvol = exp(-get(kwargs, :iteration, NaN) / spl.nactive) / spl.nactive
-        ell = fit(spl.ell_type, u, pointvol)
+        pointvol = exp(-get(kwargs, :iteration, 0) / spl.nactive) / spl.nactive
+        ell = fit(spl.ell_type, u, pointvol=pointvol)
         scale!(ell, spl.enlarge)
         it = 0
     else

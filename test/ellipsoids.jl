@@ -75,4 +75,23 @@ end
 
     @test expect - 5σ < ninner < expect + 5σ
 end
+
+@testset "Bounding" begin
+    ell_gen = random_ellipsoid(N)
+    x = rand(ell_gen, 100)
+    ell = fit(Ellipsoid, x)
+    @test all([x[:, i] ∈ ell for i in axes(x, 2)])
 end
+
+@testset "Bounding Robust" begin
+    ell_gen = random_ellipsoid(N)
+    x = rand(ell_gen, N)
+    for npoints in 1:N
+        ell = fit(Ellipsoid, x[:, 1:npoints], pointvol=ell_gen.volume / npoints)
+
+        @test ell.volume ≈ ell_gen.volume atol=1e-6
+        @test all([x[:, i] ∈ ell for i in 1:npoints])
+    end
+end
+
+end # testset
