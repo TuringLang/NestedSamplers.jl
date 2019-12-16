@@ -64,7 +64,7 @@ An `N`-dimensional ellipsoid defined by
 
 where `size(center) == (N,)` and `size(A) == (N,N)`.
 """
-struct Ellipsoid{T <: Number} <: AbstractEllipsoid
+mutable struct Ellipsoid{T <: Number} <: AbstractEllipsoid
     center::Vector{T}
     A::Matrix{T}
     volume::T
@@ -90,6 +90,7 @@ end
 function scale!(ell::Ellipsoid, factor)
     f = factor^(1/ndims(ell))
     ell.A ./= f^2
+    ell.volume = _volume(ell.A)
     return ell
 end
 
@@ -107,11 +108,10 @@ function endpoints(ell::Ellipsoid)
     return ell.center .- major_axis, ell.center .+ major_axis
 end
 
-function contains(ell::Ellipsoid, x)
+function Base.in(x, ell::Ellipsoid)
     d = x .- ell.center
-    return d' * ell.A * d <= 1.0
+    return d' * ell.A * d ≤ 1.0
 end
-
 
 function Base.rand(rng::AbstractRNG, ell::Ellipsoid)
     # Generate random offset from center
@@ -164,6 +164,9 @@ function fit(::Type{Ellipsoid}, x::AbstractMatrix, pointvol=0.0; minvol=false)
 
     return ell
 end
+
+#-------------------------------------------
+# MultiEllipsoid
 
 struct MultiEllipsoid{T} <: AbstractEllipsoid
     ellipsoids::Vector{Ellipsoid{T}}
@@ -240,7 +243,7 @@ function Base.rand(rng::AbstractRNG, me::MultiEllipsoid)
     x = rand(rng, ell)
 
     # How many ellipsoids is the sample in
-    n = count(contains.(me.ellipsoids, Ref(x)))
+    n = count(Ref(x) .∈ me.ellipsoids)
 
     # Only accept with probability 1/n
     return n == 1 || rand(rng) < 1/n ? x : rand(rng, me)
