@@ -101,7 +101,7 @@ end
     v1 = volume(me)
     scale!(me, scale)
 
-    @test volume(me) ≈ scale*v1
+    @test volume(me) ≈ scale*v1 rtol=1e-6
 end
 
 @testset "ME Sample" begin
