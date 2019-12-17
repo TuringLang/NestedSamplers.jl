@@ -11,7 +11,7 @@ using AbstractMCMC
         chain = sample(model, spl, 100, param_names=["x"])
 
         @test spl.logz ≈ 0 atol=1e-10
-        @test_broken spl.h ≈ 0 atol=1e-10
+        @test spl.h ≈ 0 atol=1e-10
     end
 end
 
