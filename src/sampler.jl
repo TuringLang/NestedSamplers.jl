@@ -32,7 +32,7 @@ function Nested(nactive = 100, enlarge = 1.2; update_interval=round(Int, 0.6nact
         error("Invalid method $method")
     end
 
-    return Nested(nactive, enlarge, update_interval, zeros(0,nactive), zeros(nactive), ell, -Inf, 0.0)
+    return Nested(nactive, enlarge, update_interval, zeros(0,nactive), zeros(nactive), ell, -1e300, 0.0)
 end
 
 Base.show(io::IO, n::Nested) = print(io, "Nested{$(typeof(n.active_ell))}(nactive=$(n.nactive), enlarge=$(n.enlarge), update_interval=$(n.update_interval))")
