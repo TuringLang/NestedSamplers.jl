@@ -107,7 +107,7 @@ function step!(rng::AbstractRNG,
     # Get bounding ellipsoid (only every update_interval)
     if iteration % s.update_interval == 0
         # Get points in unit space
-        u = cdf.(hcat(model.priors), prev.active_points)
+        u = cdf.(hcat(model.priors), s.active_points)
 
         # fit ellipsoid
         pointvol = exp(-(iteration - 1) / s.nactive) / s.nactive
