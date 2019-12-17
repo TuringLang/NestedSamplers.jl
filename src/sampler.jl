@@ -1,6 +1,6 @@
 using Distributions: Distribution, quantile, cdf
 import MCMCChains: Chains
-import AbstractMCMC: step!, AbstractSampler, AbstractTransition, transition_type, bundle_samples, AbstractModel
+import AbstractMCMC: AbstractSampler, AbstractTransition, AbstractModel, step!, sample_init!, sample_end!, transition_type, bundle_samples
 
 export NestedModel, Nested
 
@@ -12,79 +12,180 @@ Nested Sampler
 
 The two `NestedAlgorithm`s are `:single`, which uses a single bounding ellipsoid, and `:multi`, which finds an optimal clustering of ellipsoids.
 """
-struct Nested <: AbstractSampler 
+mutable struct Nested{E<:AbstractEllipsoid} <: AbstractSampler 
     nactive::Integer
     enlarge::Float64
     update_interval::Integer
-    ell_type::Type{<:AbstractEllipsoid}
+    # behind the scenes things
+    active_points::Matrix
+    active_logl::Vector
+    active_ell::E
+    logz
+    h
 end
 
 function Nested(nactive = 100, enlarge = 1.2; update_interval=round(Int, 0.6nactive), method=:single)
     if method === :single
-        E = Ellipsoid
+        ell = Ellipsoid(1)
     elseif method === :multi
-        E = MultiEllipsoid
+        ell = MultiEllipsoid([Ellipsoid(1)])
     else
         error("Invalid method $method")
     end
 
-    return Nested(nactive, enlarge, update_interval, E)
+    return Nested(nactive, enlarge, update_interval, Matrix[], Vector[], ell, -Inf, 0.0)
 end
+
+Base.show(io::IO, n::Nested) = print(io, "Nested{$(typeof(n.active_ell))}(nactive=$(n.nactive), enlarge=$(n.enlarge), update_interval=$(n.update_interval))")
 
 struct NestedModel{F <: Function,D <: Distribution} <: AbstractModel
     loglike::F
     priors::Vector{D}
 end
 
-struct NestedTransition{T,E<:AbstractEllipsoid} <: AbstractTransition
-    active_points::Matrix{T}
-    active_logl::Vector{T}
-    samples::Vector{T}
-    log_vol
-    log_wt
-    log_z
-    h
-    bounding_ell::E
-    it::Integer
+struct NestedTransition <: AbstractTransition
+    draw::Vector
+    logL # log likelihood
+    log_vol # log mass of objects in hyperspace
+    log_wt # log weight of this draw
 end
 
-function NestedTransition(rng::AbstractRNG, model::NestedModel, nactive)
-    ndim = length(model.priors)
-    us = rand(rng, ndim, nactive)
-    ps = quantile.(hcat(model.priors), us)
-    return NestedTransition(model, ps)
+transition_type(model::NestedModel, s::Nested) = NestedTransition
+
+function sample_init!(
+    rng::AbstractRNG,
+    model::NestedModel,
+    s::Nested{E},
+    N::Integer;
+    debug::Bool=false,
+    kwargs...
+) where {E<:AbstractEllipsoid}
+    debug && @info "Initializing sampler"
+    s.nactive < 2length(model.priors) && @warn "Using fewer than 2*ndim active points is discouraged"
+
+    # samples in unit space
+    us = rand(rng, length(model.priors), s.nactive)
+
+    # samples and loglikes in prior space
+    s.active_points = quantile.(hcat(model.priors), us)
+    s.active_logl = [model.loglike(p[:, i]) for i in 1:size(p, 2)]
+
+    # get bounding ellipsoid
+    s.active_ell = scale!(fit(E, us, pointvol=1/s.nactive), s.enlarge)
 end
-
-NestedTransition(model::NestedModel, nactive) = NestedTransition(Random.GLOBAL_RNG, model, nactive)
-
-function NestedTransition(model::NestedModel, p::Matrix)
-    # Get info from uniform space into prior space
-    logls = [model.loglike(p[:, i]) for i in 1:size(p, 2)]
-
-    # log prior volume
-    logv = log(1 - exp(-1 / size(p, 2)))
-
-    # log evidence
-    logl_star, mindx = findmin(logls)
-
-    # samples from least_likely
-    s = p[:, mindx]
-
-    # Dummy unit ellipsoid to start
-    ell = Ellipsoid(size(p, 1))
-
-    return NestedTransition(p, logls, s, logv, -Inf, -Inf, 0, ell, 0)
-end
-
-transition_type(model::NestedModel, spl::Nested) = NestedTransition
 
 function step!(rng::AbstractRNG,
     model::NestedModel,
-    spl::Nested,
+    s::Nested,
     N::Integer;
     kwargs...)
-    spl.nactive < 2length(model.priors) && @warn "Using fewer than 2*ndim active points is discouraged"
-    return NestedTransition(rng, model, spl.nactive)
+    # Find least likely point
+    logL, idx = findmin(s.active_logl)
+    draw = s.active_points[:, idx]
+
+    # Initial point will have volume 1 - exp(-1/npoints)
+    log_vol = log(1 - exp(-1/s.nactive))
+    log_wt = log_vol + logL
+
+    return NestedTransition(draw, logL, log_vol, log_wt)
+end
+
+function step!(rng::AbstractRNG,
+    model::NestedModel,
+    s::Nested{E},
+    N::Integer,
+    prev::NestedTransition;
+    iteration,
+    kwargs...
+    ) where {E<:AbstractEllipsoid}
+
+    # update sampler
+    logz = log(exp(s.logz) + exp(prev.log_wt))
+    s.h = (exp(prev.log_wt - logz) * prev.logL + 
+            exp(s.logz - logz) * (s.h + s.logz) - logz)
+    s.logz = logz
+
+    # Get bounding ellipsoid (only every update_interval)
+    if iteration % s.update_interval == 0
+        # Get points in unit space
+        u = cdf.(hcat(model.priors), prev.active_points)
+
+        # fit ellipsoid
+        pointvol = exp(-(iteration - 1) / s.nactive) / s.nactive
+        s.active_ell = scale!(fit(E, u, pointvol=pointvol), s.enlarge)
+    end
+
+    # Find least likely point
+    logL, idx = findmin(s.active_logl)
+    draw = s.active_points[:, idx]
+
+    log_vol = prev.log_vol - 1 / s.nactive
+    log_wt = log_vol + logL
+
+    # Get new point and log like
+    p, logl = propose(rng, s.active_ell, model, logL)
+    s.active_points[:, idx] = p
+    s.active_logl[idx] = logl
+
+    return NestedTransition(draw, logL, log_vol, log_wt)
+end
+
+function sample_end!(
+    rng::AbstractRNG,
+    ℓ::AbstractModel,
+    s::Nested,
+    N::Integer,
+    ts::Vector{<:AbstractTransition};
+    debug::Bool=false,
+    kwargs...
+)
+    debug && @info "Flushing remaining $(s.nactive) points"
+
+    prev = ts[end]
+    log_vol = -N / s.nactive - log(s.nactive)
+    for i in 1:s.nactive
+        # update sampler
+        logz = log(exp(s.logz) + exp(prev.log_wt))
+        s.h = (exp(prev.log_wt - logz) * prev.logL + 
+            exp(s.logz - logz) * (s.h + s.logz) - logz)
+        s.logz = logz
+
+        # get new point
+        draw = s.active_points[:, i]
+        logL = s.active_logl[i]
+        log_wt = log_vol + logL
+
+        prev = NestedTransition(draw, logL, log_vol, log_wt)
+        push!(ts, prev)
+    end
+
+    # h should always be non-negative. Numerical error can arise from pathological corner cases
+    if s.h < 0.0
+        s.h = s.h > -√eps(s.h) ? zero(s.h) : @warn "Negative h encountered h=$(s.h). This is likely a bug"
+    end
+
+    println(stderr, "logz=$(s.logz) +- $(sqrt(s.h / s.nactive))")
+    println(stderr, "h=$(s.h)")
+end
+
+function bundle_samples(rng::AbstractRNG, 
+    ℓ::AbstractModel, 
+    s::Nested, 
+    N::Integer, 
+    ts::Vector{<:AbstractTransition}; 
+    param_names = missing,
+    kwargs...)
+    vals = copy(reduce(hcat, [vcat(t.draw, t.log_wt) for t in ts])')
+    # update weights based on evidence
+    @. vals[:, end, 1] = exp(vals[:, end, 1] - s.logz)
+
+    # Parameter names
+    if param_names === missing
+        param_names = ["Parameter $i" for i in 1:length(vals[1, :]) - 1]
+    end
+    push!(param_names, "weights")
+
+    return Chains(vals, param_names, (internals = ["weights"],), evidence=exp(logz))
 end
 
 function propose(rng::AbstractRNG, ell::AbstractEllipsoid, model::NestedModel, logl_star)
@@ -97,87 +198,4 @@ function propose(rng::AbstractRNG, ell::AbstractEllipsoid, model::NestedModel, l
             return v, logl
         end
     end
-end
-
-function step!(rng::AbstractRNG,
-    model::NestedModel,
-    spl::Nested,
-    N::Integer,
-    prev::NestedTransition;
-    kwargs...)
-    # TODO put this part into a function
-    # We need to flush the remaining points in the ellipse at N-nactive
-    if get(kwargs, :iteration, NaN) > N - spl.nactive
-        log_vol = -kwargs[:iteration] / spl.nactive - log(spl.nactive)
-        i = spl.nactive - N + kwargs[:iteration]
-        logl_star = prev.active_logl[i]
-        log_wt = log_vol + logl_star
-        logz_new = log(exp(prev.log_z) + exp(log_wt))
-        h = (exp(log_wt - logz_new) * logl_star + 
-            exp(prev.log_z - logz_new) * (prev.h + prev.log_z) - logz_new)
-        h = isnan(h) ? prev.h : h
-
-        samples = prev.active_points[:, i]
-        
-        return NestedTransition(prev.active_points, prev.active_logl, samples, prev.log_vol, log_wt, logz_new, h, prev.bounding_ell, prev.it)
-    end
-
-    # TODO put this stuff into a function
-
-    logl_star, mindx = findmin(prev.active_logl)
-    log_wt = prev.log_vol + logl_star
-
-    logz_new = log(exp(prev.log_z) + exp(log_wt))
-
-    h = (exp(log_wt - logz_new) * logl_star + 
-        exp(prev.log_z - logz_new) * (prev.h + prev.log_z) - logz_new)
-    h = isnan(h) ? prev.h : h
-    
-    samples = prev.active_points[:, mindx]
-
-    # Get points in unit space
-    u = cdf.(hcat(model.priors), prev.active_points)
-
-    # Get bounding ellipsoid (only every update_interval)
-    if prev.it % spl.update_interval == 0
-        pointvol = exp(-get(kwargs, :iteration, 0) / spl.nactive) / spl.nactive
-        ell = fit(spl.ell_type, u, pointvol=pointvol)
-        scale!(ell, spl.enlarge)
-        it = 0
-    else
-        ell = prev.bounding_ell
-        it = prev.it + 1
-    end
-
-    p, logl = propose(rng, ell, model, logl_star)
-
-    # prepare new state
-    log_vol = prev.log_vol - 1 / spl.nactive
-    newp = prev.active_points
-    newp[:, mindx] = p
-    newlogl = prev.active_logl
-    newlogl[mindx] = logl
-
-
-    return NestedTransition(newp, newlogl, samples, log_vol, log_wt, logz_new, h, ell, it)
-end
-
-function bundle_samples(rng::AbstractRNG, 
-    ℓ::AbstractModel, 
-    s::Nested, 
-    N::Integer, 
-    ts::Vector{<:AbstractTransition}; 
-    param_names = missing,
-    kwargs...)
-    vals = copy(reduce(hcat, [vcat(t.samples, t.log_wt, t.log_z, t.h) for t in ts])')
-    # update weights based on best evidence
-    @. vals[:, end-2, 1] = exp(vals[:, end-2, 1] - vals[end, end-1, 1])
-
-    # Parameter names
-    if param_names === missing
-        param_names = ["Parameter $i" for i in 1:length(vals[1, :]) - 3]
-    end
-    push!(param_names, "weights", "logz", "h")
-
-    return Chains(vals, param_names, (internals = ["weights", "logz", "h"],))
 end

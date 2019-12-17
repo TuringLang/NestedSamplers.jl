@@ -7,12 +7,11 @@ using AbstractMCMC
     model = NestedModel(logl, priors)
 
     for method in [:single, :multi]
-        chain = sample(model, Nested(4, method=method), 100, param_names=["x"])
-        logz = Array(chain[:logz])
-        h = Array(chain[:h])
+        spl = Nested(4, method=method)
+        chain = sample(model, spl, 100, param_names=["x"])
 
-        @test logz[end] ≈ 0 atol=1e-10
-        @test_broken h[end] ≈ 0 atol=1e-10
+        @test spl.logz ≈ 0 atol=1e-10
+        @test_broken spl.h ≈ 0 atol=1e-10
     end
 end
 
