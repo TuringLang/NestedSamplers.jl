@@ -128,7 +128,7 @@ Base.rand(ell::Ellipsoid) = rand(Random.GLOBAL_RNG, ell)
 Base.rand(rng::AbstractRNG, ell::Ellipsoid, n::Integer) = reduce(hcat, [rand(rng, ell) for _ in 1:n])
 Base.rand(ell::Ellipsoid, n::Integer) = rand(Random.GLOBAL_RNG, ell, n)
 
-function fit(::Type{Ellipsoid}, x::AbstractMatrix; pointvol=0.0, minvol=false)
+function fit(::Type{<:Ellipsoid}, x::AbstractMatrix; pointvol=0.0, minvol=false)
     ndim, npoints = size(x)
 
     center, cov = mean_and_cov(x, 2)
@@ -193,13 +193,13 @@ function scale!(me::MultiEllipsoid, factor)
     return me
 end
 
-function fit(::Type{MultiEllipsoid}, x::AbstractMatrix; pointvol=0.0)
+function fit(::Type{<:MultiEllipsoid}, x::AbstractMatrix; pointvol=0.0)
     parent = fit(Ellipsoid, x, pointvol=pointvol, minvol=true)
     ells = fit(MultiEllipsoid, x, parent, pointvol=pointvol)
     return MultiEllipsoid(ells)
 end
 
-function fit(::Type{MultiEllipsoid}, x::AbstractMatrix, parent::Ellipsoid; pointvol=0.0)
+function fit(::Type{<:MultiEllipsoid}, x::AbstractMatrix, parent::Ellipsoid; pointvol=0.0)
     ndim, npoints = size(x)
 
     # Clustering will fail with fewer than k=2 points

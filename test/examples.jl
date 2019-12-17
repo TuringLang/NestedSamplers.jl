@@ -8,7 +8,7 @@ using AbstractMCMC
 
     for method in [:single, :multi]
         spl = Nested(4, method=method)
-        chain = sample(model, spl, 100, param_names=["x"])
+        chain = sample(model, spl, 100, param_names=["x"], debug=true)
 
         @test spl.logz ≈ 0 atol=1e-10
         @test_broken spl.h ≈ 0 atol=1e-10

@@ -4,6 +4,17 @@ import AbstractMCMC: AbstractSampler, AbstractTransition, AbstractModel, step!, 
 
 export NestedModel, Nested
 
+mutable struct Nested{E<:AbstractEllipsoid} <: AbstractSampler 
+    nactive         ::Integer
+    enlarge         ::Float64
+    update_interval ::Integer
+    # behind the scenes things
+    active_points   ::Matrix
+    active_logl     ::Vector
+    active_ell      ::E
+    logz            ::Float64
+    h               ::Float64
+end
 
 """
     Nested(nactive, enlarge; update_interval=round(0.6nactive), method=:single)
@@ -12,18 +23,6 @@ Nested Sampler
 
 The two `NestedAlgorithm`s are `:single`, which uses a single bounding ellipsoid, and `:multi`, which finds an optimal clustering of ellipsoids.
 """
-mutable struct Nested{E<:AbstractEllipsoid} <: AbstractSampler 
-    nactive::Integer
-    enlarge::Float64
-    update_interval::Integer
-    # behind the scenes things
-    active_points::Matrix
-    active_logl::Vector
-    active_ell::E
-    logz
-    h
-end
-
 function Nested(nactive = 100, enlarge = 1.2; update_interval=round(Int, 0.6nactive), method=:single)
     if method === :single
         ell = Ellipsoid(1)
@@ -33,7 +32,7 @@ function Nested(nactive = 100, enlarge = 1.2; update_interval=round(Int, 0.6nact
         error("Invalid method $method")
     end
 
-    return Nested(nactive, enlarge, update_interval, Matrix[], Vector[], ell, -Inf, 0.0)
+    return Nested(nactive, enlarge, update_interval, zeros(0,nactive), zeros(nactive), ell, -Inf, 0.0)
 end
 
 Base.show(io::IO, n::Nested) = print(io, "Nested{$(typeof(n.active_ell))}(nactive=$(n.nactive), enlarge=$(n.enlarge), update_interval=$(n.update_interval))")
@@ -68,7 +67,7 @@ function sample_init!(
 
     # samples and loglikes in prior space
     s.active_points = quantile.(hcat(model.priors), us)
-    s.active_logl = [model.loglike(p[:, i]) for i in 1:size(p, 2)]
+    s.active_logl = [model.loglike(s.active_points[:, i]) for i in 1:s.nactive]
 
     # get bounding ellipsoid
     s.active_ell = scale!(fit(E, us, pointvol=1/s.nactive), s.enlarge)
