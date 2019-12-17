@@ -184,7 +184,7 @@ function bundle_samples(rng::AbstractRNG,
     end
     push!(param_names, "weights")
 
-    return Chains(vals, param_names, (internals = ["weights"], h=s.h), evidence=exp(s.logz))
+    return Chains(vals, param_names, (internals = ["weights"],), evidence=exp(s.logz))
 end
 
 function propose(rng::AbstractRNG, ell::AbstractEllipsoid, model::NestedModel, logl_star)
