@@ -38,7 +38,7 @@ This package was heavily influenced by [`nestle`](https://github.com/kbarbary/ne
   * Find the endpoints of the major axis
   * do K-means clustering with K=2 centered on the endpoints of the major axis
   * Fit ellipsoids to each cluster
-  * If the volume of both ellipsoids is less than half the parent's volume, return
-  * Else, recurse into each ellipsoid
+  * If the volume of both ellipsoids is less than half the parent's volume, recurse into each
+  * Else, return the current parent ellipsoid
   * Then, sample within the group of ellipsoids until finding a point with greater likelihood than the previous lowest
 * The final `N-nactive` points just add the current active points to sample list (no longer fitting ellipsoids)
