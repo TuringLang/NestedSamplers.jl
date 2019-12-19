@@ -27,11 +27,11 @@ function integrate_on_grid(f, ranges, density)
         step = (r[2] - r[1]) / density
         rmin = r[1] + step / 2
         rmax = r[2] - step / 2
-        push!(rs, rnage(rmin, rmax, length=density))
+        push!(rs, range(rmin, rmax, length=density))
     end
 
-    logsum = -Inf
-    for v in product(rs...)
+    logsum = -1e300
+    for v in Iterators.product(rs...)
         logsum = log(exp(logsum) + f(v))
     end
     logsum -= length(ranges) * log(density)

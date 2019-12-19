@@ -16,9 +16,28 @@ using AbstractMCMC
 end
 
 @testset "Gaussian" begin
+    σ = 0.1
+    μ1 = ones(2)
+    μ2 = -ones(2)
+    inv_σ = diagm(0 => fill(1/σ^2, 2))
 
-end
+    function logl(x)
+        dx1 = x .- μ1
+        dx2 = x .- μ2
+        f1 = -dx1' * (inv_σ * dx1) / 2
+        f2 = -dx2' * (inv_σ * dx2) / 2
+        return log(exp(f1) + exp(f2))
+    end
 
-@testset "Egg Shell" begin
+    priors = [Uniform(-5, 5), Uniform(-5, 5)]
+    model = NestedModel(logl, priors)
+    
+    analytic_logz = log(2 * 2π*σ^2/100)
 
+    for method in [:single, :multi]
+        spl = Nested(100, method=method)
+        chain = sample(model, spl, 1000)
+        @test spl.logz ≈ analytic_logz atol=4sqrt(spl.h / spl.nactive)
+        @test sum(Array(chain[:weights])) ≈ 1 rtol = 1e-3
+    end
 end

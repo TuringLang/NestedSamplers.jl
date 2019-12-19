@@ -31,7 +31,8 @@ function Nested(nactive = 100, enlarge = 1.2; update_interval=round(Int, 0.6nact
     else
         error("Invalid method $method")
     end
-
+    #= Note: initializing logz as -Inf causes ugly failures in the h calculations
+    by setting to a very small value (even smaller than log(eps(Float64))) we avoid this issue =#
     return Nested(nactive, enlarge, update_interval, zeros(0,nactive), zeros(nactive), ell, -1e300, 0.0)
 end
 
@@ -100,8 +101,9 @@ function step!(rng::AbstractRNG,
 
     # update sampler
     logz = log(exp(s.logz) + exp(prev.log_wt))
-    s.h = (exp(prev.log_wt - logz) * prev.logL + 
-            exp(s.logz - logz) * (s.h + s.logz) - logz)
+    h = (exp(prev.log_wt - logz) * prev.logL + 
+        exp(s.logz - logz) * (s.h + s.logz) - logz)
+    
     s.logz = logz
 
     # Get bounding ellipsoid (only every update_interval)
@@ -160,11 +162,12 @@ function sample_end!(
 
     # h should always be non-negative. Numerical error can arise from pathological corner cases
     if s.h < 0.0
-        s.h = s.h > -√eps(s.h) ? zero(s.h) : @warn "Negative h encountered h=$(s.h). This is likely a bug"
+        s.h < -√eps(s.h) && @warn "Negative h encountered h=$(s.h). This is likely a bug"
+        s.h = zero(s.h)
     end
 
-    println(stderr, "logz=$(s.logz) +- $(sqrt(s.h / s.nactive))")
-    println(stderr, "h=$(s.h)")
+    @info "logz=$(s.logz) +- $(sqrt(s.h / s.nactive))"
+    @info "h=$(s.h)"
 end
 
 function bundle_samples(rng::AbstractRNG, 
