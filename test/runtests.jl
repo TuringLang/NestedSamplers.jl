@@ -1,4 +1,3 @@
-@info "Loading dependencies"
 using NestedSamplers
 using Test
 using Random
@@ -16,7 +15,6 @@ function random_ellipsoid(N::Integer)
     return Ellipsoid(zeros(N), A' * A)
 end
 
-@info "Starting Tests"
 @testset "Ellipsoids" begin
     include("helpers.jl")
     include("ellipsoids.jl")

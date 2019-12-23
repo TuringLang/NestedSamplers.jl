@@ -13,12 +13,12 @@ Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 
 [compat]
-julia = "1"
 AbstractMCMC = "0.1"
 Clustering = "0.13"
 Distributions = "0.21"
 MCMCChains = "0.4"
 StatsBase = "0.32"
+julia = "1"
 
 [extras]
 AbstractMCMC = "80f14c24-f653-4e6a-9b94-39d6b0f70001"
