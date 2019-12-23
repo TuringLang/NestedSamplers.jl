@@ -1,7 +1,7 @@
 using Distributions: Distribution, quantile, cdf
 import MCMCChains: Chains
 import AbstractMCMC: AbstractSampler, AbstractTransition, AbstractModel, step!, sample_init!, sample_end!, transition_type, bundle_samples
-using StatsFuns: logsumexp, log1mexp
+using StatsFuns: logaddexp, log1mexp
 
 export NestedModel, Nested
 
@@ -104,7 +104,7 @@ function step!(rng::AbstractRNG,
     kwargs...) where {E <: AbstractEllipsoid}
 
     # update sampler
-    logz = logsumexp(s.logz, prev.log_wt)
+    logz = logaddexp(s.logz, prev.log_wt)
     h = (exp(prev.log_wt - logz) * prev.logL + 
         exp(s.logz - logz) * (s.h + s.logz) - logz)
     
@@ -113,7 +113,7 @@ function step!(rng::AbstractRNG,
     #= Stopping criterion: estimated fraction evidence remaining 
     below threshold =#
     logz_remain = maximum(s.active_logl) - (iteration - 1) / s.nactive
-    shrink = logsumexp(s.logz, logz_remain) > dlogz + s.logz
+    shrink = logaddexp(s.logz, logz_remain) > dlogz + s.logz
 
     # Get bounding ellipsoid (only every update_interval)
     if shrink && iteration % s.update_interval == 0
