@@ -1,3 +1,4 @@
+@info "Loading dependencies"
 using NestedSamplers
 using Test
 using Random

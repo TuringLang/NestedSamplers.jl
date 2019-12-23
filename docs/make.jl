@@ -8,7 +8,7 @@ makedocs(;
     sitename="NestedSamplers.jl",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
-        canonical="https://mileslucas.github.io/NestedSamplers.jl",
+        canonical="https://mileslucas.com/NestedSamplers.jl",
         assets=String[],
     ),
     pages=[
