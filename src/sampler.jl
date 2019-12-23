@@ -17,13 +17,13 @@ mutable struct Nested{E<:AbstractEllipsoid} <: AbstractSampler
 end
 
 """
-    Nested(nactive, enlarge; update_interval=round(0.6nactive), method=:single)
+    Nested(nactive, enlarge=1.2; update_interval=round(0.6nactive), method=:single)
 
 Nested Sampler
 
 The two `NestedAlgorithm`s are `:single`, which uses a single bounding ellipsoid, and `:multi`, which finds an optimal clustering of ellipsoids.
 """
-function Nested(nactive = 100, enlarge = 1.2; update_interval=round(Int, 0.6nactive), method=:single)
+function Nested(nactive, enlarge = 1.2; update_interval=round(Int, 0.6nactive), method=:single)
     if method === :single
         ell = Ellipsoid(1)
     elseif method === :multi
@@ -36,7 +36,11 @@ function Nested(nactive = 100, enlarge = 1.2; update_interval=round(Int, 0.6nact
     return Nested(nactive, enlarge, update_interval, zeros(0,nactive), zeros(nactive), ell, -1e300, 0.0)
 end
 
-Base.show(io::IO, n::Nested) = print(io, "Nested{$(typeof(n.active_ell))}(nactive=$(n.nactive), enlarge=$(n.enlarge), update_interval=$(n.update_interval))")
+function Base.show(io::IO, n::Nested)
+    println(io, "Nested{$(typeof(n.active_ell))}(nactive=$(n.nactive), enlarge=$(n.enlarge), update_interval=$(n.update_interval))")
+    println(io, "  logz=$(n.logz) +- $(sqrt(n.h / n.nactive))")
+    print(io, "  h=$(s.h)")
+end
 
 struct NestedModel{F <: Function,D <: Distribution} <: AbstractModel
     loglike::F
@@ -96,6 +100,8 @@ function step!(rng::AbstractRNG,
     N::Integer,
     prev::NestedTransition;
     iteration,
+    debug::Bool=false,
+    dlogz=0.5,
     kwargs...
     ) where {E<:AbstractEllipsoid}
 
@@ -106,27 +112,51 @@ function step!(rng::AbstractRNG,
     
     s.logz = logz
 
+    #= Stopping criterion: estimated fraction evidence remaining 
+    below threshold =#
+    logz_remain = maximum(s.active_logl) - (iteration - 1) / s.nactive
+    shrink = log(exp(s.logz) + exp(logz_remain)) > dlogz + s.logz
+
     # Get bounding ellipsoid (only every update_interval)
-    if iteration % s.update_interval == 0
+    if shrink && iteration % s.update_interval == 0
         # Get points in unit space
         u = cdf.(hcat(model.priors), s.active_points)
 
         # fit ellipsoid
         pointvol = exp(-(iteration - 1) / s.nactive) / s.nactive
         s.active_ell = scale!(fit(E, u, pointvol=pointvol), s.enlarge)
-    end
+    end    
 
     # Find least likely point
     logL, idx = findmin(s.active_logl)
-    draw = s.active_points[:, idx]
 
-    log_vol = prev.log_vol - 1 / s.nactive
-    log_wt = log_vol + logL
+    # If we are still shrinking and have more samples left than points in ellipsoid
+    if shrink && iteration ≤ N - s.nactive
+        draw = s.active_points[:, idx]
 
-    # Get new point and log like
-    p, logl = propose(rng, s.active_ell, model, logL)
-    s.active_points[:, idx] = p
-    s.active_logl[idx] = logl
+        log_vol = prev.log_vol - 1 / s.nactive
+        log_wt = log_vol + logL
+
+        # Get new point and log like
+        p, logl = propose(rng, s.active_ell, model, logL)
+        s.active_points[:, idx] = p
+        s.active_logl[idx] = logl
+    # If we are not shrinking, take random sample but don't replace
+    elseif !shrink && iteration ≤ N - s.nactive
+        log_vol = prev.log_vol - 1 / s.nactive
+
+        draw, logL = propose(rng, s.active_ell, model, logL)
+        log_wt = log_vol + logL
+    # If we have fewer than nactive samples left just pop them from active points
+    else
+        log_vol = -N / s.nactive - log(s.nactive)
+        i = iteration - N + s.nactive
+        # get new point
+        draw = s.active_points[:, i]
+        logL = s.active_logl[i]
+        log_wt = log_vol + logL
+    end
+
 
     return NestedTransition(draw, logL, log_vol, log_wt)
 end
@@ -138,36 +168,12 @@ function sample_end!(
     N::Integer,
     ts::Vector{<:AbstractTransition};
     debug::Bool=false,
-    kwargs...
-)
-    debug && @info "Flushing remaining $(s.nactive) points"
-
-    prev = ts[end]
-    log_vol = -N / s.nactive - log(s.nactive)
-    for i in 1:s.nactive
-        # update sampler
-        logz = log(exp(s.logz) + exp(prev.log_wt))
-        s.h = (exp(prev.log_wt - logz) * prev.logL + 
-            exp(s.logz - logz) * (s.h + s.logz) - logz)
-        s.logz = logz
-
-        # get new point
-        draw = s.active_points[:, i]
-        logL = s.active_logl[i]
-        log_wt = log_vol + logL
-
-        prev = NestedTransition(draw, logL, log_vol, log_wt)
-        push!(ts, prev)
-    end
-
+    kwargs...)
     # h should always be non-negative. Numerical error can arise from pathological corner cases
     if s.h < 0.0
         s.h < -√eps(s.h) && @warn "Negative h encountered h=$(s.h). This is likely a bug"
         s.h = zero(s.h)
     end
-
-    @info "logz=$(s.logz) +- $(sqrt(s.h / s.nactive))"
-    @info "h=$(s.h)"
 end
 
 function bundle_samples(rng::AbstractRNG, 
@@ -180,6 +186,13 @@ function bundle_samples(rng::AbstractRNG,
     vals = copy(reduce(hcat, [vcat(t.draw, t.log_wt) for t in ts])')
     # update weights based on evidence
     @. vals[:, end, 1] = exp(vals[:, end, 1] - s.logz)
+
+    wsum = sum(vals[:, end, 1])
+    err = s.h ≠ 0 ? 3sqrt(s.h/s.nactive) : 1e-3
+    if !isapprox(wsum, 1, atol=err)
+        @warn "Weights sum to $wsum instead of 1; possible bug"
+    end
+    vals[:, end, 1] ./= wsum
 
     # Parameter names
     if param_names === missing
