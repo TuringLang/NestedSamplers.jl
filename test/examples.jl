@@ -38,6 +38,7 @@ end
     for method in [:single, :multi]
         spl = Nested(100, method = method)
         chain = sample(model, spl, 1000, dlogz = 0.1)
+
         @test_broken spl.logz ≈ analytic_logz atol = 4sqrt(spl.h / spl.nactive)
         @test sum(Array(chain[:weights])) ≈ 1 rtol = 1e-3
     end

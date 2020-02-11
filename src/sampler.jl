@@ -1,14 +1,26 @@
-using Distributions: Distribution, quantile, cdf
-import MCMCChains: Chains
-import AbstractMCMC: AbstractSampler, AbstractTransition, AbstractModel, step!, sample_init!, sample_end!, transition_type, bundle_samples
-using StatsFuns: logaddexp, log1mexp
+using Distributions: Distribution, 
+                     quantile, 
+                     cdf
+using MCMCChains: Chains
+import AbstractMCMC: AbstractSampler, 
+                     AbstractTransition, 
+                     AbstractModel, 
+                     step!, 
+                     sample_init!, 
+                     sample_end!, 
+                     transition_type, 
+                     bundle_samples
+using StatsFuns: logaddexp, 
+                 log1mexp
 
-export NestedModel, Nested
+export NestedModel, 
+       Nested
 
 mutable struct Nested{E <: AbstractEllipsoid} <: AbstractSampler 
     nactive::Integer
     enlarge::Float64
     update_interval::Integer
+
     # behind the scenes things
     active_points::Matrix
     active_logl::Vector
@@ -40,7 +52,7 @@ end
 function Base.show(io::IO, n::Nested)
     println(io, "Nested{$(typeof(n.active_ell))}(nactive=$(n.nactive), enlarge=$(n.enlarge), update_interval=$(n.update_interval))")
     println(io, "  logz=$(n.logz) +- $(sqrt(n.h / n.nactive))")
-    print(io, "  h=$(s.h)")
+    print(io, "  h=$(n.h)")
 end
 
 struct NestedModel{F <: Function,D <: Distribution} <: AbstractModel
@@ -63,6 +75,7 @@ function sample_init!(rng::AbstractRNG,
     N::Integer;
     debug::Bool = false,
     kwargs...) where {E <: AbstractEllipsoid}
+
     debug && @info "Initializing sampler"
     s.nactive < 2length(model.priors) && @warn "Using fewer than 2*ndim active points is discouraged"
 
@@ -177,9 +190,11 @@ function bundle_samples(rng::AbstractRNG,
     ℓ::AbstractModel, 
     s::Nested, 
     N::Integer, 
-    ts::Vector{<:AbstractTransition}; 
+    ts::Vector{<:AbstractTransition},
+    CT::Type{<:Chains};
     param_names = missing,
     kwargs...)
+
     vals = copy(mapreduce(t->vcat(t.draw, t.log_wt), hcat, ts)')
     # update weights based on evidence
     @. vals[:, end, 1] = exp(vals[:, end, 1] - s.logz)
@@ -197,7 +212,7 @@ function bundle_samples(rng::AbstractRNG,
     end
     push!(param_names, "weights")
 
-    return Chains(vals, param_names, (internals = ["weights"],), evidence = exp(s.logz))
+    return CT(vals, param_names, Dict(:internals => ["weights"]), evidence = exp(s.logz))
 end
 
 function propose(rng::AbstractRNG, ell::AbstractEllipsoid, model::NestedModel, logl_star)
