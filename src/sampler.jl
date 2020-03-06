@@ -14,7 +14,9 @@ using StatsFuns: logaddexp,
                  log1mexp
 
 export NestedModel, 
-       Nested
+       Nested,
+       dlogz_convergence,
+       decline_covergence
 
 mutable struct Nested{E <: AbstractEllipsoid} <: AbstractSampler 
     nactive::Integer
@@ -72,12 +74,12 @@ transition_type(model::NestedModel, s::Nested) = NestedTransition
 function sample_init!(rng::AbstractRNG,
     model::NestedModel,
     s::Nested{E},
-    N::Integer;
+    ::Integer;
     debug::Bool = false,
     kwargs...) where {E <: AbstractEllipsoid}
 
     debug && @info "Initializing sampler"
-    s.nactive < 2length(model.priors) && @warn "Using fewer than 2*ndim active points is discouraged"
+    s.nactive < 2length(model.priors) && @warn "Using fewer than 2ndim active points is discouraged"
 
     # samples in unit space
     us = rand(rng, length(model.priors), s.nactive)
@@ -93,7 +95,7 @@ end
 function step!(rng::AbstractRNG,
     model::NestedModel,
     s::Nested,
-    N::Integer;
+    ::Integer;
     kwargs...)
     # Find least likely point
     logL, idx = findmin(s.active_logl)
@@ -109,27 +111,21 @@ end
 function step!(rng::AbstractRNG,
     model::NestedModel,
     s::Nested{E},
-    N::Integer,
+    ::Integer,
     prev::NestedTransition;
     iteration,
     debug::Bool = false,
-    dlogz = 0.5,
     kwargs...) where {E <: AbstractEllipsoid}
 
     # update sampler
     logz = logaddexp(s.logz, prev.log_wt)
-    h = (exp(prev.log_wt - logz) * prev.logL + 
+    s.h = (exp(prev.log_wt - logz) * prev.logL + 
         exp(s.logz - logz) * (s.h + s.logz) - logz)
     
     s.logz = logz
 
-    #= Stopping criterion: estimated fraction evidence remaining 
-    below threshold =#
-    logz_remain = maximum(s.active_logl) - (iteration - 1) / s.nactive
-    shrink = logaddexp(s.logz, logz_remain) > dlogz + s.logz
-
     # Get bounding ellipsoid (only every update_interval)
-    if shrink && iteration % s.update_interval == 0
+    if iteration % s.update_interval == 0
         # Get points in unit space
         u = cdf.(hcat(model.priors), s.active_points)
 
@@ -141,33 +137,15 @@ function step!(rng::AbstractRNG,
     # Find least likely point
     logL, idx = findmin(s.active_logl)
 
-    # If we are still shrinking and have more samples left than points in ellipsoid
-    if shrink && iteration ≤ N - s.nactive
-        draw = s.active_points[:, idx]
+    draw = s.active_points[:, idx]
 
-        log_vol = prev.log_vol - 1 / s.nactive
-        log_wt = log_vol + logL
+    log_vol = prev.log_vol - 1 / s.nactive
+    log_wt = log_vol + logL
 
-        # Get new point and log like
-        p, logl = propose(rng, s.active_ell, model, logL)
-        s.active_points[:, idx] = p
-        s.active_logl[idx] = logl
-    # If we are not shrinking, take random sample but don't replace
-    elseif !shrink && iteration ≤ N - s.nactive
-        log_vol = prev.log_vol - 1 / s.nactive
-
-        draw, logL = propose(rng, s.active_ell, model, logL)
-        log_wt = log_vol + logL
-    # If we have fewer than nactive samples left just pop them from active points
-    else
-        log_vol = -N / s.nactive - log(s.nactive)
-        i = iteration - N + s.nactive
-        # get new point
-        draw = s.active_points[:, i]
-        logL = s.active_logl[i]
-        log_wt = log_vol + logL
-    end
-
+    # Get new point and log like
+    p, logl = propose(rng, s.active_ell, model, logL)
+    s.active_points[:, idx] = p
+    s.active_logl[idx] = logl
 
     return NestedTransition(draw, logL, log_vol, log_wt)
 end
@@ -175,10 +153,30 @@ end
 function sample_end!(rng::AbstractRNG,
     ℓ::AbstractModel,
     s::Nested,
-    N::Integer,
+    ::Integer,
     ts::Vector{<:AbstractTransition};
     debug::Bool = false,
     kwargs...)
+    # Pop remaining points in ellipsoid
+    N = length(ts)
+    prev = ts[end]
+    for i in 1:s.nactive
+        # update sampler
+        logz = logaddexp(s.logz, prev.log_wt)
+        s.h = (exp(prev.log_wt - logz) * prev.logL + 
+               exp(s.logz - logz) * (s.h + s.logz) - logz)
+        s.logz = logz
+
+        log_vol = -N / s.nactive - log(s.nactive)
+        # get new point
+        draw = s.active_points[:, i]
+        logL = s.active_logl[i]
+        log_wt = log_vol + logL
+
+        prev = NestedTransition(draw, logL, log_vol, log_wt)
+        push!(ts, prev)
+    end
+
     # h should always be non-negative. Numerical error can arise from pathological corner cases
     if s.h < 0.0
         s.h < -√eps(s.h) && @warn "Negative h encountered h=$(s.h). This is likely a bug"
@@ -191,7 +189,7 @@ function bundle_samples(rng::AbstractRNG,
     s::Nested, 
     N::Integer, 
     ts::Vector{<:AbstractTransition},
-    CT::Type{<:Chains};
+    ::Type{<:Chains};
     param_names = missing,
     kwargs...)
 
@@ -212,7 +210,7 @@ function bundle_samples(rng::AbstractRNG,
     end
     push!(param_names, "weights")
 
-    return CT(vals, param_names, Dict(:internals => ["weights"]), evidence = exp(s.logz))
+    return Chains(vals, param_names, Dict(:internals => ["weights"]), evidence = exp(s.logz))
 end
 
 function propose(rng::AbstractRNG, ell::AbstractEllipsoid, model::NestedModel, logl_star)
@@ -221,8 +219,40 @@ function propose(rng::AbstractRNG, ell::AbstractEllipsoid, model::NestedModel, l
         all(0 .< u .< 1) || continue
         v = quantile.(model.priors, u)
         logl = model.loglike(v)
-        if logl ≥ logl_star
-            return v, logl
-        end
+        logl ≥ logl_star && return v, logl
     end
 end
+
+function decline_covergence(rng::AbstractRNG,
+    model::AbstractModel,
+    s::Nested,
+    ts::Vector{<:AbstractTransition},
+    iteration::Integer;
+    kwargs...)
+    ndecl = 0
+    for i in reverse!(eachindex(ts))
+        curr = ts[i]
+        prev = ts[i - 1]
+        curr.log_wt < prev.log_wt ? ndecl += 1 : break
+    end
+    return ndecl > 2s.nactive && ndecl > iteration / 6
+
+end
+
+function dlogz_convergence(rng::AbstractRNG,
+    model::AbstractModel,
+    s::Nested,
+    ts::Vector{<:AbstractTransition},
+    iteration::Integer;
+    dlogz = 0.5,
+    kwargs...)
+     #= Stopping criterion: estimated fraction evidence remaining 
+    below threshold =#
+    logz_remain = maximum(s.active_logl) - (iteration - 1) / s.nactive
+    @show s.logz
+    @show logz_remain
+    # @show logaddexp(s.logz, logz_remain) - s.logz
+    return logaddexp(s.logz, logz_remain) > dlogz + s.logz 
+end
+
+include("contrib.jl")

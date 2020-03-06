@@ -1,5 +1,6 @@
 using Distributions
 using AbstractMCMC
+using MCMCChains: Chains
 
 @testset "Flat" begin
     logl(x::AbstractVector) = zero(eltype(x))
@@ -8,7 +9,7 @@ using AbstractMCMC
 
     for method in [:single, :multi]
         spl = Nested(4, method = method)
-        chain = sample(model, spl, 100, param_names = ["x"])
+        chain = sample(model, spl, param_names = ["x"], chain_type = Chains)
 
         @test spl.logz ≈ 0 atol = 1e-10
         @test spl.h ≈ 0 atol = 1e-10
@@ -37,7 +38,7 @@ end
 
     for method in [:single, :multi]
         spl = Nested(100, method = method)
-        chain = sample(model, spl, 1000, dlogz = 0.1)
+        chain = sample(model, spl, dlogz = 0.1, chain_type = Chains)
 
         @test_broken spl.logz ≈ analytic_logz atol = 4sqrt(spl.h / spl.nactive)
         @test sum(Array(chain[:weights])) ≈ 1 rtol = 1e-3
