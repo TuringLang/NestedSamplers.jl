@@ -29,6 +29,7 @@ mutable struct Nested{E <: AbstractEllipsoid} <: AbstractSampler
     active_ell::E
     logz::Float64
     h::Float64
+    ndecl::Integer 
 end
 
 """
@@ -48,7 +49,7 @@ function Nested(nactive, enlarge = 1.2; update_interval = round(Int, 0.6nactive)
     end
     #= Note: initializing logz as -Inf causes ugly failures in the h calculations
     by setting to a very small value (even smaller than log(eps(Float64))) we avoid this issue =#
-    return Nested(nactive, enlarge, update_interval, zeros(0, nactive), zeros(nactive), ell, -1e300, 0.0)
+    return Nested(nactive, enlarge, update_interval, zeros(0, nactive), zeros(nactive), ell, -1e300, 0.0, 0)
 end
 
 function Base.show(io::IO, n::Nested)
@@ -146,6 +147,7 @@ function step!(rng::AbstractRNG,
     p, logl = propose(rng, s.active_ell, model, logL)
     s.active_points[:, idx] = p
     s.active_logl[idx] = logl
+    s.ndecl = log_wt < prev.log_wt ? s.ndecl + 1 : 0
 
     return NestedTransition(draw, logL, log_vol, log_wt)
 end
@@ -159,19 +161,18 @@ function sample_end!(rng::AbstractRNG,
     kwargs...)
     # Pop remaining points in ellipsoid
     N = length(ts)
-    prev = ts[end]
-    for i in 1:s.nactive
-        # update sampler
-        logz = logaddexp(s.logz, prev.log_wt)
-        s.h = (exp(prev.log_wt - logz) * prev.logL + 
-               exp(s.logz - logz) * (s.h + s.logz) - logz)
-        s.logz = logz
-
-        log_vol = -N / s.nactive - log(s.nactive)
+    log_vol = -N / s.nactive - log(s.nactive)
+    @inbounds for i in 1:s.nactive
         # get new point
         draw = s.active_points[:, i]
         logL = s.active_logl[i]
         log_wt = log_vol + logL
+
+        # update sampler
+        logz = logaddexp(s.logz, log_wt)
+        s.h = (exp(log_wt - logz) * logL + 
+               exp(s.logz - logz) * (s.h + s.logz) - logz)
+        s.logz = logz
 
         prev = NestedTransition(draw, logL, log_vol, log_wt)
         push!(ts, prev)
@@ -228,15 +229,9 @@ function decline_covergence(rng::AbstractRNG,
     s::Nested,
     ts::Vector{<:AbstractTransition},
     iteration::Integer;
+    decline_factor = 1,
     kwargs...)
-    ndecl = 0
-    for i in reverse!(eachindex(ts))
-        curr = ts[i]
-        prev = ts[i - 1]
-        curr.log_wt < prev.log_wt ? ndecl += 1 : break
-    end
-    return ndecl > 2s.nactive && ndecl > iteration / 6
-
+    return s.ndecl > decline_factor * iteration
 end
 
 function dlogz_convergence(rng::AbstractRNG,
@@ -244,15 +239,15 @@ function dlogz_convergence(rng::AbstractRNG,
     s::Nested,
     ts::Vector{<:AbstractTransition},
     iteration::Integer;
+    pbar,
     dlogz = 0.5,
     kwargs...)
      #= Stopping criterion: estimated fraction evidence remaining 
     below threshold =#
     logz_remain = maximum(s.active_logl) - (iteration - 1) / s.nactive
-    @show s.logz
-    @show logz_remain
-    # @show logaddexp(s.logz, logz_remain) - s.logz
-    return logaddexp(s.logz, logz_remain) > dlogz + s.logz 
+    dlogz_current = logaddexp(s.logz, logz_remain) - s.logz
+    ProgressMeter.update!(pbar, dlogz_current)
+    return dlogz_current < dlogz
 end
 
 include("contrib.jl")

@@ -4,9 +4,7 @@
 
 import StatsBase
 using Random: GLOBAL_RNG
-import ProgressLogging
-import Logging
-import UUIDs
+using ProgressMeter
 
 
 """
@@ -56,9 +54,7 @@ function StatsBase.sample(
 )
 
     if progress
-        progressid = UUIDs.uuid4()
-        Logging.@logmsg(ProgressLogging.ProgressLevel, "Sampling", progress = NaN,
-                        _id = progressid)
+        pbar = ProgressThresh(get(kwargs, :dlogz, 0.5), "Sampling - dlogz: ")
     end
 
     sample_init!(rng, model, sampler, 1; kwargs...)
@@ -72,16 +68,10 @@ function StatsBase.sample(
     # Save the transition.
     transitions = [transition]
 
-    # Update the progress bar.
-    if progress
-        Logging.@logmsg(ProgressLogging.ProgressLevel, "Sampling", progress = 1,
-                        _id = progressid)
-    end
-
     # Step through the sampler until stopping.
     i = 2
 
-    while !is_done(rng, model, sampler, transitions, i; kwargs...)
+    while !is_done(rng, model, sampler, transitions, i; pbar = pbar, kwargs...)
         # Obtain the next transition.
         transition = step!(rng, model, sampler, 1, transition; iteration = i, kwargs...)
 
@@ -91,23 +81,12 @@ function StatsBase.sample(
         # Save the transition.
         push!(transitions, transition)
 
-        # Update the progress bar.
-        if progress
-            Logging.@logmsg(ProgressLogging.ProgressLevel, "Sampling", progress = 1,
-                            _id = progressid)
-        end
-
         # Increment iteration counter.
         i += 1
     end
 
     sample_end!(rng, model, sampler, 1, transitions; kwargs...)
 
-    # Close the progress bar.
-    if progress
-        Logging.@logmsg(ProgressLogging.ProgressLevel, "Sampling", progress = "done",
-                        _id = progressid)
-    end
     # Wrap the samples up.
     return bundle_samples(rng, model, sampler, i, transitions, chain_type; kwargs...)
 end
