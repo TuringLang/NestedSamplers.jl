@@ -15,10 +15,10 @@ function random_ellipsoid(N::Integer)
     return Ellipsoid(zeros(N), A' * A)
 end
 
-@testset "Ellipsoids" begin
-    include("helpers.jl")
-    include("ellipsoids.jl")
-end
+# @testset "Ellipsoids" begin
+#     include("helpers.jl")
+#     include("ellipsoids.jl")
+# end
 
 function integrate_on_grid(f, ranges, density)
     rs = []

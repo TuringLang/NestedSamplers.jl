@@ -13,6 +13,7 @@ using Distributions: Distribution,
                      quantile,
                      cdf
 using MCMCChains: Chains
+import StatsBase
 using StatsFuns: logaddexp,
                  log1mexp
 
@@ -234,11 +235,11 @@ function bundle_samples(rng::AbstractRNG,
     s::Nested,
     N::Integer,
     transitions,
-    ::Union{AbstractArray,Any};
+    A::Type{<:AbstractArray};
     check_wsum = true,
     kwargs...)
 
-    vals = copy(mapreduce(t->t.draw, hcat, transitions)')
+    vals = convert(A, mapreduce(t->t.draw, hcat, transitions)')
     
     if check_wsum
         # get weights
@@ -265,6 +266,25 @@ function propose(rng::AbstractRNG, ell::AbstractEllipsoid, model::NestedModel, l
     end
 end
 
+# Use to set default convergence metric
+function StatsBase.sample(
+    rng::AbstractRNG,
+    model::NestedModel,
+    sampler::Nested;
+    kwargs...
+)
+    sample(rng, model, sampler, dlogz_convergence; kwargs...)
+end
+
+# Use to set default convergence metric
+function StatsBase.sample(
+    model::NestedModel,
+    sampler::Nested;
+    kwargs...
+)
+    sample(Random.GLOBAL_RNG, model, sampler, dlogz_convergence; kwargs...)
+end
+
 ###############################################################################
 # Convergence methods
 
@@ -272,8 +292,8 @@ end
 Stopping criterion: Number of consecutive declining log-evidence is greater than `decline_factor` * `iteration`
 """
 function decline_covergence(rng::AbstractRNG,
-    model::AbstractModel,
-    s::Nested,
+    ::AbstractModel,
+    sampler::Nested,
     transitions,
     iteration::Integer;
     progress = true,
@@ -281,25 +301,25 @@ function decline_covergence(rng::AbstractRNG,
     kwargs...)
     # logging; don't even try to print every time
     if progress && iszero(iteration % 10)
-        print(stderr, "decline threshold: $(s.ndecl) --> $(decline_factor * iteration)\r")
+        print(stderr, "decline threshold: $(sampler.ndecl) --> $(decline_factor * iteration)\r")
     end
-    return s.ndecl > decline_factor * iteration
+    return sampler.ndecl > decline_factor * iteration
 end
 
 """
 Stopping criterion: estimated fraction evidence remaining below threshold
 """
 function dlogz_convergence(rng::AbstractRNG,
-    model::AbstractModel,
-    s::Nested,
+    ::AbstractModel,
+    sampler::Nested,
     transitions,
     iteration::Integer;
     progress = true,
     dlogz = 0.5,
     kwargs...)
 
-    logz_remain = maximum(s.active_logl) - (iteration - 1) / s.nactive
-    dlogz_current = logaddexp(s.logz, logz_remain) - s.logz
+    logz_remain = maximum(sampler.active_logl) - (iteration - 1) / sampler.nactive
+    dlogz_current = logaddexp(sampler.logz, logz_remain) - sampler.logz
 
     # logging; don't even try to print every time
     if progress && iszero(iteration % 10)
