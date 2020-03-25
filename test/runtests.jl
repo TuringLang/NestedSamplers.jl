@@ -9,7 +9,7 @@ Random.seed!(8462852)
 # Helper that returns a random N-dimensional ellipsoid
 function random_ellipsoid(N::Integer)
     A = rand(N, N)
-    while  abs(det(A)) < 1e-10
+    while abs(det(A)) < 1e-10
         A = rand(N, N)
     end
     return Ellipsoid(zeros(N), A' * A)
@@ -26,7 +26,7 @@ function integrate_on_grid(f, ranges, density)
         step = (r[2] - r[1]) / density
         rmin = r[1] + step / 2
         rmax = r[2] - step / 2
-        push!(rs, range(rmin, rmax, length=density))
+        push!(rs, range(rmin, rmax, length = density))
     end
 
     logsum = -1e300
@@ -51,4 +51,4 @@ function integrate_on_grid(f, ranges)
     end
 end
 
-include("examples.jl")
+include("sampling.jl")
