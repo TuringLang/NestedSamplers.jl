@@ -1,6 +1,6 @@
 module NestedSamplers
 
-using Random: AbstractRNG
+using Random
 using LinearAlgebra
 using Distributions: Distribution,
                      quantile,
@@ -11,7 +11,6 @@ import AbstractMCMC: AbstractSampler,
                      step!,
                      sample_init!,
                      sample_end!,
-                     transition_type,
                      bundle_samples
 using StatsFuns: logaddexp,
                  log1mexp
@@ -23,7 +22,9 @@ export NestedModel,
 
 
 include("ellipsoids.jl")
-include("convergence.jl")
+
+###############################################################################
+# Interface Implementations
 
 mutable struct Nested{E <: AbstractEllipsoid,T} <: AbstractSampler
     nactive::Integer
@@ -254,6 +255,37 @@ function propose(rng::AbstractRNG, ell::AbstractEllipsoid, model::NestedModel, l
         logl = model.loglike(v)
         logl ≥ logl_star && return v, logl
     end
+end
+
+###############################################################################
+# Convergence methods
+
+"""
+Stopping criterion: Number of consecutive declining log-evidence is greater than `decline_factor` * `iteration`
+"""
+function decline_covergence(rng::AbstractRNG,
+    model::AbstractModel,
+    s::Nested,
+    transitions,
+    iteration::Integer;
+    decline_factor = 1,
+    kwargs...)
+    return s.ndecl > decline_factor * iteration
+end
+
+"""
+Stopping criterion: estimated fraction evidence remaining below threshold
+"""
+function dlogz_convergence(rng::AbstractRNG,
+    model::AbstractModel,
+    s::Nested,
+    transitions,
+    iteration::Integer;
+    dlogz = 0.5,
+    kwargs...)
+    logz_remain = maximum(s.active_logl) - (iteration - 1) / s.nactive
+    dlogz_current = logaddexp(s.logz, logz_remain) - s.logz
+    return dlogz_current < dlogz
 end
 
 end
