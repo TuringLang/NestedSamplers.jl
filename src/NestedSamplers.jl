@@ -1,17 +1,18 @@
 module NestedSamplers
 
-using Random
 using LinearAlgebra
-using Distributions: Distribution,
-                     quantile,
-                     cdf
-using MCMCChains: Chains
+using Random
+
 import AbstractMCMC: AbstractSampler,
                      AbstractModel,
                      step!,
                      sample_init!,
                      sample_end!,
                      bundle_samples
+using Distributions: Distribution,
+                     quantile,
+                     cdf
+using MCMCChains: Chains
 using StatsFuns: logaddexp,
                  log1mexp
 
@@ -62,7 +63,7 @@ end
 
 function Base.show(io::IO, n::Nested)
     println(io, "Nested{$(typeof(n.active_ell))}(nactive=$(n.nactive), enlarge=$(n.enlarge), update_interval=$(n.update_interval))")
-    println(io, "  logz=$(n.logz) +- $(sqrt(n.h / n.nactive))")
+    println(io, "  logz=$(n.logz) ± $(sqrt(n.h / n.nactive))")
     print(io,   "  h=$(n.h)")
 end
 
@@ -76,6 +77,13 @@ struct NestedTransition{T}
     logL::Float64    # log likelihood
     log_vol::Float64 # log mass of objects in hyperspace
     log_wt::Float64  # log weight of this draw
+end
+
+function Base.show(io::IO, t::T) where {T <: NestedTransition}
+    println(io, "$T")
+    println(io, "  $(t.draw)")
+    println(io, "  log-likelihood=$(t.logL)")
+    print(io,   "  log-weight=$(t.log_wt)")
 end
 
 function sample_init!(rng::AbstractRNG,
@@ -268,8 +276,13 @@ function decline_covergence(rng::AbstractRNG,
     s::Nested,
     transitions,
     iteration::Integer;
+    progress = true,
     decline_factor = 1,
     kwargs...)
+    # logging; don't even try to print every time
+    if progress && iszero(iteration % 10)
+        print(stderr, "decline threshold: $(s.ndecl) --> $(decline_factor * iteration)\r")
+    end
     return s.ndecl > decline_factor * iteration
 end
 
@@ -281,10 +294,18 @@ function dlogz_convergence(rng::AbstractRNG,
     s::Nested,
     transitions,
     iteration::Integer;
+    progress = true,
     dlogz = 0.5,
     kwargs...)
+
     logz_remain = maximum(s.active_logl) - (iteration - 1) / s.nactive
     dlogz_current = logaddexp(s.logz, logz_remain) - s.logz
+
+    # logging; don't even try to print every time
+    if progress && iszero(iteration % 10)
+        print(stderr, "dlogz threshold: $(dlogz_current) --> $(dlogz)\r")
+    end
+
     return dlogz_current < dlogz
 end
 
