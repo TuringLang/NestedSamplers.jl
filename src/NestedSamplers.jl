@@ -40,7 +40,7 @@ mutable struct Nested{E <: AbstractEllipsoid,T} <: AbstractSampler
 end
 
 """
-    Nested(nactive, enlarge=1.2; update_interval=round(0.6nactive), method=:single)
+    Nested(nactive, enlarge=1.2; update_interval=round(Int, 0.6nactive), method=:single)
 
 Nested Sampler
 
@@ -62,7 +62,7 @@ end
 function Base.show(io::IO, n::Nested)
     println(io, "Nested{$(typeof(n.active_ell))}(nactive=$(n.nactive), enlarge=$(n.enlarge), update_interval=$(n.update_interval))")
     println(io, "  logz=$(n.logz) +- $(sqrt(n.h / n.nactive))")
-    print(io, "  h=$(n.h)")
+    print(io,   "  h=$(n.h)")
 end
 
 struct NestedModel{F <: Function,D <: Distribution} <: AbstractModel
@@ -70,14 +70,12 @@ struct NestedModel{F <: Function,D <: Distribution} <: AbstractModel
     priors::Vector{D}
 end
 
-struct NestedTransition <: AbstractTransition
-    draw::Vector
-    logL # log likelihood
-    log_vol # log mass of objects in hyperspace
-    log_wt # log weight of this draw
+struct NestedTransition{T}
+    draw::Vector{T}  # the sample
+    logL::Float64    # log likelihood
+    log_vol::Float64 # log mass of objects in hyperspace
+    log_wt::Float64  # log weight of this draw
 end
-
-transition_type(model::NestedModel, s::Nested) = NestedTransition
 
 function sample_init!(rng::AbstractRNG,
     model::NestedModel,
@@ -163,13 +161,13 @@ function sample_end!(rng::AbstractRNG,
     ℓ::AbstractModel,
     s::Nested,
     ::Integer,
-    ts::Vector{<:AbstractTransition};
+    transitions;
     debug::Bool = false,
     kwargs...)
     # Pop remaining points in ellipsoid
-    N = length(ts)
+    N = length(transitions)
     log_vol = -N / s.nactive - log(s.nactive)
-    @inbounds for i in 1:s.nactive
+    @inbounds for i in eachindex(s.active_logl)
         # get new point
         draw = s.active_points[:, i]
         logL = s.active_logl[i]
@@ -182,11 +180,11 @@ function sample_end!(rng::AbstractRNG,
         s.logz = logz
 
         prev = NestedTransition(draw, logL, log_vol, log_wt)
-        push!(ts, prev)
+        push!(transitions, prev)
     end
 
     # h should always be non-negative. Numerical error can arise from pathological corner cases
-    if s.h < 0.0
+    if s.h < 0
         s.h < -√eps(s.h) && @warn "Negative h encountered h=$(s.h). This is likely a bug"
         s.h = zero(s.h)
     end
@@ -196,21 +194,22 @@ function bundle_samples(rng::AbstractRNG,
     ℓ::AbstractModel,
     s::Nested,
     N::Integer,
-    ts::Vector{<:AbstractTransition},
-    ::Type{<:Chains};
+    transitions,
+    Chains;
     param_names = missing,
+    check_wsum = true,
     kwargs...)
 
-    vals = copy(mapreduce(t->vcat(t.draw, t.log_wt), hcat, ts)')
+    vals = copy(mapreduce(t->vcat(t.draw, t.log_wt), hcat, transitions)')
     # update weights based on evidence
     @. vals[:, end, 1] = exp(vals[:, end, 1] - s.logz)
-
     wsum = sum(vals[:, end, 1])
-    err = s.h ≠ 0 ? 3sqrt(s.h / s.nactive) : 1e-3
-    if !isapprox(wsum, 1, atol = err)
-        @warn "Weights sum to $wsum instead of 1; possible bug"
+    @. vals[:, end, 1] /= wsum
+
+    if check_wsum
+        err = !iszero(s.h) ? 3sqrt(s.h / s.nactive) : 1e-3
+        isapprox(wsum, 1, atol = err) || @warn "Weights sum to $wsum instead of 1; possible bug"
     end
-    vals[:, end, 1] ./= wsum
 
     # Parameter names
     if param_names === missing
@@ -221,6 +220,32 @@ function bundle_samples(rng::AbstractRNG,
     return Chains(vals, param_names, Dict(:internals => ["weights"]), evidence = exp(s.logz))
 end
 
+function bundle_samples(rng::AbstractRNG,
+    ℓ::AbstractModel,
+    s::Nested,
+    N::Integer,
+    transitions,
+    ::Union{AbstractArray,Any};
+    check_wsum = true,
+    kwargs...)
+
+    vals = copy(mapreduce(t->t.draw, hcat, transitions)')
+    
+    if check_wsum
+        # get weights
+        wsum = mapreduce(t->exp(t.log_wt - s.logz), +, transitions)
+
+        # check with h
+        err = s.h ≠ 0 ? 3sqrt(s.h / s.nactive) : 1e-3
+        isapprox(wsum, 1, atol = err) || @warn "Weights sum to $wsum instead of 1; possible bug"
+    end
+
+    return vals
+end
+
+"""
+Propose a new point in the given `AbstractEllipsoid` that is guaranteed to have log-likelihood greater than or equal to `logl_star`
+"""
 function propose(rng::AbstractRNG, ell::AbstractEllipsoid, model::NestedModel, logl_star)
     while true
         u = rand(rng, ell)
@@ -230,7 +255,5 @@ function propose(rng::AbstractRNG, ell::AbstractEllipsoid, model::NestedModel, l
         logl ≥ logl_star && return v, logl
     end
 end
-
-
 
 end
