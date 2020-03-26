@@ -201,7 +201,7 @@ function sample_end!(rng::AbstractRNG,
 end
 
 function bundle_samples(rng::AbstractRNG,
-    ℓ::AbstractModel,
+    ::AbstractModel,
     s::Nested,
     N::Integer,
     transitions,
@@ -231,7 +231,7 @@ function bundle_samples(rng::AbstractRNG,
 end
 
 function bundle_samples(rng::AbstractRNG,
-    ℓ::AbstractModel,
+    ::AbstractModel,
     s::Nested,
     N::Integer,
     transitions,
@@ -299,10 +299,7 @@ function decline_covergence(rng::AbstractRNG,
     progress = true,
     decline_factor = 1,
     kwargs...)
-    # logging; don't even try to print every time
-    if progress && iszero(iteration % 10)
-        print(stderr, "decline threshold: $(sampler.ndecl) --> $(decline_factor * iteration)\r")
-    end
+
     return sampler.ndecl > decline_factor * iteration
 end
 
@@ -320,11 +317,6 @@ function dlogz_convergence(rng::AbstractRNG,
 
     logz_remain = maximum(sampler.active_logl) - (iteration - 1) / sampler.nactive
     dlogz_current = logaddexp(sampler.logz, logz_remain) - sampler.logz
-
-    # logging; don't even try to print every time
-    if progress && iszero(iteration % 10)
-        print(stderr, "dlogz threshold: $(dlogz_current) --> $(dlogz)\r")
-    end
 
     return dlogz_current < dlogz
 end
