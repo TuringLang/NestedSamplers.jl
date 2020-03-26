@@ -9,9 +9,7 @@ import AbstractMCMC: AbstractSampler,
                      sample_init!,
                      sample_end!,
                      bundle_samples
-using Distributions: Distribution,
-                     quantile,
-                     cdf
+using Distributions
 using MCMCChains: Chains
 import StatsBase
 using StatsFuns: logaddexp,
@@ -39,6 +37,7 @@ mutable struct Nested{E <: AbstractEllipsoid,T} <: AbstractSampler
     active_ell::E
     logz::Float64
     h::Float64
+    log_vol::Float64
     ndecl::Integer
 end
 
@@ -59,12 +58,13 @@ function Nested(nactive, enlarge = 1.2; update_interval = round(Int, 0.6nactive)
     end
     #= Note: initializing logz as -Inf causes ugly failures in the h calculations
     by setting to a very small value (even smaller than log(eps(Float64))) we avoid this issue =#
-    return Nested(nactive, enlarge, update_interval, zeros(0, nactive), zeros(nactive), ell, -1e300, 0.0, 0)
+    return Nested(nactive, enlarge, update_interval, zeros(0, nactive), zeros(nactive), ell, -1e300, 0.0, Inf, 0)
 end
 
 function Base.show(io::IO, n::Nested)
     println(io, "Nested{$(typeof(n.active_ell))}(nactive=$(n.nactive), enlarge=$(n.enlarge), update_interval=$(n.update_interval))")
     println(io, "  logz=$(n.logz) ± $(sqrt(n.h / n.nactive))")
+    println(io, "  log_vol=$(n.log_vol)")
     print(io,   "  h=$(n.h)")
 end
 
@@ -76,7 +76,6 @@ end
 struct NestedTransition{T}
     draw::Vector{T}  # the sample
     logL::Float64    # log likelihood
-    log_vol::Float64 # log mass of objects in hyperspace
     log_wt::Float64  # log weight of this draw
 end
 
@@ -102,10 +101,17 @@ function sample_init!(rng::AbstractRNG,
 
     # samples and loglikes in prior space
     s.active_points = quantile.(hcat(model.priors), us)
-    s.active_logl = [model.loglike(s.active_points[:, i]) for i in 1:s.nactive]
+    s.active_logl = @inbounds [model.loglike(s.active_points[:, i]) for i in eachindex(s.active_logl)]
+    
+    any(isinf.(s.active_logl)) && @warn "Infinite log-likelihood found initializing sampler. This will cause failure to accurately calculate the information, h. Double check your log-likelihood function is numerically stable"
 
     # get bounding ellipsoid
     s.active_ell = scale!(fit(E, us, pointvol = 1 / s.nactive), s.enlarge)
+
+    # Initial point will have volume 1 - exp(-1/npoints)
+    s.log_vol = log1mexp(-1 / s.nactive)
+
+    return nothing
 end
 
 function step!(rng::AbstractRNG,
@@ -116,12 +122,14 @@ function step!(rng::AbstractRNG,
     # Find least likely point
     logL, idx = findmin(s.active_logl)
     draw = s.active_points[:, idx]
+    log_wt = s.log_vol + logL
 
-    # Initial point will have volume 1 - exp(-1/npoints)
-    log_vol = log1mexp(-1 / s.nactive)
-    log_wt = log_vol + logL
+    # update sampler
+    logz = logaddexp(s.logz, log_wt)
+    s.h = (exp(log_wt - logz) * logL +
+           exp(s.logz - logz) * (s.h + s.logz) - logz)
 
-    return NestedTransition(draw, logL, log_vol, log_wt)
+    return NestedTransition(draw, logL, log_wt)
 end
 
 function step!(rng::AbstractRNG,
@@ -133,15 +141,19 @@ function step!(rng::AbstractRNG,
     debug::Bool = false,
     kwargs...) where {E <: AbstractEllipsoid}
 
-    # update sampler
+    # Find least likely point
+    logL, idx = findmin(s.active_logl)
+    draw = s.active_points[:, idx]
+    log_wt = s.log_vol + logL
+
+    # update evidence and information
     logz = logaddexp(s.logz, prev.log_wt)
     s.h = (exp(prev.log_wt - logz) * prev.logL +
-        exp(s.logz - logz) * (s.h + s.logz) - logz)
-
+           exp(s.logz - logz) * (s.h + s.logz) - logz)
     s.logz = logz
 
     # Get bounding ellipsoid (only every update_interval)
-    if iteration % s.update_interval == 0
+    if iszero(iteration % s.update_interval)
         # Get points in unit space
         u = cdf.(hcat(model.priors), s.active_points)
 
@@ -150,21 +162,16 @@ function step!(rng::AbstractRNG,
         s.active_ell = scale!(fit(E, u, pointvol = pointvol), s.enlarge)
     end
 
-    # Find least likely point
-    logL, idx = findmin(s.active_logl)
-
-    draw = s.active_points[:, idx]
-
-    log_vol = prev.log_vol - 1 / s.nactive
-    log_wt = log_vol + logL
-
     # Get new point and log like
     p, logl = propose(rng, s.active_ell, model, logL)
-    s.active_points[:, idx] = p
-    s.active_logl[idx] = logl
+    @inbounds s.active_points[:, idx] = p
+    @inbounds s.active_logl[idx] = logl
     s.ndecl = log_wt < prev.log_wt ? s.ndecl + 1 : 0
 
-    return NestedTransition(draw, logL, log_vol, log_wt)
+    # Shrink interval
+    s.log_vol -=  1 / s.nactive
+
+    return NestedTransition(draw, logL, log_wt)
 end
 
 function sample_end!(rng::AbstractRNG,
@@ -189,7 +196,7 @@ function sample_end!(rng::AbstractRNG,
                exp(s.logz - logz) * (s.h + s.logz) - logz)
         s.logz = logz
 
-        prev = NestedTransition(draw, logL, log_vol, log_wt)
+        prev = NestedTransition(draw, logL, log_wt)
         push!(transitions, prev)
     end
 
@@ -198,6 +205,8 @@ function sample_end!(rng::AbstractRNG,
         s.h < -√eps(s.h) && @warn "Negative h encountered h=$(s.h). This is likely a bug"
         s.h = zero(s.h)
     end
+
+    return nothing
 end
 
 function bundle_samples(rng::AbstractRNG,
@@ -289,7 +298,7 @@ end
 # Convergence methods
 
 """
-Stopping criterion: Number of consecutive declining log-evidence is greater than `decline_factor` * `iteration`
+Stopping criterion: Number of consecutive declining log-evidence is greater than `iteration / decline_factor` or greater than `2nactive`
 """
 function decline_covergence(rng::AbstractRNG,
     ::AbstractModel,
@@ -297,10 +306,10 @@ function decline_covergence(rng::AbstractRNG,
     transitions,
     iteration::Integer;
     progress = true,
-    decline_factor = 1,
+    decline_factor = 6,
     kwargs...)
 
-    return sampler.ndecl > decline_factor * iteration
+    return sampler.ndecl > iteration / decline_factor || sampler.ndecl > 2sampler.nactive
 end
 
 """
