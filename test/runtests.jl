@@ -9,7 +9,7 @@ Random.seed!(8462852)
 # Helper that returns a random N-dimensional ellipsoid
 function random_ellipsoid(N::Integer)
     A = rand(N, N)
-    while  abs(det(A)) < 1e-10
+    while abs(det(A)) < 1e-10
         A = rand(N, N)
     end
     return Ellipsoid(zeros(N), A' * A)
@@ -26,7 +26,7 @@ function integrate_on_grid(f, ranges, density)
         step = (r[2] - r[1]) / density
         rmin = r[1] + step / 2
         rmax = r[2] - step / 2
-        push!(rs, range(rmin, rmax, length=density))
+        push!(rs, range(rmin, rmax, length = density))
     end
 
     logsum = -1e300
@@ -51,4 +51,19 @@ function integrate_on_grid(f, ranges)
     end
 end
 
-include("examples.jl")
+## Contrib from Firefly.jl
+using KernelDensity
+function findpeaks(samples::AbstractVector)
+    k = kde(samples)
+    # the sign of the difference will tell use whether we are increasing or decreasing
+    # using rle gives us the points at which the sign switches (local extreema)
+    runs = rle(sign.(diff(k.density)))
+    # if we start going up, first extreme will be maximum, else minimum
+    start = runs[1][1] == 1 ? 1 : 2
+    # find the peak indices at the local minima
+    peak_idx = cumsum(runs[2])[start:2:end]
+    sorted_idx = sortperm(k.density[peak_idx], rev = true)
+    return k.x[peak_idx[sorted_idx]]
+end
+
+include("sampling.jl")
