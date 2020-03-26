@@ -1,7 +1,7 @@
 # NestedSamplers.jl
 
-[![Build Status](https://github.com/mileslucas/NestedSamplers.jl/workflows/CI/badge.svg)](https://github.com/mileslucas/NestedSamplers.jl/actions)
-[![Coverage](https://codecov.io/gh/mileslucas/NestedSamplers.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/mileslucas/NestedSamplers.jl)
+[![Build Status](https://github.com/turinglang/NestedSamplers.jl/workflows/CI/badge.svg)](https://github.com/turinglang/NestedSamplers.jl/actions)
+[![Coverage](https://codecov.io/gh/turinglang/NestedSamplers.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/turinglang/NestedSamplers.jl)
 
 **Primary Author:** Miles Lucas ([@mileslucas](https://github.com/mileslucas))
 
