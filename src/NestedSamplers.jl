@@ -55,15 +55,17 @@ function Nested(nactive, enlarge = 1.2; update_interval = round(Int, 0.6nactive)
         ell = MultiEllipsoid([Ellipsoid(1)])
     else
         error("Invalid method $method")
-    end
+    end    
+    # Initial point will have volume 1 - exp(-1/npoints)
+    log_vol = log1mexp(-1 / nactive)
     #= Note: initializing logz as -Inf causes ugly failures in the h calculations
     by setting to a very small value (even smaller than log(eps(Float64))) we avoid this issue =#
-    return Nested(nactive, enlarge, update_interval, zeros(0, nactive), zeros(nactive), ell, -1e300, 0.0, Inf, 0)
+    return Nested(nactive, enlarge, update_interval, zeros(0, nactive), zeros(nactive), ell, -1e300, 0.0, log_vol, 0)
 end
 
 function Base.show(io::IO, n::Nested)
     println(io, "Nested{$(typeof(n.active_ell))}(nactive=$(n.nactive), enlarge=$(n.enlarge), update_interval=$(n.update_interval))")
-    println(io, "  logz=$(n.logz) ± $(sqrt(n.h / n.nactive))")
+    println(io, "  logz=$(n.logz)")# ± $(sqrt(n.h / n.nactive))")
     println(io, "  log_vol=$(n.log_vol)")
     print(io,   "  h=$(n.h)")
 end
@@ -108,9 +110,6 @@ function sample_init!(rng::AbstractRNG,
     # get bounding ellipsoid
     s.active_ell = scale!(fit(E, us, pointvol = 1 / s.nactive), s.enlarge)
 
-    # Initial point will have volume 1 - exp(-1/npoints)
-    s.log_vol = log1mexp(-1 / s.nactive)
-
     return nothing
 end
 
@@ -128,6 +127,7 @@ function step!(rng::AbstractRNG,
     logz = logaddexp(s.logz, log_wt)
     s.h = (exp(log_wt - logz) * logL +
            exp(s.logz - logz) * (s.h + s.logz) - logz)
+    s.logz = logz
 
     return NestedTransition(draw, logL, log_wt)
 end
@@ -140,7 +140,7 @@ function step!(rng::AbstractRNG,
     iteration,
     debug::Bool = false,
     kwargs...) where {E <: AbstractEllipsoid}
-
+    
     # Find least likely point
     logL, idx = findmin(s.active_logl)
     draw = s.active_points[:, idx]
@@ -183,12 +183,12 @@ function sample_end!(rng::AbstractRNG,
     kwargs...)
     # Pop remaining points in ellipsoid
     N = length(transitions)
-    log_vol = -N / s.nactive - log(s.nactive)
+    s.log_vol = -N / s.nactive - log(s.nactive)
     @inbounds for i in eachindex(s.active_logl)
         # get new point
         draw = s.active_points[:, i]
         logL = s.active_logl[i]
-        log_wt = log_vol + logL
+        log_wt = s.log_vol + logL
 
         # update sampler
         logz = logaddexp(s.logz, log_wt)
@@ -202,7 +202,7 @@ function sample_end!(rng::AbstractRNG,
 
     # h should always be non-negative. Numerical error can arise from pathological corner cases
     if s.h < 0
-        s.h < -√eps(s.h) && @warn "Negative h encountered h=$(s.h). This is likely a bug"
+        s.h ≉ 0 && @warn "Negative h encountered h=$(s.h). This is likely a bug"
         s.h = zero(s.h)
     end
 
@@ -308,6 +308,8 @@ function decline_covergence(rng::AbstractRNG,
     progress = true,
     decline_factor = 6,
     kwargs...)
+    # Don't accidentally short-circuit
+    iteration > 2 || return false
 
     return sampler.ndecl > iteration / decline_factor || sampler.ndecl > 2sampler.nactive
 end
@@ -323,6 +325,8 @@ function dlogz_convergence(rng::AbstractRNG,
     progress = true,
     dlogz = 0.5,
     kwargs...)
+    # Don't accidentally short-circuit
+    iteration > 2 || return false
 
     logz_remain = maximum(sampler.active_logl) - (iteration - 1) / sampler.nactive
     dlogz_current = logaddexp(sampler.logz, logz_remain) - sampler.logz

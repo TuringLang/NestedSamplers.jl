@@ -4,17 +4,14 @@ using MCMCChains: Chains
 using StatsFuns
 using StatsBase
 
-# @testset "Bundles" begin
-#     logl(x::AbstractVector{T}) where T = zero(T)
-#     priors = [Uniform(0, 1)]
-#     model = NestedModel(logl, priors)
-#     spl = Nested(4)
-#     chain = sample(model, spl, param_names = ["x"], chain_type = Chains)
-#     samples = sample(model, spl, chain_type = Array)
-
-#     @test samples isa Array
-#     # @test size(samples) == size(cha
-# end
+@testset "Bundles" begin
+    logl(x::AbstractVector{T}) where T =  exp(-x[1]^2 / 2) / √(2π)
+    priors = [Uniform(-1, 1)]
+    model = NestedModel(logl, priors)
+    spl = Nested(10)
+    chain = sample(model, spl; dlogz = 0.2, param_names = ["x"], chain_type = Chains)
+    samples = sample(model, spl; dlogz = 0.2, chain_type = Array)
+end
 
 # @testset "Flat" begin
 #     logl(x::AbstractVector{T}) where T = zero(T)
@@ -23,10 +20,10 @@ using StatsBase
 
 #     for method in [:single, :multi]
 #         spl = Nested(4, method = method)
-#         chain = sample(model, spl, chain_type = Array)
+#         chain = sample(model, spl, dlogz = 0.2, chain_type = Array)
 
-#         @test spl.logz ≈ 0 atol = 1e-10
-#         @test spl.h ≈ 0 atol = 1e-10
+#         @test spl.logz ≈ 0 atol = 1e-9 # TODO
+#         @test spl.h ≈ 0 atol = 1e-9 # TODO
 #     end
 # end
 
