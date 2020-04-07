@@ -8,7 +8,8 @@ import AbstractMCMC: AbstractSampler,
                      step!,
                      sample_init!,
                      sample_end!,
-                     bundle_samples
+                     bundle_samples,
+                     mcmcsample
 using Distributions
 using MCMCChains: Chains
 import StatsBase
@@ -282,7 +283,7 @@ function StatsBase.sample(
     sampler::Nested;
     kwargs...
 )
-    sample(rng, model, sampler, dlogz_convergence; kwargs...)
+    mcmcsample(rng, model, sampler, dlogz_convergence; kwargs...)
 end
 
 # Use to set default convergence metric
@@ -291,7 +292,7 @@ function StatsBase.sample(
     sampler::Nested;
     kwargs...
 )
-    sample(Random.GLOBAL_RNG, model, sampler, dlogz_convergence; kwargs...)
+    sample(Random.GLOBAL_RNG, model, sampler; kwargs...)
 end
 
 ###############################################################################
