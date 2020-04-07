@@ -1,0 +1,52 @@
+---
+options:
+    out_path: ../README.md
+    doctype: github
+---
+```julia; echo=false
+using NestedSamplers
+```
+# NestedSamplers.jl
+
+[![Build Status](https://github.com/turinglang/NestedSamplers.jl/workflows/CI/badge.svg?branch=master)](https://github.com/turinglang/NestedSamplers.jl/actions)
+[![Coverage](https://codecov.io/gh/turinglang/NestedSamplers.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/turinglang/NestedSamplers.jl)
+
+A Julian implementation of single- and multi-ellipsoidal nested sampling algorithms using the [AbstractMCMC](https://github.com/turinglang/abstractmcmc.jl) interface.
+
+This package was heavily influenced by [`nestle`](https://github.com/kbarbary/nestle) and [`NestedSampling.jl`](https://github.com/kbarbary/NestedSampling.jl).
+
+
+## Installation
+
+To use the nested samplers first install this library
+
+```julia; eval=false
+julia> ]add NestedSamplers
+```
+
+## Usage
+
+The samplers are built using the [AbstractMCMC](https://github.com/turinglang/abstractmcmc.jl) interface. To use it, we need to create a `NestedModel`.
+
+## API/Reference
+
+```julia; echo=false
+@doc Nested
+```
+---
+```julia; echo=false
+@doc NestedModel
+```
+---
+```julia; echo=false
+@doc dlogz_convergence
+```
+---
+```julia; echo=false
+@doc decline_convergence
+```
+
+## Contributing
+**Primary Author:** Miles Lucas ([@mileslucas](https://github.com/mileslucas))
+
+Contributions are always welcome! Take a look at the [issues](https://github.com/turinglang/nestedsamplers.jl/issues) for ideas of open problems!
