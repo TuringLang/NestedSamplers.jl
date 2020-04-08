@@ -66,13 +66,13 @@ chain = sample(model, spl;
 
 
 ````
-Object of type Chains, with data of type 358×3×1 Array{Float64,3}
+Object of type Chains, with data of type 355×3×1 Array{Float64,3}
 
-Log evidence      = 7.997743446099368
-Iterations        = 1:358
+Log evidence      = 8.401484862715426
+Iterations        = 1:355
 Thinning interval = 1
 Chains            = 1
-Samples per chain = 358
+Samples per chain = 355
 internals         = weights
 parameters        = x, y
 
@@ -81,14 +81,14 @@ parameters        = x, y
 Summary Statistics
   parameters    mean     std  naive_se    mcse       ess   r_hat
   ──────────  ──────  ──────  ────────  ──────  ────────  ──────
-           x  0.5303  0.2991    0.0158  0.0291  385.0700  0.9979
-           y  0.4958  0.2991    0.0158  0.0075  436.1185  0.9972
+           x  0.4739  0.3118    0.0166  0.0159  337.7470  0.9976
+           y  0.4768  0.2986    0.0158  0.0204  352.2510  0.9977
 
 Quantiles
   parameters    2.5%   25.0%   50.0%   75.0%   97.5%
   ──────────  ──────  ──────  ──────  ──────  ──────
-           x  0.0564  0.2348  0.5632  0.8027  0.9631
-           y  0.0404  0.1987  0.5056  0.7936  0.9505
+           x  0.0291  0.1744  0.4682  0.7870  0.9574
+           y  0.0313  0.1822  0.4672  0.7974  0.9137
 ````
 
 
@@ -136,7 +136,7 @@ A model for use with the `Nested` sampler.
 
 `loglike` must be callable with a signature `loglike(::AbstractVector)::Real` where the length of the vector must match the number of parameters in your model.
 
-`priors` are required for each variable in order to transform between a unit-sphere and parameter space. This means they must have `Distributions.cdf` and `Distributions.quantile` must be implemented.
+`priors` are required for each variable in order to transform between a unit-sphere and parameter space. This means they must have `Distributions.cdf` and `Distributions.quantile` implemented.
 
 **Note:** `loglike` is the only function used for likelihood calculations. This means if you want your priors to be used for the likelihood calculations they must be manually included in that function.
 
