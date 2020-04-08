@@ -57,8 +57,8 @@ A model for use with the `Nested` sampler.
 
 `priors` are required for each variable in order to transform between a unit-sphere and parameter space. This means they must have `Distributions.cdf` and `Distributions.quantile` must be implemented.
 
-!!! note
-    `loglike` is the only function used for likelihood calculations. This means if you want your priors to be used for the likelihood calculations they must be manually included in that function.
+**Note:**
+`loglike` is the only function used for likelihood calculations. This means if you want your priors to be used for the likelihood calculations they must be manually included in that function.
 """
 struct NestedModel{F <: Function,D <: Distribution} <: AbstractModel
     loglike::F
