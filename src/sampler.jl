@@ -51,7 +51,7 @@ end
 """
     NestedModel(loglike, priors::AbstractVector{<:Distribution})
 
-A model for use with [`Nested`](@ref).
+A model for use with the `Nested` sampler.
 
 `loglike` must be callable with a signature `loglike(::AbstractVector)::Real` where the length of the vector must match the number of parameters in your model.
 
