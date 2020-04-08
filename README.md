@@ -28,7 +28,6 @@ The samplers are built using the [AbstractMCMC](https://github.com/turinglang/ab
 ````julia
 using NestedSamplers
 using Distributions
-using Random; Random.seed!(8462852)
 
 # data: gaussian
 data = 2 .* randn(100) .+ 5
@@ -62,29 +61,29 @@ chain = sample(model, spl;
 
 
 ````
-Object of type Chains, with data of type 724×3×1 Array{Float64,3}
+Object of type Chains, with data of type 764×3×1 Array{Float64,3}
 
-Log evidence      = 1.7439818907812824e-96
-Iterations        = 1:724
+Log evidence      = 6.813803974992174e-96
+Iterations        = 1:764
 Thinning interval = 1
 Chains            = 1
-Samples per chain = 724
+Samples per chain = 764
 internals         = weights
 parameters        = sigma, mu
 
 2-element Array{MCMCChains.ChainDataFrame,1}
 
 Summary Statistics
-  parameters    mean     std  naive_se    mcse        ess   r_hat
-  ──────────  ──────  ──────  ────────  ──────  ─────────  ──────
-       sigma  5.0319  1.4880    0.0553  0.0296     7.2034  1.1760
-          mu  2.4937  0.8795    0.0327  0.2084  1294.5493  0.9990
+  parameters    mean     std  naive_se    mcse       ess   r_hat
+  ──────────  ──────  ──────  ────────  ──────  ────────  ──────
+       sigma  4.9605  1.5305    0.0554  0.0518    6.7315  1.1791
+          mu  2.4903  0.8900    0.0322  0.2060  283.5316  0.9998
 
 Quantiles
   parameters    2.5%   25.0%   50.0%   75.0%   97.5%
   ──────────  ──────  ──────  ──────  ──────  ──────
-          mu  1.0895  4.7007  5.0632  5.4433  8.5756
-       sigma  0.8604  2.0098  2.2209  2.9211  4.5331
+          mu  1.5270  4.5124  4.9087  5.3671  9.1067
+       sigma  0.7544  2.0055  2.2256  2.8441  4.7707
 ````
 
 
