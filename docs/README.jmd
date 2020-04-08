@@ -1,11 +1,9 @@
 ---
 options:
     out_path: ../README.md
+    fig_path: docs/figures
     doctype: github
 ---
-```julia; echo=false
-using NestedSamplers
-```
 # NestedSamplers.jl
 
 [![Build Status](https://github.com/turinglang/NestedSamplers.jl/workflows/CI/badge.svg?branch=master)](https://github.com/turinglang/NestedSamplers.jl/actions)
@@ -27,6 +25,44 @@ julia> ]add NestedSamplers
 ## Usage
 
 The samplers are built using the [AbstractMCMC](https://github.com/turinglang/abstractmcmc.jl) interface. To use it, we need to create a `NestedModel`.
+
+
+```julia
+using NestedSamplers
+using Distributions
+
+# data: gaussian
+data = 2 .* randn(100) .+ 5
+logl(x) = loglikelihood(Normal(x...), data)
+priors = [
+    Uniform(-0, 10) # μ
+    Uniform(0, 5)   # σ
+]
+# create the model
+model = NestedModel(logl, priors);
+```
+
+now, we set up our sampling using [StatsBase](https://github.com/JuliaStats/StatsBase.jl)
+
+```julia
+using StatsBase: sample
+using MCMCChains: Chains
+
+# create our sampler
+spl = Nested(100) # 100 active points; single-ellipsoid. See docstring
+# by default, uses dlogz_convergence. Set the keyword args here
+chain = sample(model, spl; 
+               dlogz=0.5, 
+               param_names=["mu", "sigma"], 
+               chain_type=Chains)
+```
+
+```julia
+using StatsPlots
+density(chain)
+vline!([5], c=:black, ls=:dash, subplot=1)
+vline!([2], c=:black, ls=:dash, subplot=2)
+```
 
 ## API/Reference
 

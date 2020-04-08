@@ -16,7 +16,7 @@ mutable struct Nested{E <: AbstractEllipsoid,T} <: AbstractSampler
 end
 
 """
-    Nested(nactive, enlarge=1.2; update_interval=round(Int, 0.6nactive), method=:single)
+    Nested(nactive; enlarge=1.2, update_interval=round(Int, 0.6nactive), method=:single)
 
 Ellipsoidal nested sampler.
 
@@ -28,7 +28,7 @@ The two methods are `:single`, which uses a single bounding ellipsoid, and `:mul
 * `update_interval` - How often to refit the live points with the ellipsoids
 * `method` - as mentioned above, the algorithm to use for sampling. `:single` uses a single ellipsoid and follows the original nested sampling algorithm proposed in Skilling 2004. `:multi` uses multiple ellipsoids- much like the MultiNest algorithm.
 """
-function Nested(nactive, enlarge = 1.2; update_interval = round(Int, 0.6nactive), method = :single)
+function Nested(nactive; enlarge = 1.2, update_interval = round(Int, 0.6nactive), method = :single)
     ell = _method(Val(method))
     # Initial point will have volume 1 - exp(-1/npoints)
     log_vol = log1mexp(-1 / nactive)
