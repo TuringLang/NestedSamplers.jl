@@ -6,7 +6,5 @@ julia --project=docs -e '
     using Weave
     weave("docs/README.jmd")'
 
-if ! git diff --exit-code README.md; then
-    git add README.md
-    git commit -m "re-weave README"
-fi
+# see if the code has changed and prevent pushing if true
+git diff --exit-code README.md
