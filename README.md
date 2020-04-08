@@ -90,3 +90,7 @@ Stopping criterion: Number of consecutive declining log-evidence is greater than
 **Primary Author:** Miles Lucas ([@mileslucas](https://github.com/mileslucas))
 
 Contributions are always welcome! Take a look at the [issues](https://github.com/turinglang/nestedsamplers.jl/issues) for ideas of open problems!
+
+---
+
+This file was generated from [README.jmd](docs/README.jmd) using [Weave.jl](https://github.com/JunoLab/Weave.jl)
