@@ -29,12 +29,15 @@ The samplers are built using the [AbstractMCMC](https://github.com/turinglang/ab
 using NestedSamplers
 using Distributions
 
-# data: gaussian
-data = 2 .* randn(100) .+ 5
-logl(x) = loglikelihood(Normal(x...), data)
+# eggbox likelihood function
+tmax = 3π
+function logl(x)
+    t = @. 2 * tmax * x - tmax
+    return 2 + cos(t[1] / 2) * cos(t[2]/2)^5
+end
 priors = [
-    Uniform(-0, 10) # μ
-    Uniform(0, 5)   # σ
+    Uniform(0, 1),
+    Uniform(0, 1)
 ]
 # create the model
 model = NestedModel(logl, priors);
@@ -51,39 +54,41 @@ using StatsBase: sample
 using MCMCChains: Chains
 
 # create our sampler
-spl = Nested(100) # 100 active points; single-ellipsoid. See docstring
+# 100 active points; multi-ellipsoid. See docstring
+spl = Nested(100, method=:multi) 
 # by default, uses dlogz_convergence. Set the keyword args here
+# currently Chains and Array are support chain_types
 chain = sample(model, spl; 
-               dlogz=0.5, 
-               param_names=["mu", "sigma"], 
+               dlogz=0.2, 
+               param_names=["x", "y"], 
                chain_type=Chains)
 ````
 
 
 ````
-Object of type Chains, with data of type 751×3×1 Array{Float64,3}
+Object of type Chains, with data of type 356×3×1 Array{Float64,3}
 
-Log evidence      = 3.991950229112697e-91
-Iterations        = 1:751
+Log evidence      = 8.320151085545053
+Iterations        = 1:356
 Thinning interval = 1
 Chains            = 1
-Samples per chain = 751
+Samples per chain = 356
 internals         = weights
-parameters        = sigma, mu
+parameters        = x, y
 
 2-element Array{MCMCChains.ChainDataFrame,1}
 
 Summary Statistics
   parameters    mean     std  naive_se    mcse       ess   r_hat
   ──────────  ──────  ──────  ────────  ──────  ────────  ──────
-       sigma  5.1196  1.4618    0.0533  0.0571    8.5382  1.1589
-          mu  2.2307  0.8845    0.0323  0.2206  766.2333  1.0034
+           x  0.5260  0.3058    0.0162  0.0076  393.3055  0.9972
+           y  0.5295  0.3090    0.0164  0.0115  367.6184  0.9972
 
 Quantiles
   parameters    2.5%   25.0%   50.0%   75.0%   97.5%
   ──────────  ──────  ──────  ──────  ──────  ──────
-          mu  1.4493  4.7412  5.2041  5.5430  8.5757
-       sigma  0.3780  1.7802  1.9567  2.5996  4.4837
+           x  0.0491  0.2275  0.5629  0.8169  0.9642
+           y  0.0447  0.1943  0.5440  0.8205  0.9737
 ````
 
 
@@ -91,8 +96,9 @@ Quantiles
 ````julia
 using StatsPlots
 density(chain)
-vline!([5], c=:black, ls=:dash, subplot=1)
-vline!([2], c=:black, ls=:dash, subplot=2)
+# analytical posterior maxima
+vline!([1/2 - π/tmax, 1/2, 1/2 + π/tmax], c=:black, ls=:dash, subplot=1)
+vline!([1/2 - π/tmax, 1/2, 1/2 + π/tmax], c=:black, ls=:dash, subplot=2)
 ````
 
 

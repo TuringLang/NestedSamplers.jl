@@ -13,6 +13,7 @@ if [ $# -ne 0 ]; then
     if ! git diff --exit-code README.md; then
         git add README.md
         git commit -m 're-weave README'
+        git push --no-verify "$1" "$2"
     fi
 fi
 exit 0 # push will execute

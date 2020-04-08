@@ -31,12 +31,15 @@ The samplers are built using the [AbstractMCMC](https://github.com/turinglang/ab
 using NestedSamplers
 using Distributions
 
-# data: gaussian
-data = 2 .* randn(100) .+ 5
-logl(x) = loglikelihood(Normal(x...), data)
+# eggbox likelihood function
+tmax = 3π
+function logl(x)
+    t = @. 2 * tmax * x - tmax
+    return 2 + cos(t[1]/2) * cos(t[2]/2)^5
+end
 priors = [
-    Uniform(-0, 10) # μ
-    Uniform(0, 5)   # σ
+    Uniform(0, 1),
+    Uniform(0, 1)
 ]
 # create the model
 model = NestedModel(logl, priors);
@@ -49,19 +52,22 @@ using StatsBase: sample
 using MCMCChains: Chains
 
 # create our sampler
-spl = Nested(100) # 100 active points; single-ellipsoid. See docstring
+# 100 active points; multi-ellipsoid. See docstring
+spl = Nested(100, method=:multi)
 # by default, uses dlogz_convergence. Set the keyword args here
-chain = sample(model, spl; 
-               dlogz=0.5, 
-               param_names=["mu", "sigma"], 
+# currently Chains and Array are support chain_types
+chain = sample(model, spl;
+               dlogz=0.2,
+               param_names=["x", "y"],
                chain_type=Chains)
 ```
 
 ```julia
 using StatsPlots
 density(chain)
-vline!([5], c=:black, ls=:dash, subplot=1)
-vline!([2], c=:black, ls=:dash, subplot=2)
+# analytical posterior maxima
+vline!([1/2 - π/tmax, 1/2, 1/2 + π/tmax], c=:black, ls=:dash, subplot=1)
+vline!([1/2 - π/tmax, 1/2, 1/2 + π/tmax], c=:black, ls=:dash, subplot=2)
 ```
 
 ## API/Reference
