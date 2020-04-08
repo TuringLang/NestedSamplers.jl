@@ -15,3 +15,4 @@ if [ $# -ne 0 ]; then
         git commit -m 're-weave README'
     fi
 fi
+exit 0 # push will execute

@@ -4,4 +4,9 @@ Currently, I have a script set up with my git hooks for running Weave before pus
 
 This script can be found at [`make`](make). You can choose to run this manually or you can use it as a git hook by moving it to the `.git/hooks` folder. To set it up to run before pushing simply run
 
+    mkdir -p .git/hooks
     cp docs/make .git/hooks/pre-push
+
+If you set this pre-push hook up and ever want to skip it, just push with `--no-verify` like this:
+
+    git push --no-verify origin master
