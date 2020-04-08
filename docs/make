@@ -6,14 +6,10 @@ julia --project=docs -e '
     using Weave
     weave("docs/README.jmd")'
 
-# only do automatic commit if we are in a hook execution
-# I don't know a great way to do this other than seeing if lines are passed
-if [ $# -ne 0 ]; then
-    # see if the code has changed and add a commit before pushing
-    if ! git diff --exit-code README.md; then
-        git add README.md
-        git commit -m 're-weave README'
-        git push --no-verify "$1" "$2"
-    fi
+if ! git diff --exit-code README.md; then
+    git add README.md docs/figures/README_4_1.png
+    git commit -m 're-weave README'
+    exit 1
+else
+    exit 0
 fi
-exit 0 # push will execute
