@@ -33,7 +33,7 @@ using Distributions
 tmax = 3π
 function logl(x)
     t = @. 2 * tmax * x - tmax
-    return 2 + cos(t[1] / 2) * cos(t[2]/2)^5
+    return 2 + cos(t[1]/2) * cos(t[2]/2)^5
 end
 priors = [
     Uniform(0, 1),
@@ -55,24 +55,24 @@ using MCMCChains: Chains
 
 # create our sampler
 # 100 active points; multi-ellipsoid. See docstring
-spl = Nested(100, method=:multi) 
+spl = Nested(100, method=:multi)
 # by default, uses dlogz_convergence. Set the keyword args here
 # currently Chains and Array are support chain_types
-chain = sample(model, spl; 
-               dlogz=0.2, 
-               param_names=["x", "y"], 
+chain = sample(model, spl;
+               dlogz=0.2,
+               param_names=["x", "y"],
                chain_type=Chains)
 ````
 
 
 ````
-Object of type Chains, with data of type 356×3×1 Array{Float64,3}
+Object of type Chains, with data of type 358×3×1 Array{Float64,3}
 
-Log evidence      = 8.320151085545053
-Iterations        = 1:356
+Log evidence      = 7.997743446099368
+Iterations        = 1:358
 Thinning interval = 1
 Chains            = 1
-Samples per chain = 356
+Samples per chain = 358
 internals         = weights
 parameters        = x, y
 
@@ -81,14 +81,14 @@ parameters        = x, y
 Summary Statistics
   parameters    mean     std  naive_se    mcse       ess   r_hat
   ──────────  ──────  ──────  ────────  ──────  ────────  ──────
-           x  0.5260  0.3058    0.0162  0.0076  393.3055  0.9972
-           y  0.5295  0.3090    0.0164  0.0115  367.6184  0.9972
+           x  0.5303  0.2991    0.0158  0.0291  385.0700  0.9979
+           y  0.4958  0.2991    0.0158  0.0075  436.1185  0.9972
 
 Quantiles
   parameters    2.5%   25.0%   50.0%   75.0%   97.5%
   ──────────  ──────  ──────  ──────  ──────  ──────
-           x  0.0491  0.2275  0.5629  0.8169  0.9642
-           y  0.0447  0.1943  0.5440  0.8205  0.9737
+           x  0.0564  0.2348  0.5632  0.8027  0.9631
+           y  0.0404  0.1987  0.5056  0.7936  0.9505
 ````
 
 
