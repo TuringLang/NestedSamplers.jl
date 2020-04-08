@@ -53,15 +53,13 @@ The two methods are `:single`, which uses a single bounding ellipsoid, and `:mul
 NestedModel(loglike, priors::AbstractVector{<:Distribution})
 ```
 
-A model for use with [`Nested`](@ref).
+A model for use with the `Nested` sampler.
 
 `loglike` must be callable with a signature `loglike(::AbstractVector)::Real` where the length of the vector must match the number of parameters in your model.
 
 `priors` are required for each variable in order to transform between a unit-sphere and parameter space. This means they must have `Distributions.cdf` and `Distributions.quantile` must be implemented.
 
-!!! note
-    `loglike` is the only function used for likelihood calculations. This means if you want your priors to be used for the likelihood calculations they must be manually included in that function.
-
+**Note:** `loglike` is the only function used for likelihood calculations. This means if you want your priors to be used for the likelihood calculations they must be manually included in that function.
 
 
 
@@ -73,7 +71,7 @@ dlogz_convergence(args...; dlogz=0.5, kwargs...)
 
 Stopping criterion: estimated fraction evidence remaining below threshold.
 
-The estimated fraction evidence remaining is given by the `maximum(active_loglike) - it/nactive` where `it` is the current iteration and `nactive` are the number of live points in the sampler.
+The estimated fraction evidence remaining is given by the `maximum(active_loglike) - it/nactive` where `it` is the current iteration.
 
 
 
