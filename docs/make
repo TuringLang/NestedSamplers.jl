@@ -6,9 +6,8 @@ julia --project=docs -e '
     using Weave
     weave("docs/README.jmd")'
 
-if ! git diff --exit-code README.md; then
-    git add README.md docs/figures/README_4_1.png
-    git commit -m 're-weave README'
+if ! git diff --exit-code; then
+    git commit -am 're-weave README'
     exit 1
 else
     exit 0
