@@ -15,7 +15,7 @@ StatsFuns = "4c63d2b9-4356-54db-8cca-17b64c39e42c"
 
 [compat]
 AbstractMCMC = "0.5.6,1.0"
-Clustering = "0.13"
+Clustering = "0.13, 0.14"
 Distributions = "0.21,0.22,0.23"
 MCMCChains = "3"
 StatsBase = "0.32, 0.33"
