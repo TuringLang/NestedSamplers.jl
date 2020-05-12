@@ -148,7 +148,7 @@ function bundle_samples(rng::AbstractRNG,
     end
     push!(param_names, "weights")
 
-    return Chains(vals, param_names, Dict(:internals => ["weights"]), evidence = exp(s.logz))
+    return Chains(vals, param_names, Dict(:internals => ["weights"]), evidence = s.logz)
 end
 
 function bundle_samples(rng::AbstractRNG,
