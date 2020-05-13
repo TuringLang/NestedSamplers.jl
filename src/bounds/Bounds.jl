@@ -10,8 +10,15 @@ The current implementations are
 """
 module Bounds
 
+using LinearAlgebra
+using Random: GLOBAL_RNG, AbstractRNG
+
+using StatsBase: mean_and_cov
+using Clustering
+using Distributions: Categorical
+
 """
-    Bounds.AbstractBoundingSpace{T<:Number,D<:Integer}
+    Bounds.AbstractBoundingSpace{T<:Number}
 
 Abstract type for describing the bounding algorithms with `D` dimensions. For information about the interface, see the extended help (`??Bounds.AbstractBoundingSpace`)
 
@@ -23,19 +30,41 @@ The following functionality defines the interface for `AbstractBoundingSpace` fo
 
 | Function | Required | Description |
 |---------:|:--------:|:------------|
-| `Base.rand(::MyBounds)` | x | Sample a single point from the prior volume |
-| `Base.rand(::MyBounds, ::Int)` |  | Sample many points from the prior volume. Will simply repeat the singular version if not implemented. |
-| `randoffset(::MyBounds)` | x | Generate a point randomly outward from the center of the bounding space
-| `Base.in(::MyBounds, point)` | x | Checks if the point is contained by the bounding space
+| `Base.rand(::RNG, ::MyBounds)` | x | Sample a single point from the prior volume |
+| `Base.rand(::RNG, ::MyBounds, ::Int)` |  | Sample many points from the prior volume. Will simply repeat the singular version if not implemented. |
+| `Base.in(point, ::MyBounds)` | x | Checks if the point is contained by the bounding space |
 | `scale!(::MyBounds, factor)` | x | Scale the volume by `factor`|
-| `span(::MyBounds)` | | If applicable, retrieve the span of the prior volume. For example, the principal axes of an ellipsoid.
-| `volume(::MyBounds)` | | If applicable, retrieve the current prior volume occupied by the bounds.
-| `fit!(::MyBounds, points, pointvol=0)` | x | update the bounds given the new `points` each with minimum volume `pointvol`.
+| `span(::MyBounds)` | | If applicable, retrieve the span of the prior volume. For example, the principal axes of an ellipsoid. |
+| `volume(::MyBounds)` | | If applicable, retrieve the current prior volume occupied by the bounds.|
+| `fit!(::MyBounds, points, pointvol=0)` | x | update the bounds given the new `points` each with minimum volume `pointvol`|
 """
-abstract type AbstractBoundingSpace{T <: Number,D <: Integer} end
+abstract type AbstractBoundingSpace{T <: Number} end
 
-struct NoBounds{T,D} <: AbstractBoundingSpace{T,D} end
+# convenience
+Base.rand(B::AbstractBoundingSpace) = rand(GLOBAL_RNG, B)
+Base.rand(B::AbstractBoundingSpace, N::Integer) = rand(GLOBAL_RNG, B, N)
 
-Base.rand(::NoBounds{T,D}) where {T,D} = rand(T, D)
+# fallback method
+Base.rand(rng::AbstractRNG, B::AbstractBoundingSpace, N::Integer) = reduce(hcat, [rand(rng, B) for _ in 1:N])
+
+# ---------------------------------------------------
+
+struct NoBounds{T} <: AbstractBoundingSpace{T}
+    ndims::Int
+end
+NoBounds(T::Type, D::Integer) = NoBounds{T}(D)
+
+Base.ndims(B::NoBounds) = B.ndims
+
+Base.rand(rng::AbstractRNG, b::NoBounds{T}) where {T} = rand(rng, T, ndims(b))
+Base.rand(rng::AbstractRNG, b::NoBounds{T}, N::Integer) where {T} = rand(rng, T, ndims(b), N)
+Base.in(pt, ::NoBounds) = all(0 .< pt .< 1)
+fit(::Type{NoBounds}, points; kwargs...) = NoBounds(eltype(points), size(points, 1))
+scale!(b::NoBounds, factor) = b
+volume(::NoBounds{T}) where {T} = one(T)
+
+
+include("ellipsoid.jl")
+include("multiellipsoid.jl")
 
 end # module Bounds

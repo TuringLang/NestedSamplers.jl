@@ -2,6 +2,7 @@ module NestedSamplers
 
 using LinearAlgebra
 using Random
+using Random: AbstractRNG, GLOBAL_RNG
 
 import AbstractMCMC: AbstractSampler,
                      AbstractModel,
@@ -16,17 +17,19 @@ import StatsBase
 using StatsFuns: logaddexp,
                  log1mexp
 
-export NestedModel,
-       Nested,
-       dlogz_convergence,
-       decline_convergence
+include("bounds/Bounds.jl")
+include("proposals/Proposals.jl")
 
+export Bounds
+    #     NestedModel,
+    #    Nested,
+    #    dlogz_convergence,
+    #    decline_convergence,
+       
 
-include("bounds/Bounds.jl")        # The bounding algorithms
-include("proposals/Proposals.jl")  # The proposal algorithms
-include("model.jl")         # The default model for nested sampling
-include("staticsampler.jl") # The static nested sampler
-include("convergence.jl")   # The convergence callback methods
-include("interface.jl")     # The interface to AbstractMCMC
+# include("model.jl")         # The default model for nested sampling
+# include("staticsampler.jl") # The static nested sampler
+# include("convergence.jl")   # The convergence callback methods
+# include("interface.jl")     # The interface to AbstractMCMC
 
 end
