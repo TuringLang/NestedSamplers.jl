@@ -22,11 +22,11 @@ export NestedModel,
        decline_convergence
 
 
-include("bounds.jl")        # The bounding algorithms
-include("proposals.jl")     # The proposal algorithms
-include("ellipsoids.jl")    # The actual math
-include("staticsampler.jl") # The sampler, model, and transition types
-include("convergence.jl")   # The convergence methods
+include("bounds/Bounds.jl")        # The bounding algorithms
+include("proposals/Proposals.jl")  # The proposal algorithms
+include("model.jl")         # The default model for nested sampling
+include("staticsampler.jl") # The static nested sampler
+include("convergence.jl")   # The convergence callback methods
 include("interface.jl")     # The interface to AbstractMCMC
 
 end

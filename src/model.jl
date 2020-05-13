@@ -1,0 +1,28 @@
+
+"""
+    NestedModel{D}(loglike, prior_transform)
+    NestedModel(loglike, prior_transform, D)
+    NestedModel(loglike, priors::AbstractVector{<:Distribution})
+
+A `D`-dimensional model for use with the `Nested` sampler.
+
+`loglike` must be callable with a signature `loglike(::AbstractVector)` where the length of the vector must match the number of parameters in your model.
+
+`prior_transform` must be a callable with a signature `prior_transform(::AbstractVector)` that returns the transformation from the unit-cube to parameter space. This is effectively the quantile or ppf of a statistical distribution. For convenience, if a vector of `Distribution` is provided (as a set of priors), a transformation function will automatically be constructed using `Distributions.quantile`.
+
+**Note:**
+`loglike` is the only function used for likelihood calculations. This means if you want your priors to be used for the likelihood calculations they must be manually included in the `loglike` function.
+"""
+struct NestedModel{D <: Integer} <: AbstractModel
+    loglike::Function
+    prior_transform::Function
+end
+
+NestedModel(loglike, prior_transform, D::Int) = NestedModel{D}(loglike, prior_transform)
+
+function NestedModel(loglike, priors::AbstractVector{<:Distribution})
+    prior_transform(X) = quantile.(priors, X)
+    return NestedModel{length(priors)}(loglike, prior_transform)
+end
+
+Base.show(io::IO, model::NestedModel{D}) where {D} = print(io, "NestedModel{$D}")
