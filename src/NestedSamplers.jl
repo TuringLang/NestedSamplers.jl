@@ -21,9 +21,12 @@ export NestedModel,
        dlogz_convergence,
        decline_convergence
 
-include("ellipsoids.jl")  # The actual math
-include("sampler.jl")     # The sampler, model, and transition types
-include("convergence.jl") # The convergence methods
-include("interface.jl")   # The interface to AbstractMCMC
+
+include("bounds.jl")        # The bounding algorithms
+include("proposals.jl")     # The proposal algorithms
+include("ellipsoids.jl")    # The actual math
+include("staticsampler.jl") # The sampler, model, and transition types
+include("convergence.jl")   # The convergence methods
+include("interface.jl")     # The interface to AbstractMCMC
 
 end
