@@ -2,31 +2,32 @@
 
 function sample_init!(rng::AbstractRNG,
     model::NestedModel,
-    s::Nested{E},
+    s::Nested{T,B},
     ::Integer;
     debug::Bool = false,
-    kwargs...) where {E <: AbstractEllipsoid}
+    kwargs...) where {T,B}
 
     debug && @info "Initializing sampler"
-    s.nactive < 2length(model.priors) && @warn "Using fewer than 2ndim active points is discouraged"
 
     # samples in unit space
-    us = rand(rng, length(model.priors), s.nactive)
+    s.active_us .= rand(rng, s.ndims, s.nactive)
 
     # samples and loglikes in prior space
-    s.active_points = quantile.(hcat(model.priors), us)
-    s.active_logl = @inbounds [model.loglike(s.active_points[:, i]) for i in eachindex(s.active_logl)]
-    
-    any(isinf.(s.active_logl)) && @warn "Infinite log-likelihood found initializing sampler. This will cause failure to accurately calculate the information, h. Double check your log-likelihood function is numerically stable"
+    for idx in eachindex(s.active_logl)
+        s.active_points[:, idx] .= model.prior_transform(s.active_us[:, idx])
+        s.active_logl[idx] = model.loglike(s.active_points[:, idx])
+    end
+
+    any(isinf, s.active_logl) && @warn "Infinite log-likelihood found initializing sampler. This will cause failure to accurately calculate the information, h. Double check your log-likelihood function is numerically stable"
 
     # get bounding ellipsoid
-    s.active_ell = scale!(fit(E, us, pointvol = 1 / s.nactive), s.enlarge)
+    s.active_bound = Bounds.scale!(Bounds.fit(B, s.active_us, pointvol = 1 / s.nactive), s.enlarge)
 
     return nothing
 end
 
-function step!(rng::AbstractRNG,
-    model::NestedModel,
+function step!(::AbstractRNG,
+    ::AbstractModel,
     s::Nested,
     ::Integer;
     kwargs...)
@@ -46,13 +47,13 @@ end
 
 function step!(rng::AbstractRNG,
     model::NestedModel,
-    s::Nested{E},
+    s::Nested{T,B},
     ::Integer,
     prev::NestedTransition;
     iteration,
     debug::Bool = false,
-    kwargs...) where {E <: AbstractEllipsoid}
-    
+    kwargs...) where {T,B}
+
     # Find least likely point
     logL, idx = findmin(s.active_logl)
     draw = s.active_points[:, idx]
@@ -66,18 +67,15 @@ function step!(rng::AbstractRNG,
 
     # Get bounding ellipsoid (only every update_interval)
     if iszero(iteration % s.update_interval)
-        # Get points in unit space
-        u = cdf.(hcat(model.priors), s.active_points)
-
-        # fit ellipsoid
-        pointvol = exp(-(iteration - 1) / s.nactive) / s.nactive
-        s.active_ell = scale!(fit(E, u, pointvol = pointvol), s.enlarge)
+        pointvol = exp(s.log_vol) / s.nactive
+        s.active_bound = Bounds.scale!(Bounds.fit(B, s.active_us, pointvol = pointvol), s.enlarge)
     end
 
     # Get new point and log like
-    p, logl = propose(rng, s.active_ell, model, logL)
-    @inbounds s.active_points[:, idx] = p
-    @inbounds s.active_logl[idx] = logl
+    u, v, logl = s.proposal(rng, s.active_bound, model.prior_transform, model.loglike, logL, s.log_vol; kwargs...)
+    s.active_us[:, idx] = u
+    s.active_points[:, idx] = v
+    s.active_logl[idx] = logl
     s.ndecl = log_wt < prev.log_wt ? s.ndecl + 1 : 0
 
     # Shrink interval
@@ -86,8 +84,8 @@ function step!(rng::AbstractRNG,
     return NestedTransition(draw, logL, log_wt)
 end
 
-function sample_end!(rng::AbstractRNG,
-    ℓ::AbstractModel,
+function sample_end!(::AbstractRNG,
+    ::AbstractModel,
     s::Nested,
     ::Integer,
     transitions;
@@ -121,10 +119,10 @@ function sample_end!(rng::AbstractRNG,
     return nothing
 end
 
-function bundle_samples(rng::AbstractRNG,
+function bundle_samples(::AbstractRNG,
     ::AbstractModel,
     s::Nested,
-    N::Integer,
+    ::Integer,
     transitions,
     Chains;
     param_names = missing,
@@ -151,17 +149,17 @@ function bundle_samples(rng::AbstractRNG,
     return Chains(vals, param_names, Dict(:internals => ["weights"]), evidence = s.logz)
 end
 
-function bundle_samples(rng::AbstractRNG,
+function bundle_samples(::AbstractRNG,
     ::AbstractModel,
     s::Nested,
-    N::Integer,
+    ::Integer,
     transitions,
     A::Type{<:AbstractArray};
     check_wsum = true,
     kwargs...)
 
     vals = convert(A, mapreduce(t->t.draw, hcat, transitions)')
-    
+
     if check_wsum
         # get weights
         wsum = mapreduce(t->exp(t.log_wt - s.logz), +, transitions)
@@ -172,19 +170,6 @@ function bundle_samples(rng::AbstractRNG,
     end
 
     return vals
-end
-
-"""
-Propose a new point in the given `AbstractEllipsoid` that is guaranteed to have log-likelihood greater than or equal to `logl_star`
-"""
-function propose(rng::AbstractRNG, ell::AbstractEllipsoid, model::NestedModel, logl_star)
-    while true
-        u = rand(rng, ell)
-        all(0 .< u .< 1) || continue
-        v = quantile.(model.priors, u)
-        logl = model.loglike(v)
-        logl ≥ logl_star && return v, logl
-    end
 end
 
 # Use to set default convergence metric
@@ -203,5 +188,5 @@ function StatsBase.sample(
     sampler::Nested;
     kwargs...
 )
-    sample(Random.GLOBAL_RNG, model, sampler; kwargs...)
+    StatsBase.sample(Random.GLOBAL_RNG, model, sampler; kwargs...)
 end

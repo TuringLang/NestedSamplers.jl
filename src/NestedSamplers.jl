@@ -2,14 +2,10 @@ module NestedSamplers
 
 # load submodules
 include("bounds/Bounds.jl")
+using .Bounds
 include("proposals/Proposals.jl")
+using .Proposals
 
-export Bounds,
-       Proposals
-    #     NestedModel,
-    #    Nested,
-    #    dlogz_convergence,
-    #    decline_convergence,
        
 using LinearAlgebra
 using Random
@@ -22,16 +18,24 @@ import AbstractMCMC: AbstractSampler,
                         sample_end!,
                         bundle_samples,
                         mcmcsample
-using Distributions
+using Distributions: quantile, UnivariateDistribution
 using MCMCChains: Chains
 import StatsBase
 using StatsFuns: logaddexp,
-                    log1mexp
+                 log1mexp
 
 
-# include("model.jl")         # The default model for nested sampling
-# include("staticsampler.jl") # The static nested sampler
-# include("convergence.jl")   # The convergence callback methods
-# include("interface.jl")     # The interface to AbstractMCMC
+export Bounds,
+       Proposals,
+       NestedModel,
+       Nested,
+       dlogz_convergence,
+       decline_convergence
+
+
+include("model.jl")         # The default model for nested sampling
+include("staticsampler.jl") # The static nested sampler
+include("convergence.jl")   # The convergence callback methods
+include("interface.jl")     # The interface to AbstractMCMC
 
 end

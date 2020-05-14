@@ -18,9 +18,7 @@ struct NestedModel <: AbstractModel
     prior_transform::Function
 end
 
-NestedModel(loglike, prior_transform) = NestedModel(loglike, prior_transform)
-
-function NestedModel(loglike, priors::AbstractVector{<:Distribution})
+function NestedModel(loglike, priors::AbstractVector{<:UnivariateDistribution})
     prior_transform(X) = quantile.(priors, X)
     return NestedModel(loglike, prior_transform)
 end

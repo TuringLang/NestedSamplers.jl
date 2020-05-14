@@ -7,15 +7,14 @@ An `N`-dimensional ellipsoid defined by
 
 where `size(center) == (N,)` and `size(A) == (N,N)`.
 """
-mutable struct Ellipsoid{T,V <: AbstractVector{T},P <: AbstractMatrix{T}} <: AbstractBoundingSpace{T}
-    center::V
-    A::P
-    # internals
+mutable struct Ellipsoid{T} <: AbstractBoundingSpace{T}
+    center::Vector{T}
+    A::Matrix{T}
     volume::T
 end
 
 Ellipsoid(ndim::Integer) = Ellipsoid(Float64, ndim)
-Ellipsoid(T, ndim::Integer) = Ellipsoid(zeros(T, ndim), Diagonal(ones(T, ndim)))
+Ellipsoid(T::Type, ndim::Integer) = Ellipsoid(zeros(T, ndim), diagm(0 => ones(T, ndim)), volume_prefactor(ndim))
 
 Base.broadcastable(e::Ellipsoid) = (e,)
 

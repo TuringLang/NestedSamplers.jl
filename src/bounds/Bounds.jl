@@ -17,6 +17,9 @@ using StatsBase: mean_and_cov
 using Clustering
 using Distributions: Categorical
 
+export AbstractBoundingSpace
+
+
 """
     Bounds.AbstractBoundingSpace{T<:Number}
 
@@ -46,6 +49,13 @@ Base.rand(B::AbstractBoundingSpace, N::Integer) = rand(GLOBAL_RNG, B, N)
 
 # fallback method
 Base.rand(rng::AbstractRNG, B::AbstractBoundingSpace, N::Integer) = reduce(hcat, [rand(rng, B) for _ in 1:N])
+
+function Base.show(io::IO, bound::B) where {T,B <: AbstractBoundingSpace{T}}
+    base = nameof(B) |> string
+    print(io, "$base{$T}(ndims=$(ndims(bound)))")
+
+    return nothing
+end
 
 # ---------------------------------------------------
 
