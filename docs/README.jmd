@@ -11,7 +11,7 @@ options:
 
 A Julian implementation of single- and multi-ellipsoidal nested sampling algorithms using the [AbstractMCMC](https://github.com/turinglang/abstractmcmc.jl) interface.
 
-This package was heavily influenced by [`nestle`](https://github.com/kbarbary/nestle) and [`NestedSampling.jl`](https://github.com/kbarbary/NestedSampling.jl).
+This package was heavily influenced by [`nestle`](https://github.com/kbarbary/nestle), [`dynesty`](https://github.com/joshspeagle/dynesty), and [`NestedSampling.jl`](https://github.com/kbarbary/NestedSampling.jl).
 
 
 ## Installation
@@ -41,23 +41,25 @@ priors = [
     Uniform(0, 1),
     Uniform(0, 1)
 ]
+# or equivalently
+prior_transform(X) = X
 # create the model
-model = NestedModel(logl, priors);
+model = NestedModel(logl, priors); # or model = NestedModel(logl, prior_transform)
 ```
 
 now, we set up our sampling using [StatsBase](https://github.com/JuliaStats/StatsBase.jl)
 
 ```julia
-using StatsBase: sample
+using StatsBase: sample, Weights
 using MCMCChains: Chains
 
 # create our sampler
-# 100 active points; multi-ellipsoid. See docstring
-spl = Nested(100, method=:multi)
+# 2 parameters, 100 active points, multi-ellipsoid. See docstring
+spl = Nested(2, 100, bounds=Bounds.MultiEllipsoid)
 # by default, uses dlogz_convergence. Set the keyword args here
 # currently Chains and Array are support chain_types
 chain = sample(model, spl;
-               dlogz=0.2,
+               dlobz=0.2,
                param_names=["x", "y"],
                chain_type=Chains)
 ```
@@ -72,14 +74,45 @@ vline!([1/2 - π/tmax, 1/2, 1/2 + π/tmax], c=:black, ls=:dash, subplot=2)
 
 ## API/Reference
 
-```julia; echo=false
-@doc Nested
-```
----
+### Samplers
 ```julia; echo=false
 @doc NestedModel
 ```
 ---
+```julia; echo=false
+@doc Nested
+```
+
+---
+### Bounds
+```julia; echo=false
+@doc Bounds
+```
+---
+```julia; echo=false
+@doc Bounds.NoBounds
+```
+---
+```julia; echo=false
+@doc Bounds.Ellipsoid
+```
+---
+```julia; echo=false
+@doc Bounds.MultiEllipsoid
+```
+
+---
+### Proposals
+
+```julia; echo=false
+@doc Proposals
+```
+---
+```julia; echo=false
+@doc Proposals.Uniform
+```
+---
+### Convergence
 ```julia; echo=false
 @doc dlogz_convergence
 ```

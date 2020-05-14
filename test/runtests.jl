@@ -4,21 +4,10 @@ using Random
 using LinearAlgebra
 using IterTools
 
-Random.seed!(8462852)
+Random.seed!(70)
 
-# Helper that returns a random N-dimensional ellipsoid
-function random_ellipsoid(N::Integer)
-    A = rand(N, N)
-    while abs(det(A)) < 1e-10
-        A = rand(N, N)
-    end
-    return Ellipsoid(zeros(N), A' * A)
-end
-
-@testset "Ellipsoids" begin
-    include("helpers.jl")
-    include("ellipsoids.jl")
-end
+@testset "Bounds" begin include("bounds/bounds.jl") end
+@testset "Proposals" begin include("proposals/proposals.jl") end
 
 function integrate_on_grid(f, ranges, density)
     rs = []
@@ -66,4 +55,4 @@ function findpeaks(samples::AbstractVector)
     return k.x[peak_idx[sorted_idx]]
 end
 
-include("sampling.jl")
+@testset "Sampling" begin include("sampling.jl") end

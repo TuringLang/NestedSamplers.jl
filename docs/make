@@ -1,10 +1,10 @@
 #!/bin/bash
 julia --project=docs -e '
     using Pkg
+    Pkg.activate(joinpath(pwd(), "docs"))
     Pkg.develop(PackageSpec(path=pwd()))
     Pkg.instantiate()
-    using Weave
-    weave("docs/README.jmd")'
+    weave(joinpath(pwd(), "docs", "README.jmd"))'
 
 if ! git diff --exit-code; then
     git commit -am 're-weave README'

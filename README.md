@@ -5,7 +5,7 @@
 
 A Julian implementation of single- and multi-ellipsoidal nested sampling algorithms using the [AbstractMCMC](https://github.com/turinglang/abstractmcmc.jl) interface.
 
-This package was heavily influenced by [`nestle`](https://github.com/kbarbary/nestle) and [`NestedSampling.jl`](https://github.com/kbarbary/NestedSampling.jl).
+This package was heavily influenced by [`nestle`](https://github.com/kbarbary/nestle), [`dynesty`](https://github.com/joshspeagle/dynesty), and [`NestedSampling.jl`](https://github.com/kbarbary/NestedSampling.jl).
 
 
 ## Installation
@@ -39,8 +39,10 @@ priors = [
     Uniform(0, 1),
     Uniform(0, 1)
 ]
+# or equivalently
+prior_transform(X) = X
 # create the model
-model = NestedModel(logl, priors);
+model = NestedModel(logl, priors); # or model = NestedModel(logl, prior_transform)
 ````
 
 
@@ -50,29 +52,29 @@ model = NestedModel(logl, priors);
 now, we set up our sampling using [StatsBase](https://github.com/JuliaStats/StatsBase.jl)
 
 ````julia
-using StatsBase: sample
+using StatsBase: sample, Weights
 using MCMCChains: Chains
 
 # create our sampler
-# 100 active points; multi-ellipsoid. See docstring
-spl = Nested(100, method=:multi)
+# 2 parameters, 100 active points, multi-ellipsoid. See docstring
+spl = Nested(2, 100, bounds=Bounds.MultiEllipsoid)
 # by default, uses dlogz_convergence. Set the keyword args here
 # currently Chains and Array are support chain_types
 chain = sample(model, spl;
-               dlogz=0.2,
+               dlobz=0.2,
                param_names=["x", "y"],
                chain_type=Chains)
 ````
 
 
 ````
-Object of type Chains, with data of type 355×3×1 Array{Float64,3}
+Object of type Chains, with data of type 268×3×1 Array{Float64,3}
 
-Log evidence      = 8.401484862715426
-Iterations        = 1:355
+Log evidence      = 2.0947299860019433
+Iterations        = 1:268
 Thinning interval = 1
 Chains            = 1
-Samples per chain = 355
+Samples per chain = 268
 internals         = weights
 parameters        = x, y
 
@@ -81,14 +83,14 @@ parameters        = x, y
 Summary Statistics
   parameters    mean     std  naive_se    mcse       ess   r_hat
   ──────────  ──────  ──────  ────────  ──────  ────────  ──────
-           x  0.4739  0.3118    0.0166  0.0159  337.7470  0.9976
-           y  0.4768  0.2986    0.0158  0.0204  352.2510  0.9977
+           x  0.5067  0.3030    0.0185  0.0138  185.5509  1.0056
+           y  0.4901  0.3097    0.0189  0.0123  340.9673  0.9964
 
 Quantiles
   parameters    2.5%   25.0%   50.0%   75.0%   97.5%
   ──────────  ──────  ──────  ──────  ──────  ──────
-           x  0.0291  0.1744  0.4682  0.7870  0.9574
-           y  0.0313  0.1822  0.4672  0.7974  0.9137
+           x  0.0392  0.2245  0.4707  0.7899  0.9740
+           y  0.0473  0.1941  0.4757  0.8025  0.9700
 ````
 
 
@@ -108,41 +110,131 @@ vline!([1/2 - π/tmax, 1/2, 1/2 + π/tmax], c=:black, ls=:dash, subplot=2)
 
 ## API/Reference
 
+### Samplers
 
 ```
-Nested(nactive; enlarge=1.2, update_interval=round(Int, 0.6nactive), method=:single)
-```
-
-Ellipsoidal nested sampler.
-
-The two methods are `:single`, which uses a single bounding ellipsoid, and `:multi`, which finds an optimal clustering of ellipsoids.
-
-### Parameters
-
-  * `nactive` - The number of live points.
-  * `enlarge` - When fitting ellipsoids to live points, they will be enlarged (in terms of volume) by this factor.
-  * `update_interval` - How often to refit the live points with the ellipsoids
-  * `method` - as mentioned above, the algorithm to use for sampling. `:single` uses a single ellipsoid and follows the original nested sampling algorithm proposed in Skilling 2004. `:multi` uses multiple ellipsoids- much like the MultiNest algorithm.
-
-
-
----
-
-```
+NestedModel(loglike, prior_transform)
 NestedModel(loglike, priors::AbstractVector{<:Distribution})
 ```
 
-A model for use with the `Nested` sampler.
+`loglike` must be callable with a signature `loglike(::AbstractVector)` where the length of the vector must match the number of parameters in your model.
 
-`loglike` must be callable with a signature `loglike(::AbstractVector)::Real` where the length of the vector must match the number of parameters in your model.
+`prior_transform` must be a callable with a signature `prior_transform(::AbstractVector)` that returns the transformation from the unit-cube to parameter space. This is effectively the quantile or ppf of a statistical distribution. For convenience, if a vector of `Distribution` is provided (as a set of priors), a transformation function will automatically be constructed using `Distributions.quantile`.
 
-`priors` are required for each variable in order to transform between a unit-sphere and parameter space. This means they must have `Distributions.cdf` and `Distributions.quantile` implemented.
-
-**Note:** `loglike` is the only function used for likelihood calculations. This means if you want your priors to be used for the likelihood calculations they must be manually included in that function.
+**Note:** `loglike` is the only function used for likelihood calculations. This means if you want your priors to be used for the likelihood calculations they must be manually included in the `loglike` function.
 
 
 
 ---
+
+```
+Nested(ndims, nactive;
+    bounds=Bounds.Ellipsoid,
+    proposal=Proposals.Uniform(),
+    enlarge=1.2,
+    update_interval=round(Int, 0.6nactive))
+```
+
+Static nested sampler with `nactive` active points and `ndims` parameters.
+
+`ndims` is equivalent to the number of parameters to fit, which defines the dimensionality of the prior volume used in evidence sampling. `nactive` is the number of live or active points in the prior volume. This is a static sampler, so the number of live points will be constant for all of the sampling.
+
+## Bounds and Proposals
+
+`bounds` declares the Type of [`Bounds.AbstractBoundingSpace`](@ref) to use in the prior volume. The available bounds are described by [`Bounds`](@ref). `proposal` declares the algorithm used for proposing new points. The available proposals are described in [`Proposals`](@ref).
+
+The original nested sampling algorithm is equivalent to using `Bounds.Ellipsoid` with `Proposals.Uniform`. The MultiNest algorithm is equivalent to `Bounds.MultiEllipsoid` with `Proposals.Uniform`.
+
+## Other Parameters
+
+  * `enlarge` - When fitting the bounds to live points, they will be enlarged (in terms of volume) by this linear factor.
+  * `update_interval` - How often to refit the live points with the bounds
+
+
+
+
+---
+### Bounds
+
+```
+NestedSamplers.Bounds
+```
+
+This module contains the different algorithms for bounding the prior volume.
+
+The available implementations are
+
+  * [`Bounds.NoBounds`](@ref) - no bounds on the prior volume (equivalent to a unit cube)
+  * [`Bounds.Ellipsoid`](@ref) - bound using a single ellipsoid
+  * [`Bounds.MultiEllipsoid`](@ref) - bound using multiple ellipsoids in an optimal cluster
+
+
+
+---
+
+```
+Bounds.NoBounds([T=Float64], N)
+```
+
+Unbounded prior volume; equivalent to the unit cube in `N` dimensions.
+
+
+
+---
+
+```
+Bounds.Ellipsoid([T=Float64], N)
+Bounds.Ellipsoid(center::AbstractVector, A::AbstractMatrix)
+```
+
+An `N`-dimensional ellipsoid defined by
+
+$ (x - center)^T A (x - center) = 1 $
+
+where `size(center) == (N,)` and `size(A) == (N,N)`.
+
+
+
+---
+
+```
+Bounds.MultiEllipsoid([T=Float64], ndims)
+Bounds.MultiEllipsoid(::AbstractVector{Ellipsoid})
+```
+
+Use multiple [`Ellipsoid`](@ref)s in an optimal clustering to bound prior space. For more details about the bounding algorithm, see the extended help (`??Bounds.MultiEllipsoid`)
+
+
+
+
+---
+### Proposals
+
+
+```
+NestedSamplers.Proposals
+```
+
+This module contains the different algorithms for proposing new points within a bounding volume in unit space.
+
+The available implementations are
+
+  * [`Proposals.Uniform`](@ref) - samples uniformly within the bounding volume
+
+
+
+---
+
+```
+Proposals.Uniform()
+```
+
+A proposal scheme which samples uniformly within the bounding volume
+
+
+
+---
+### Convergence
 
 ```
 dlogz_convergence(args...; dlogz=0.5, kwargs...)
