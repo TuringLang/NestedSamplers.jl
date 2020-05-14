@@ -41,8 +41,10 @@ priors = [
     Uniform(0, 1),
     Uniform(0, 1)
 ]
+# or equivalently
+prior_transform(X) = X
 # create the model
-model = NestedModel(logl, priors);
+model = NestedModel(logl, priors); # or model = NestedModel(logl, prior_transform)
 ```
 
 now, we set up our sampling using [StatsBase](https://github.com/JuliaStats/StatsBase.jl)

@@ -39,8 +39,10 @@ priors = [
     Uniform(0, 1),
     Uniform(0, 1)
 ]
+# or equivalently
+prior_transform(X) = X
 # create the model
-model = NestedModel(logl, priors);
+model = NestedModel(logl, priors); # or model = NestedModel(logl, prior_transform)
 ````
 
 
@@ -66,13 +68,13 @@ chain = sample(model, spl;
 
 
 ````
-Object of type Chains, with data of type 271×3×1 Array{Float64,3}
+Object of type Chains, with data of type 268×3×1 Array{Float64,3}
 
-Log evidence      = 2.0687430934438695
-Iterations        = 1:271
+Log evidence      = 2.0947299860019433
+Iterations        = 1:268
 Thinning interval = 1
 Chains            = 1
-Samples per chain = 271
+Samples per chain = 268
 internals         = weights
 parameters        = x, y
 
@@ -81,14 +83,14 @@ parameters        = x, y
 Summary Statistics
   parameters    mean     std  naive_se    mcse       ess   r_hat
   ──────────  ──────  ──────  ────────  ──────  ────────  ──────
-           x  0.5142  0.2983    0.0181  0.0092  283.4018  1.0040
-           y  0.4692  0.2969    0.0180  0.0210  230.9453  0.9979
+           x  0.5067  0.3030    0.0185  0.0138  185.5509  1.0056
+           y  0.4901  0.3097    0.0189  0.0123  340.9673  0.9964
 
 Quantiles
   parameters    2.5%   25.0%   50.0%   75.0%   97.5%
   ──────────  ──────  ──────  ──────  ──────  ──────
-           x  0.0245  0.2316  0.5553  0.7708  0.9810
-           y  0.0341  0.1957  0.4460  0.7654  0.9455
+           x  0.0392  0.2245  0.4707  0.7899  0.9740
+           y  0.0473  0.1941  0.4757  0.8025  0.9700
 ````
 
 
