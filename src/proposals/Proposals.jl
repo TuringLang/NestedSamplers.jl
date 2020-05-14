@@ -28,6 +28,11 @@ end
 
 # ----------------------------------------
 
+"""
+    Proposals.Uniform()
+
+A proposal scheme which samples uniformly within the bounding volume
+"""
 struct Uniform <: AbstractProposal end
 
 function (::Uniform)(rng::AbstractRNG, bounds::AbstractBoundingSpace, loglike, prior_transform, logl_star, args...; kwargs...)

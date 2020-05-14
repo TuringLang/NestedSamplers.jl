@@ -1,10 +1,7 @@
 
 """
-    NestedModel{D}(loglike, prior_transform)
     NestedModel(loglike, prior_transform)
     NestedModel(loglike, priors::AbstractVector{<:Distribution})
-
-A `D`-dimensional model for use with the `Nested` sampler.
 
 `loglike` must be callable with a signature `loglike(::AbstractVector)` where the length of the vector must match the number of parameters in your model.
 

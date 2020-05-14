@@ -1,4 +1,10 @@
 
+"""
+    Bounds.MultiEllipsoid([T=Float64], ndims)
+    Bounds.MultiEllipsoid(::AbstractVector{Ellipsoid})
+
+Use multiple [`Ellipsoid`](@ref)s in an optimal clustering to bound prior space. For more details about the bounding algorithm, see the extended help (`??Bounds.MultiEllipsoid`)
+"""
 struct MultiEllipsoid{T} <: AbstractBoundingSpace{T}
     ellipsoids::Vector{Ellipsoid{T}}
 end

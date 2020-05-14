@@ -16,7 +16,6 @@ using Random: GLOBAL_RNG, AbstractRNG
 using StatsBase: mean_and_cov
 using Clustering
 using Distributions: Categorical
-using PDMats
 
 export AbstractBoundingSpace
 
@@ -38,7 +37,6 @@ The following functionality defines the interface for `AbstractBoundingSpace` fo
 | `Base.rand(::RNG, ::MyBounds, ::Int)` |  | Sample many points from the prior volume. Will simply repeat the singular version if not implemented. |
 | `Base.in(point, ::MyBounds)` | x | Checks if the point is contained by the bounding space |
 | `scale!(::MyBounds, factor)` | x | Scale the volume by the linear `factor`|
-| `span(::MyBounds)` | | Retrieve the span of the prior volume. For example, the principal axes of an ellipsoid. |
 | `volume(::MyBounds)` | | Retrieve the current prior volume occupied by the bounds. |
 | `fit(::Type{<:MyBounds}, points, pointvol=0)` | x | update the bounds given the new `points` each with minimum volume `pointvol`|
 """
@@ -62,6 +60,11 @@ end
 
 # ---------------------------------------------------
 
+"""
+    Bounds.NoBounds([T=Float64], N)
+
+Unbounded prior volume; equivalent to the unit cube in `N` dimensions.
+"""
 struct NoBounds{T} <: AbstractBoundingSpace{T}
     ndims::Int
 end

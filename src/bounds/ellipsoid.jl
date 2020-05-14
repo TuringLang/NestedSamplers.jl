@@ -1,5 +1,6 @@
 """
-    Ellipsoid(center::AbstractVector, A::AbstractMatrix)
+    Bounds.Ellipsoid([T=Float64], N)
+    Bounds.Ellipsoid(center::AbstractVector, A::AbstractMatrix)
 
 An `N`-dimensional ellipsoid defined by
 
