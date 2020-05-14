@@ -15,6 +15,8 @@ end
 
 Ellipsoid(ndim::Integer) = Ellipsoid(Float64, ndim)
 Ellipsoid(T::Type, ndim::Integer) = Ellipsoid(zeros(T, ndim), diagm(0 => ones(T, ndim)), volume_prefactor(ndim))
+Ellipsoid(center::AbstractVector, A::AbstractMatrix) = Ellipsoid(center, A, _volume(A))
+Ellipsoid{T}(center::AbstractVector, A::AbstractMatrix) where T = Ellipsoid(T.(center), T.(A), T(_volume(A)))
 
 Base.broadcastable(e::Ellipsoid) = (e,)
 
@@ -30,6 +32,14 @@ function span(ell::Ellipsoid)
     axlens = @. 1 / sqrt(E.values)
     axes = E.vectors * Diagonal(axlens)
     return axes
+end
+
+# axes and axlens
+function decompose(ell::Ellipsoid)
+    E = eigen(ell.A)
+    axlens = @. 1 / sqrt(E.values)
+    axes = E.vectors * Diagonal(axlens)
+    return axes, axlens
 end
 
 # Scale to new volume
@@ -102,13 +112,16 @@ function fit(E::Type{<:Ellipsoid}, x::AbstractMatrix{S}; pointvol = 0) where S
     if fmax > flex
         A .*= flex / fmax
     end
-    ell = E(center[:, 1], A, _volume(A))
+    vol = _volume(A)
     if pointvol > 0
         minvol = npoints * pointvol
-        volume(ell) < minvol && scale!(ell, minvol / volume(ell))
+        if vol < minvol
+            f = (minvol / vol)^(1 / size(center, 1))
+            A ./= f^2
+        end
     end
 
-    return ell
+    return E(center[:, 1], A)
 end
 
 

@@ -5,10 +5,10 @@ using StatsFuns
 using StatsBase
 
 @testset "Bundles" begin
-    logl(x::AbstractVector{T}) where T =  exp(-x[1]^2 / 2) / √(2π)
+    logl(x::AbstractVector) =  exp(-x[1]^2 / 2) / √(2π)
     priors = [Uniform(-1, 1)]
     model = NestedModel(logl, priors)
-    spl = Nested(10)
+    spl = Nested(1, 10)
     chain = sample(model, spl; dlogz = 0.2, param_names = ["x"], chain_type = Chains)
     samples = sample(model, spl; dlogz = 0.2, chain_type = Array)
 end
@@ -46,8 +46,8 @@ end
     
     analytic_logz = log(2 * 2π * σ^2 / 100)
 
-    for method in [:single, :multi]
-        spl = Nested(100, method = method)
+    for bound in [Bounds.Ellipsoid, Bounds.MultiEllipsoid]
+        spl = Nested(2, 100, bounds = bound)
         chain = sample(model, spl, dlogz = 0.1, chain_type = Array)
 
         @test spl.logz ≈ analytic_logz atol = 2sqrt(spl.h / spl.nactive) # within 2sigma

@@ -14,8 +14,8 @@ function sample_init!(rng::AbstractRNG,
 
     # samples and loglikes in prior space
     for idx in eachindex(s.active_logl)
-        s.active_points[:, idx] .= model.prior_transform(s.active_us[:, idx])
-        s.active_logl[idx] = model.loglike(s.active_points[:, idx])
+        @views s.active_points[:, idx] .= model.prior_transform(s.active_us[:, idx])
+        @views s.active_logl[idx] = model.loglike(s.active_points[:, idx])
     end
 
     any(isinf, s.active_logl) && @warn "Infinite log-likelihood found initializing sampler. This will cause failure to accurately calculate the information, h. Double check your log-likelihood function is numerically stable"
