@@ -62,6 +62,7 @@ end
 struct NoBounds{T} <: AbstractBoundingSpace{T}
     ndims::Int
 end
+NoBounds(D::Integer) = NoBounds{Float64}(D)
 NoBounds(T::Type, D::Integer) = NoBounds{T}(D)
 
 Base.ndims(B::NoBounds) = B.ndims

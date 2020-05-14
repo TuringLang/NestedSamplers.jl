@@ -6,7 +6,8 @@ using IterTools
 
 Random.seed!(8462852)
 
-include("bounds/bounds.jl")
+@testset "Bounds" begin include("bounds/bounds.jl") end
+@testset "Proposals" begin include("proposals/proposals.jl") end
 
 function integrate_on_grid(f, ranges, density)
     rs = []
@@ -54,4 +55,4 @@ function findpeaks(samples::AbstractVector)
     return k.x[peak_idx[sorted_idx]]
 end
 
-include("sampling.jl")
+@testset "Sampling" begin include("sampling.jl") end

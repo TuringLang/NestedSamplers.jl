@@ -72,7 +72,7 @@ function step!(rng::AbstractRNG,
     end
 
     # Get new point and log like
-    u, v, logl = s.proposal(rng, s.active_bound, model.prior_transform, model.loglike, logL, s.log_vol; kwargs...)
+    u, v, logl = s.proposal(rng, s.active_bound, model.loglike, model.prior_transform, logL, s.log_vol; kwargs...)
     s.active_us[:, idx] = u
     s.active_points[:, idx] = v
     s.active_logl[idx] = logl

@@ -22,7 +22,7 @@ end
 
 struct Uniform <: AbstractProposal end
 
-function (::Uniform)(rng::AbstractRNG, bounds::AbstractBoundingSpace, prior_transform, loglike, logl_star, args...; kwargs...)
+function (::Uniform)(rng::AbstractRNG, bounds::AbstractBoundingSpace, loglike, prior_transform, logl_star, args...; kwargs...)
     while true
         u = rand(rng, bounds)
         all(p->0 < p < 1, u) || continue

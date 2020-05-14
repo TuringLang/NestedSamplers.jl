@@ -7,7 +7,5 @@ function random_ellipsoid(N::Integer)
     return Ellipsoid(zeros(N), A * A')
 end
 
-@testset "Bounds" begin
-    include("helpers.jl")
-    include("ellipsoids.jl")
-end
+include("helpers.jl")
+include("ellipsoids.jl")
