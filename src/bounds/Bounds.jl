@@ -76,7 +76,7 @@ Base.ndims(B::NoBounds) = B.ndims
 Base.rand(rng::AbstractRNG, b::NoBounds{T}) where {T} = rand(rng, T, ndims(b))
 Base.rand(rng::AbstractRNG, b::NoBounds{T}, N::Integer) where {T} = rand(rng, T, ndims(b), N)
 Base.in(pt, ::NoBounds) = all(0 .< pt .< 1)
-fit(::Type{NoBounds}, points::AbstractMatrix{T}; kwargs...) where {T} = NoBounds(T, size(points, 1))
+fit(::Type{<:NoBounds}, points::AbstractMatrix{T}; kwargs...) where {T} = NoBounds(T, size(points, 1))
 scale!(b::NoBounds, factor) = b
 volume(::NoBounds{T}) where {T} = one(T)
 

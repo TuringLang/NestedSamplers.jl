@@ -79,7 +79,7 @@ function Base.rand(rng::AbstractRNG, ell::Ellipsoid{T}, N::Integer) where T
     return ell.center .+ offset
 end
 
-fit(E::Type{Ellipsoid}, x::AbstractMatrix{S}; pointvol = 0) where {S} = fit(E{float(S)}, x; pointvol = pointvol)
+fit(E::Type{<:Ellipsoid}, x::AbstractMatrix{S}; pointvol = 0) where {S} = fit(E{float(S)}, x; pointvol = pointvol)
 
 function fit(E::Type{<:Ellipsoid{R}}, x::AbstractMatrix{S}; pointvol = 0) where {R,S}
     T = float(promote_type(R, S))

@@ -41,12 +41,12 @@ end
         return logaddexp(f1, f2)
     end
 
-    priors = [Uniform(-5, 5), Uniform(-5, 5)]
-    model = NestedModel(logl, priors)
+    prior(X) = 10 .* X .- 5
+    model = NestedModel(logl, prior)
     
     analytic_logz = log(2 * 2π * σ^2 / 100)
 
-    for bound in [Bounds.Ellipsoid, Bounds.MultiEllipsoid]
+    for bound in [Bounds.NoBounds, Bounds.Ellipsoid, Bounds.MultiEllipsoid]
         spl = Nested(2, 100, bounds = bound)
         chain = sample(model, spl, dlogz = 0.1, chain_type = Array)
 
