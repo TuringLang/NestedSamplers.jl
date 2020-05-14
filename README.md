@@ -55,7 +55,7 @@ using MCMCChains: Chains
 
 # create our sampler
 # 2 parameters, 100 active points, multi-ellipsoid. See docstring
-spl = Nested(2, 200, bounds=Bounds.MultiEllipsoid)
+spl = Nested(2, 100, bounds=Bounds.MultiEllipsoid)
 # by default, uses dlogz_convergence. Set the keyword args here
 # currently Chains and Array are support chain_types
 chain = sample(model, spl;
@@ -66,13 +66,13 @@ chain = sample(model, spl;
 
 
 ````
-Object of type Chains, with data of type 541×3×1 Array{Float64,3}
+Object of type Chains, with data of type 271×3×1 Array{Float64,3}
 
-Log evidence      = 2.0793907719753184
-Iterations        = 1:541
+Log evidence      = 2.0687430934438695
+Iterations        = 1:271
 Thinning interval = 1
 Chains            = 1
-Samples per chain = 541
+Samples per chain = 271
 internals         = weights
 parameters        = x, y
 
@@ -81,14 +81,14 @@ parameters        = x, y
 Summary Statistics
   parameters    mean     std  naive_se    mcse       ess   r_hat
   ──────────  ──────  ──────  ────────  ──────  ────────  ──────
-           x  0.4910  0.3141    0.0135  0.0136  556.8586  0.9985
-           y  0.5132  0.2978    0.0128  0.0155  650.7773  0.9989
+           x  0.5142  0.2983    0.0181  0.0092  283.4018  1.0040
+           y  0.4692  0.2969    0.0180  0.0210  230.9453  0.9979
 
 Quantiles
   parameters    2.5%   25.0%   50.0%   75.0%   97.5%
   ──────────  ──────  ──────  ──────  ──────  ──────
-           x  0.0227  0.1987  0.4602  0.7931  0.9726
-           y  0.0345  0.2238  0.5250  0.7910  0.9695
+           x  0.0245  0.2316  0.5553  0.7708  0.9810
+           y  0.0341  0.1957  0.4460  0.7654  0.9455
 ````
 
 

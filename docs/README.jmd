@@ -53,7 +53,7 @@ using MCMCChains: Chains
 
 # create our sampler
 # 2 parameters, 100 active points, multi-ellipsoid. See docstring
-spl = Nested(2, 200, bounds=Bounds.MultiEllipsoid)
+spl = Nested(2, 100, bounds=Bounds.MultiEllipsoid)
 # by default, uses dlogz_convergence. Set the keyword args here
 # currently Chains and Array are support chain_types
 chain = sample(model, spl;
