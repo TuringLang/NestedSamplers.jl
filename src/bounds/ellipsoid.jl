@@ -14,9 +14,9 @@ mutable struct Ellipsoid{T} <: AbstractBoundingSpace{T}
 end
 
 Ellipsoid(ndim::Integer) = Ellipsoid(Float64, ndim)
-Ellipsoid(T::Type, ndim::Integer) = Ellipsoid(zeros(T, ndim), diagm(0 => ones(T, ndim)), volume_prefactor(ndim))
+Ellipsoid(T::Type, ndim::Integer) = Ellipsoid(zeros(T, ndim), diagm(0 => ones(T, ndim)), T(volume_prefactor(ndim)))
 Ellipsoid(center::AbstractVector, A::AbstractMatrix) = Ellipsoid(center, A, _volume(A))
-Ellipsoid{T}(center::AbstractVector, A::AbstractMatrix) where T = Ellipsoid(T.(center), T.(A), T(_volume(A)))
+Ellipsoid{T}(center::AbstractVector, A::AbstractMatrix) where {T} = Ellipsoid(T.(center), T.(A), T(_volume(A)))
 
 Base.broadcastable(e::Ellipsoid) = (e,)
 
@@ -44,8 +44,7 @@ end
 
 # Scale to new volume
 function scale!(ell::Ellipsoid, factor)
-    f = factor^(1 / ndims(ell))
-    ell.A ./= f^2
+    ell.A ./= factor^(2 / ndims(ell))
     ell.volume = _volume(ell.A)
     return ell
 end
@@ -59,9 +58,7 @@ function endpoints(ell::Ellipsoid)
     axes = E.vectors * Diagonal(axlens)
     
     # find major axis
-    i = argmax(axlens)
-
-    major_axis = axes[:, i]
+    major_axis = axes[:, argmax(axlens)]
     return ell.center .- major_axis, ell.center .+ major_axis
 end
 
@@ -81,8 +78,11 @@ function Base.rand(rng::AbstractRNG, ell::Ellipsoid{T}, N::Integer) where T
     return ell.center .+ offset
 end
 
-function fit(E::Type{<:Ellipsoid}, x::AbstractMatrix{S}; pointvol = 0) where S
-    T = float(S)
+fit(E::Type{Ellipsoid}, x::AbstractMatrix{S}; pointvol = 0) where {S} = fit(E{float(S)}, x; pointvol = pointvol)
+
+function fit(E::Type{<:Ellipsoid{R}}, x::AbstractMatrix{S}; pointvol = 0) where {R,S}
+    T = float(promote_type(R, S))
+    x = T.(x)
     ndim, npoints = size(x)
 
     center, cov = mean_and_cov(x, 2)
@@ -100,7 +100,12 @@ function fit(E::Type{<:Ellipsoid}, x::AbstractMatrix{S}; pointvol = 0) where S
     targetprod = (npoints * pointvol / volume_prefactor(ndim))^2
     make_eigvals_positive!(cov, targetprod)
 
-    A = inv(cov)
+    # edge case- single 0 is non-singular
+    if size(cov) == (1, 1) && iszero(cov[1, 1])
+        A = cov
+    else
+        A = inv(cov)
+    end
 
     # calculate expansion factor necessary to bound each points
     f = diag(delta' * (A * delta))
@@ -116,8 +121,7 @@ function fit(E::Type{<:Ellipsoid}, x::AbstractMatrix{S}; pointvol = 0) where S
     if pointvol > 0
         minvol = npoints * pointvol
         if vol < minvol
-            f = (minvol / vol)^(1 / size(center, 1))
-            A ./= f^2
+            A ./= (minvol / vol)^(2 / ndim)
         end
     end
 

@@ -1,10 +1,11 @@
 
-struct MultiEllipsoid{T,E <: Ellipsoid{T}} <: AbstractBoundingSpace{T}
-    ellipsoids::Vector{E}
+struct MultiEllipsoid{T} <: AbstractBoundingSpace{T}
+    ellipsoids::Vector{Ellipsoid{T}}
 end
 MultiEllipsoid(ndims::Integer) = MultiEllipsoid(Float64, ndims)
 MultiEllipsoid(T::Type, ndims::Integer) = MultiEllipsoid([Ellipsoid(T, ndims)])
 
+Base.eltype(::MultiEllipsoid{T}) where {T} = T
 Base.broadcastable(me::MultiEllipsoid) = (me,)
 Base.length(me::MultiEllipsoid) = length(me.ellipsoids)
 Base.ndims(me::MultiEllipsoid) = ndims(me.ellipsoids[1])
@@ -32,7 +33,8 @@ function fit(::Type{<:MultiEllipsoid}, x::AbstractMatrix, parent::Ellipsoid; poi
     starting_points = hcat(p1, p2)
     R = kmeans!(x, starting_points; maxiter = 10)
     labels = assignments(R)
-    x1, x2 = [x[:, l .== labels] for l in unique(labels)] 
+    x1 = x[:, labels .== 1]
+    x2 = x[:, labels .== 2]
 
     # if either cluster has fewer than ndim points, it is ill-defined
     if size(x1, 2) < 2ndim || size(x2, 2) < 2ndim
@@ -41,7 +43,7 @@ function fit(::Type{<:MultiEllipsoid}, x::AbstractMatrix, parent::Ellipsoid; poi
 
     # Getting bounding ellipsoid for each cluster
     ell1, ell2 = fit.(Ellipsoid, (x1, x2), pointvol = pointvol)
-
+    
     # If total volume decreased by over half, recurse
     if volume(ell1) + volume(ell2) < 0.5volume(parent)
         return vcat(fit(MultiEllipsoid, x1, ell1, pointvol = pointvol), 
@@ -60,7 +62,7 @@ function fit(::Type{<:MultiEllipsoid}, x::AbstractMatrix, parent::Ellipsoid; poi
     return [parent]
 end
 
-Base.in(x::AbstractVector, me::MultiEllipsoid) = any(e->x ∈ e, me.ellipsoids)
+Base.in(x::AbstractVector, me::MultiEllipsoid) = any(ell->x ∈ ell, me.ellipsoids)
 
 function Base.rand(rng::AbstractRNG, me::MultiEllipsoid)   
     length(me) == 1 && return rand(rng, me.ellipsoids[1])

@@ -1,3 +1,11 @@
+"""
+    NestedSamplers.Proposals
+
+This module contains the different algorithms for proposing new points within a bounding volume in unit space.
+
+The available implementations are
+* [`Proposals.Uniform`](@ref) - samples uniformly within the bounding volume
+"""
 module Proposals
 
 using Random: AbstractRNG

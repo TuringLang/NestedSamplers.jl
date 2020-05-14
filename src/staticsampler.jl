@@ -17,31 +17,51 @@ mutable struct Nested{T,B <: AbstractBoundingSpace{T},P <: AbstractProposal} <: 
 end
 
 """
-    Nested(ndims, nactive; enlarge=1.2, update_interval=round(Int, 0.6nactive), method=:single)
+    Nested(ndims, nactive;
+        bounds=Bounds.Ellipsoid,
+        proposal=Proposals.Uniform(),
+        enlarge=1.2,
+        update_interval=round(Int, 0.6nactive))
 
-Ellipsoidal nested sampler.
+Static nested sampler with `nactive` active points and `ndims` parameters.
 
-The two methods are `:single`, which uses a single bounding ellipsoid, and `:multi`, which finds an optimal clustering of ellipsoids.
+`ndims` is equivalent to the number of parameters to fit, which defines the dimensionality of the prior volume used in evidence sampling. `nactive` is the number of live or active points in the prior volume. This is a static sampler, so the number of live points will be constant for all of the sampling.
 
-### Parameters
-* `nactive` - The number of live points.
-* `enlarge` - When fitting ellipsoids to live points, they will be enlarged (in terms of volume) by this factor.
-* `update_interval` - How often to refit the live points with the ellipsoids
-* `method` - as mentioned above, the algorithm to use for sampling. `:single` uses a single ellipsoid and follows the original nested sampling algorithm proposed in Skilling 2004. `:multi` uses multiple ellipsoids- much like the MultiNest algorithm.
+## Bounds and Proposals
+
+`bounds` declares the Type of [`Bounds.AbstractBoundingSpace`](@ref) to use in the prior volume. The available bounds are described by [`Bounds`](@ref). `proposal` declares the algorithm used for proposing new points. The available proposals are described in [`Proposals`](@ref).
+
+The original nested sampling algorithm is equivalent to using `Bounds.Ellipsoid` with `Proposals.Uniform`. The MultiNest algorithm is equivalent to `Bounds.MultiEllipsoid` with `Proposals.Uniform`.
+
+## Other Parameters
+* `enlarge` - When fitting the bounds to live points, they will be enlarged (in terms of volume) by this linear factor.
+* `update_interval` - How often to refit the live points with the bounds
 """
 function Nested(ndims,
     nactive;
-    enlarge = 1.2,
-    update_interval = round(Int, 0.6nactive),
     bounds = Bounds.Ellipsoid,
-    proposal = Proposals.Uniform())
+    proposal = Proposals.Uniform(),
+    enlarge = 1.2,
+    update_interval = round(Int, 0.6nactive))
     nactive < 2ndims && @warn "Using fewer than 2ndim ($(2ndims)) active points is discouraged"
     B = bounds(ndims)
     # Initial point will have volume 1 - exp(-1/npoints)
     log_vol = log1mexp(-1 / nactive)
     #= Note: initializing logz as -Inf causes ugly failures in the h calculations
     by setting to a very small value (even smaller than log(eps(Float64))) we avoid this issue =#
-    return Nested(ndims, nactive, enlarge, update_interval, zeros(ndims, nactive), zeros(ndims, nactive), zeros(nactive), B, proposal, -1e300, 0.0, log_vol, 0)
+    return Nested(ndims,
+        nactive,
+        enlarge,
+        update_interval,
+        zeros(ndims, nactive),
+        zeros(ndims, nactive),
+        zeros(nactive),
+        B,
+        proposal,
+         -1e300,
+         0.0,
+         log_vol,
+         0)
 end
 
 function Base.show(io::IO, n::Nested)
