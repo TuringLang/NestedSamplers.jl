@@ -28,18 +28,20 @@ _volume(A::AbstractMatrix) = volume_prefactor(size(A, 1)) / sqrt(det(A))
 volume(ell::Ellipsoid) = ell.volume
 
 # Returns the principal axes
-function span(ell::Ellipsoid)
+function paxes(ell::Ellipsoid)
     E = eigen(ell.A)
     axlens = @. 1 / sqrt(E.values)
     axes = E.vectors * Diagonal(axlens)
     return axes
 end
 
+axes(ell::Ellipsoid) = inv(cholesky(ell.A).L)
+
 # axes and axlens
 function decompose(ell::Ellipsoid)
     E = eigen(ell.A)
     axlens = @. 1 / sqrt(E.values)
-    axes = E.vectors * Diagonal(axlens)
+    axes = E.vectors .* axlens
     return axes, axlens
 end
 
@@ -56,7 +58,7 @@ function endpoints(ell::Ellipsoid)
     axlens = 1 ./ sqrt.(E.values)
 
     # get axes
-    axes = E.vectors * Diagonal(axlens)
+    axes = E.vectors .* axlens
     
     # find major axis
     major_axis = axes[:, argmax(axlens)]
@@ -70,12 +72,12 @@ end
 
 function Base.rand(rng::AbstractRNG, ell::Ellipsoid{T}) where T
     # Generate random offset from center
-    offset = span(ell) * randball(rng, T, ndims(ell))
+    offset = paxes(ell) * randball(rng, T, ndims(ell))
     return ell.center .+ offset
 end
 
 function Base.rand(rng::AbstractRNG, ell::Ellipsoid{T}, N::Integer) where T
-    offset = span(ell) * randball(rng, T, ndims(ell), N)
+    offset = paxes(ell) * randball(rng, T, ndims(ell), N)
     return ell.center .+ offset
 end
 

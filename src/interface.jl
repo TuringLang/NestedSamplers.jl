@@ -70,9 +70,10 @@ function step!(rng::AbstractRNG,
         pointvol = exp(s.log_vol) / s.nactive
         s.active_bound = Bounds.scale!(Bounds.fit(B, s.active_us, pointvol = pointvol), s.enlarge)
     end
-
+    # Get a live point to use for evolving with proposal
+    point, bound = rand_live(rng, s.active_bound, s.active_us)
     # Get new point and log like
-    u, v, logl = s.proposal(rng, s.active_bound, model.loglike, model.prior_transform, logL, s.log_vol; kwargs...)
+    u, v, logl = s.proposal(rng, point, logL, bound, model.loglike, model.prior_transform)
     s.active_us[:, idx] = u
     s.active_points[:, idx] = v
     s.active_logl[idx] = logl

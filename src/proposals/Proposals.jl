@@ -84,7 +84,7 @@ function (prop::RWalk)(rng::AbstractRNG,
     prior_transform)
     # setup
     n = length(point)
-    axes = paxes(bounds)
+    axes = Bounds.paxes(bounds)
     scale_init = prop.scale
     accept = reject = fail = nfail = nc = ncall = 0
     local dr̂, dr, du, u_prop, logl_prop

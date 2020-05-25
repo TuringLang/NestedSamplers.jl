@@ -50,6 +50,12 @@ Base.rand(B::AbstractBoundingSpace, N::Integer) = rand(GLOBAL_RNG, B, N)
 
 # fallback method
 Base.rand(rng::AbstractRNG, B::AbstractBoundingSpace, N::Integer) = reduce(hcat, [rand(rng, B) for _ in 1:N])
+"""
+    rand_live([rng], ::AbstractBoundingSpace, us)
+
+Returns a random live point and the bounds associated with it.
+"""
+rand_live(rng::AbstractRNG, B::AbstractBoundingSpace, us::AbstractMatrix) = rand(rng, us), B
 
 function Base.show(io::IO, bound::B) where {T,B <: AbstractBoundingSpace{T}}
     base = nameof(B) |> string
@@ -79,6 +85,8 @@ Base.in(pt, ::NoBounds) = all(0 .< pt .< 1)
 fit(::Type{<:NoBounds}, points::AbstractMatrix{T}; kwargs...) where {T} = NoBounds(T, size(points, 1))
 scale!(b::NoBounds, factor) = b
 volume(::NoBounds{T}) where {T} = one(T)
+axes(b::NoBounds) = I
+paxes(b::NoBounds) = I
 
 
 include("ellipsoid.jl")

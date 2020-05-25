@@ -82,8 +82,28 @@ function Base.rand(rng::AbstractRNG, me::MultiEllipsoid)
     x = rand(rng, ell)
 
     # How many ellipsoids is the sample in
-    n = count(e->x ∈ e, me.ellipsoids)
+    n = count(ell -> x ∈ ell, me.ellipsoids)
 
     # Only accept with probability 1/n
     return n == 1 || rand(rng) < 1 / n ? x : rand(rng, me)
+end
+
+"""
+Returns a random live point and a bounding ellipsoid, since MultiEllipsoid doesn't have
+valid transformation axes
+"""
+function rand_live(rng::AbstractRNG, me::MultiEllipsoid, us)
+    u = rand(rng, us)
+
+    # find which Ellipsoid/s it overlaps with
+    idxs = findall(ell -> u ∈ ell, me.ellipsoids)
+    # TODO if point isn't bounded, update bounds
+    if isempty(idxs)
+        error("You have an unbounded point, somehow. Future PR will re-fit bounds. For now, using a workaround")
+    end
+
+    # pick random encompassing ellipsoid
+    idx = rand(rng, idxs)
+    
+    return u, me.ellipsoids[idx]
 end
