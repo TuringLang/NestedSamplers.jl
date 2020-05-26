@@ -27,10 +27,8 @@ end
 
 @testset "Uniform" begin
     # printing
-    @test sprint(show, Proposals.Uniform()) == "Uniform()"
+    @test sprint(show, Proposals.Uniform()) == "NestedSamplers.Proposals.Uniform"
 end
 
 @testset "RWalk" begin
-    # printing
-    @test sprint(show, Proposals.RWalk()) == "RWalk(ratio=0.5, walks=25, scale=1)"
 end

@@ -18,7 +18,7 @@ using Parameters
 export AbstractProposal
 
 """
-    NestedSamplers.AbstractProposal <: Function
+    NestedSamplers.AbstractProposal
 
 The abstract type for live point proposal algorithms.
 
@@ -30,18 +30,7 @@ Each `AbstractProposal` must have this function,
 ```
 which, given the input `point` with loglikelihood `loglstar` inside a `bounds`, returns a new point in unit space, prior space, and the loglikelihood.
 """
-abstract type AbstractProposal <: Function end
-
-function Base.show(io::IO, proposal::P) where P <: AbstractProposal
-    base = nameof(P) |> string
-    print(io, "$base(")
-    fields = map(propertynames(proposal)) do name
-        val = getproperty(proposal, name)
-        "$(string(name))=$val"
-    end
-    join(io, fields, ", ")
-    print(io, ")")
-end
+abstract type AbstractProposal end
 
 # ----------------------------------------
 
@@ -67,6 +56,8 @@ function (::Uniform)(rng::AbstractRNG,
     end
 end
 
+Base.show(io::IO, p::Uniform) = print(io, "NestedSamplers.Proposals.Uniform")
+
 """
     Proposals.RWalk(;ratio=0.5, walks=25, scale=1)
 
@@ -77,7 +68,7 @@ Propose a new live point by random walking away from an existing live point.
 @with_kw mutable struct RWalk <: AbstractProposal
     ratio = 0.5
     walks = 25
-    scale = 1
+    scale = 1.0
 end
 
 function (prop::RWalk)(rng::AbstractRNG,
