@@ -8,20 +8,23 @@ function sample_init!(rng::AbstractRNG,
     kwargs...) where {T,B}
 
     debug && @info "Initializing sampler"
+    local us, vs, logl
+    ntries = 0
+    while true
+        us = rand(rng, s.ndims, s.nactive)
+        vs = mapslices(model.prior_transform, us, dims=1)
+        logl = mapslices(model.loglike, vs, dims=1)
+        any(isfinite, logl) && break
+        ntries += 1
+        ntries > 100 && error("After 100 attempts, could not initialize any live points with finite loglikelihood. Please check your prior transform and loglikelihood method.")
+    end
+    # force -Inf to be a finite but small number to keep estimators from breaking
+    @. logl[logl == -Inf] = -1e300
 
     # samples in unit space
-    s.active_us .= rand(rng, s.ndims, s.nactive)
-
-    # samples and loglikes in prior space
-    for idx in eachindex(s.active_logl)
-        @views s.active_points[:, idx] .= model.prior_transform(s.active_us[:, idx])
-        @views s.active_logl[idx] = model.loglike(s.active_points[:, idx])
-    end
-
-    any(isinf, s.active_logl) && @warn "Infinite log-likelihood found initializing sampler. This will cause failure to accurately calculate the information, h. Double check your log-likelihood function is numerically stable"
-
-    # get bounding ellipsoid
-    s.active_bound = Bounds.scale!(Bounds.fit(B, s.active_us, pointvol = 1 / s.nactive), s.enlarge)
+    s.active_us .= us
+    s.avtive_points .= vs
+    s.avtive_logl .= logl
 
     return nothing
 end
@@ -66,19 +69,24 @@ function step!(rng::AbstractRNG,
     s.logz = logz
 
     # update bounds
-    if iszero(iteration % s.update_interval)
+    if iszero(iteration % s.update_interval) && s.ncall > s.min_ncall && iteration / s.ncall < s.min_eff
         pointvol = exp(s.log_vol) / s.nactive
         s.active_bound = Bounds.scale!(Bounds.fit(B, s.active_us, pointvol = pointvol), s.enlarge)
     end
-    
+
     # Get a live point to use for evolving with proposal
-    point, bound = rand_live(rng, s.active_bound, s.active_us)
+    if s.ncall > s.min_ncall && iteration / s.ncall < s.min_eff
+        point, bound = rand_live(rng, s.active_bound, s.active_us)
+    else
+        point, bound = rand_live(rng, Bounds.NoBounds(s.ndims), s.active_us)
+    end
     # Get new point and log like
-    u, v, logl = s.proposal(rng, point, logL, bound, model.loglike, model.prior_transform)
+    u, v, logl, ncall = s.proposal(rng, point, logL, bound, model.loglike, model.prior_transform)
     s.active_us[:, idx] = u
     s.active_points[:, idx] = v
     s.active_logl[idx] = logl
     s.ndecl = log_wt < prev.log_wt ? s.ndecl + 1 : 0
+    s.ncall += ncall
 
     # Shrink interval
     s.log_vol -=  1 / s.nactive

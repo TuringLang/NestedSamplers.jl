@@ -28,7 +28,7 @@ Each `AbstractProposal` must have this function,
 ```julia
 (::AbstractProposal)(::AbstractRNG, point, loglstar, bounds, loglikelihood, prior_transform)
 ```
-which, given the input `point` with loglikelihood `loglstar` inside a `bounds`, returns a new point in unit space, prior space, and the loglikelihood.
+which, given the input `point` with loglikelihood `loglstar` inside a `bounds`, returns a new point in unit space, prior space, the loglikelihood, and the number of function calls.
 """
 abstract type AbstractProposal end
 
@@ -47,12 +47,15 @@ function (::Uniform)(rng::AbstractRNG,
     bounds::AbstractBoundingSpace,
     loglike,
     prior_transform)
+    
+    ncall = 0
     while true
         u = rand(rng, bounds)
         all(p->0 < p < 1, u) || continue
         v = prior_transform(u)
         logl = loglike(v)
-        logl ≥ logl_star && return u, v, logl
+        ncall += 1
+        logl ≥ logl_star && return u, v, logl, ncall
     end
 end
 
@@ -81,10 +84,10 @@ function (prop::RWalk)(rng::AbstractRNG,
     # setup
     n = length(point)
     scale_init = prop.scale
-    accept = reject = fail = nfail = ncall = 0
-    local u_prop, logl_prop, u, v, logl
+    accept = reject = fail = nfail = nc = ncall = 0
+    local dr̂, dr, du, u_prop, logl_prop, u, v, logl
 
-    while ncall < prop.walks || iszero(accept)
+    while nc < prop.walks || iszero(accept)
         # get proposed point
         while true
             # check scale factor to avoid over-shrinking
@@ -115,13 +118,14 @@ function (prop::RWalk)(rng::AbstractRNG,
         else
             reject += 1
         end
+        nc += 1
         ncall += 1
         
         # check if stuck generating bad points
         if ncall > 50prop.walks
             @warn "Random walk proposals appear to be extremely inefficient. Adjusting the scale-factor accordingly"
             prop.scale *= exp(-1/n)
-            ncall = accept = reject = 0
+            nc = accept = reject = 0
         end
     end
     
@@ -131,7 +135,7 @@ function (prop::RWalk)(rng::AbstractRNG,
     scale = prop.scale * exp((ratio - prop.ratio) / norm)
     prop.scale = min(scale, sqrt(n))
 
-    return u, v, logl
+    return u, v, logl, ncall
 end
 
 

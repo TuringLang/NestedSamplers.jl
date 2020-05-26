@@ -5,6 +5,8 @@ mutable struct Nested{T,B <: AbstractBoundingSpace{T},P <: AbstractProposal} <: 
     nactive::Int
     enlarge::Float64
     update_interval::Int
+    min_ncall::Int
+    min_eff::Float64
     active_us::Matrix{T}
     active_points::Matrix{T}
     active_logl::Vector{T}
@@ -14,14 +16,17 @@ mutable struct Nested{T,B <: AbstractBoundingSpace{T},P <: AbstractProposal} <: 
     h::Float64
     log_vol::Float64
     ndecl::Int
+    ncall::Int
 end
 
 """
     Nested(ndims, nactive;
-        bounds=Bounds.Ellipsoid,
-        proposal=Proposals.Uniform(),
-        enlarge=1.2,
-        update_interval=round(Int, 0.6nactive))
+        bounds=Bounds.MultiEllipsoid,
+        proposal=:auto,
+        enlarge=1.25,
+        update_interval=default_update_interval(proposal),
+        min_ncall=2nactive,
+        min_eff=0.10)
 
 Static nested sampler with `nactive` active points and `ndims` parameters.
 
@@ -29,21 +34,42 @@ Static nested sampler with `nactive` active points and `ndims` parameters.
 
 ## Bounds and Proposals
 
-`bounds` declares the Type of [`Bounds.AbstractBoundingSpace`](@ref) to use in the prior volume. The available bounds are described by [`Bounds`](@ref). `proposal` declares the algorithm used for proposing new points. The available proposals are described in [`Proposals`](@ref).
+`bounds` declares the Type of [`Bounds.AbstractBoundingSpace`](@ref) to use in the prior volume. The available bounds are described by [`Bounds`](@ref). `proposal` declares the algorithm used for proposing new points. The available proposals are described in [`Proposals`](@ref). If `proposal` is `:auto`, will choose the proposal based on `ndims`
+* `ndims < 10` - [`Proposals.Uniform`](@ref)
+* `ndims ≥ 10` - [`Proposals.RWalk`](@ref)
 
-The original nested sampling algorithm is equivalent to using `Bounds.Ellipsoid` with `Proposals.Uniform`. The MultiNest algorithm is equivalent to `Bounds.MultiEllipsoid` with `Proposals.Uniform`.
+The original nested sampling algorithm is roughly equivalent to using `Bounds.Ellipsoid` with `Proposals.Uniform`. The MultiNest algorithm is roughly equivalent to `Bounds.MultiEllipsoid` with `Proposals.Uniform`.
 
 ## Other Parameters
 * `enlarge` - When fitting the bounds to live points, they will be enlarged (in terms of volume) by this linear factor.
-* `update_interval` - How often to refit the live points with the bounds
+* `update_interval` - How often to refit the live points with the bounds as a fraction of `nactive`. By default this will be determined using `default_update_interval` for the given proposal
+    * `Proposals.Uniform` - `1.5`
+    * `Proposals.RWalk` - `0.15walks`
+* `min_ncall` - The minimum number of iterations before trying to fit the first bound
+* `min_eff` - The maximum efficiency before trying to fit the first bound
 """
 function Nested(ndims,
     nactive;
     bounds = Bounds.Ellipsoid,
-    proposal = Proposals.Uniform(),
-    enlarge = 1.2,
-    update_interval = round(Int, 0.6nactive))
+    proposal = :auto,
+    enlarge = 1.25,
+    min_ncall=2nactive,
+    min_eff=0.10
+    kwargs...)
+
     nactive < 2ndims && @warn "Using fewer than 2ndim ($(2ndims)) active points is discouraged"
+
+    # get proposal
+    if proposal === :auto
+        proposal = if ndims < 10
+            Proposals.Uniform()
+        else#if 10 ≤ ndims ≤ 20
+            Proposals.RWalk()
+        end
+    end
+
+    update_interval_frac = get(kwargs, :update_interval, default_update_interval(proposal))
+    update_interval = round(Int, update_interval_frac * nactive)
     B = bounds(ndims)
     # Initial point will have volume 1 - exp(-1/npoints)
     log_vol = log1mexp(-1 / nactive)
@@ -53,16 +79,23 @@ function Nested(ndims,
         nactive,
         enlarge,
         update_interval,
+        min_ncall,
+        min_eff,
         zeros(ndims, nactive),
         zeros(ndims, nactive),
         zeros(nactive),
         B,
         proposal,
-         -1e300,
-         0.0,
-         log_vol,
-         0)
+        -1e300,
+        0.0,
+        log_vol,
+        0,
+        0)
 end
+
+default_update_interval(p::Proposals.Uniform) = 1.5
+default_update_interval(p::Proposals.RWalk) = 0.15p.walks
+
 
 function Base.show(io::IO, n::Nested)
     println(io, "Nested(ndims=$(n.ndims), nactive=$(n.nactive), enlarge=$(n.enlarge), update_interval=$(n.update_interval))")
