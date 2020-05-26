@@ -48,9 +48,9 @@ const BOUNDST = [
     @test Bounds.volume(bound) ≈ Bounds.volume(bound_scaled) / volfrac rtol = 1e-3
 
     # expected number of points that will fall within inner bound
-    expect = volfrac * 5000
+    expect = volfrac * 10000
     σ = sqrt((1 - volfrac) * expect)
-    ninner = count(rand(bound) ∈ bound_scaled for _ in 1:5000)
+    ninner = count(rand(bound) ∈ bound_scaled for _ in 1:10000)
     @test ninner ≈ expect atol = 5σ
 
     # printing

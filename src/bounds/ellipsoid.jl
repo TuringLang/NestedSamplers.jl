@@ -165,15 +165,21 @@ function randball(rng::AbstractRNG, T::Type, D::Integer)
     return z
 end
 
-function make_eigvals_positive!(cov::AbstractMatrix, targetprod)
-    E = eigen(cov)
-    mask = E.values .< 1e-10
-    if any(mask)
-        nzprod = prod(E.values[.!mask])
-        nzeros = count(mask)
-        E.values[mask] .= (targetprod / nzprod)^(1 / nzeros)
-        cov .= E.vectors * Diagonal(E.values) / E.vectors
+function make_eigvals_positive!(cov::AbstractMatrix{T}, targetprod) where T
+    ndims = size(cov, 1)
+    for ntries in 1:100
+        try
+            cholesky(cov)
+            E = eigen(cov)
+            all(p -> p > 0 && isfinite(p), E.values) && return cov
+        catch
+            coeff = 1.1^(ntries) / 1.1^100
+            cov .*= (1 - coeff)
+            cov[diagind(cov)] .+= coeff
+        end
     end
+    @warn "Could not make ellipsoid axes singular; defaulting to unit-ball"
+    cov .= diagm(0 => ones(T, ndims))
     return cov
 end
 

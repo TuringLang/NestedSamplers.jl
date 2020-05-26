@@ -1,7 +1,7 @@
 name = "NestedSamplers"
 uuid = "41ceaf6f-1696-4a54-9b49-2e7a9ec3782e"
 authors = ["Miles Lucas <mdlucas@hawaii.edu>"]
-version = "0.2.0"
+version = "0.3.0"
 
 [deps]
 AbstractMCMC = "80f14c24-f653-4e6a-9b94-39d6b0f70001"
