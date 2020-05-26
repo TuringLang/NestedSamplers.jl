@@ -51,7 +51,7 @@ const BOUNDST = [
     expect = volfrac * 5000
     σ = sqrt((1 - volfrac) * expect)
     ninner = count(rand(bound) ∈ bound_scaled for _ in 1:5000)
-    @test ninner ≈ expect atol = 3σ
+    @test ninner ≈ expect atol = 5σ
 
     # printing
     @test sprint(show, bound) == "$(string(nameof(B))){$T}(ndims=$D)"

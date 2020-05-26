@@ -1,4 +1,4 @@
-using NestedSamplers.Bounds: Ellipsoid, MultiEllipsoid, fit, scale!, paxes, decompose, volume, volume_prefactor
+using NestedSamplers.Bounds: Ellipsoid, MultiEllipsoid, fit, scale!, decompose, volume, volume_prefactor
 
 const NMAX = 20
 
@@ -11,7 +11,7 @@ const NMAX = 20
         @test volume(ell) ≈ volume_prefactor(N) * scale^N
         axs, axlens = decompose(ell)
         @test axlens ≈ fill(scale, N)
-        @test axs ≈ paxes(ell) ≈ diagm(0 => fill(scale, N))
+        @test axs ≈ Bounds.axes(ell) ≈ diagm(0 => fill(scale, N))
     end
 
     @testset "Scaling" begin

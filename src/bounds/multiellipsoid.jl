@@ -49,17 +49,17 @@ function fit(::Type{<:MultiEllipsoid}, x::AbstractMatrix, parent::Ellipsoid; poi
 
     # Getting bounding ellipsoid for each cluster
     ell1, ell2 = fit.(Ellipsoid, (x1, x2), pointvol = pointvol)
-    
+
     # If total volume decreased by over half, recurse
     if volume(ell1) + volume(ell2) < 0.5volume(parent)
-        return vcat(fit(MultiEllipsoid, x1, ell1, pointvol = pointvol), 
+        return vcat(fit(MultiEllipsoid, x1, ell1, pointvol = pointvol),
                     fit(MultiEllipsoid, x2, ell2, pointvol = pointvol))
     end
 
-    # Otherwise see if total volume is much larger than expected 
+    # Otherwise see if total volume is much larger than expected
     # and split into more than 2 clusters
     if volume(parent) > 2npoints * pointvol
-        out = vcat(fit(MultiEllipsoid, x1, ell1, pointvol = pointvol), 
+        out = vcat(fit(MultiEllipsoid, x1, ell1, pointvol = pointvol),
                     fit(MultiEllipsoid, x2, ell2, pointvol = pointvol))
         sum(volume, out) < 0.5volume(parent) && return out
     end
@@ -70,22 +70,29 @@ end
 
 Base.in(x::AbstractVector, me::MultiEllipsoid) = any(ell->x ∈ ell, me.ellipsoids)
 
-function Base.rand(rng::AbstractRNG, me::MultiEllipsoid)   
+function Base.rand(rng::AbstractRNG, me::MultiEllipsoid)
     length(me) == 1 && return rand(rng, me.ellipsoids[1])
 
-    # Select random ellipsoid
     vols = volume.(me.ellipsoids)
-    idx = rand(rng, Categorical(vols ./ sum(vols)))
-    ell = me.ellipsoids[idx]
+    weights = vols ./ sum(vols)
+    local x
 
-    # Select point
-    x = rand(rng, ell)
+    while true
+        # Select random ellipsoid
+        idx = rand(rng, Categorical(weights))
+        ell = me.ellipsoids[idx]
 
-    # How many ellipsoids is the sample in
-    n = count(ell -> x ∈ ell, me.ellipsoids)
+        # Select point
+        x = rand(rng, ell)
 
-    # Only accept with probability 1/n
-    return n == 1 || rand(rng) < 1 / n ? x : rand(rng, me)
+        # How many ellipsoids is the sample in
+        n = count(ell -> x ∈ ell, me.ellipsoids)
+
+        # Only accept with probability 1/n
+        (n == 1 || rand(rng) < 1 / n) && break
+    end
+
+    return x
 end
 
 """
@@ -105,6 +112,6 @@ function rand_live(rng::AbstractRNG, me::MultiEllipsoid, us)
 
     # pick random encompassing ellipsoid
     idx = rand(rng, idxs)
-    
+
     return u, me.ellipsoids[idx]
 end

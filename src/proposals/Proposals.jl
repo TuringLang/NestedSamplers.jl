@@ -77,35 +77,29 @@ function (prop::RWalk)(rng::AbstractRNG,
     bounds::AbstractBoundingSpace,
     loglike,
     prior_transform;
-    verbose=true,
     kwargs...)
     # setup
     n = length(point)
-    axes = Bounds.axes(bounds)
     scale_init = prop.scale
     accept = reject = fail = nfail = ncall = 0
-    local dr̂, dr, du, u_prop, logl_prop, u, v, logl
+    local u_prop, logl_prop, u, v, logl
 
     while ncall < prop.walks || iszero(accept)
         # get proposed point
         while true
             # check scale factor to avoid over-shrinking
             prop.scale < 1e-5scale_init && error("Random walk sampling appears to be stuck.")
-            # propose random direction in unit space
-            dr̂ = randn(rng, n)
-            dr̂ ./= LinearAlgebra.norm(dr̂)
-            # scale based on dimensionality
-            dr = @. dr̂ * rand(rng)^(1/n)
             # transform to proposal distribution
-            du = axes * dr
+            du = randoffset(rng, bounds)
             u_prop = @. point + prop.scale * du
             # inside unit-cube
             all(u -> 0 < u < 1, u_prop) && break
+            
             fail += 1
             nfail += 1
             # check if stuck generating bad numbers
             if fail > 100prop.walks
-                verbose && @warn "Random number generation appears extremely inefficient. Adjusting the scale-factor accordingly"
+                @warn "Random number generation appears extremely inefficient. Adjusting the scale-factor accordingly"
                 fail = 0
                 prop.scale *= exp(-1/n)
             end
@@ -125,7 +119,7 @@ function (prop::RWalk)(rng::AbstractRNG,
         
         # check if stuck generating bad points
         if ncall > 50prop.walks
-            verbose && @warn "Random walk proposals appear to be extremely inefficient. Adjusting the scale-factor accordingly"
+            @warn "Random walk proposals appear to be extremely inefficient. Adjusting the scale-factor accordingly"
             prop.scale *= exp(-1/n)
             ncall = accept = reject = 0
         end
