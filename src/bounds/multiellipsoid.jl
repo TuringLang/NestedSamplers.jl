@@ -93,7 +93,8 @@ Returns a random live point and a bounding ellipsoid, since MultiEllipsoid doesn
 valid transformation axes
 """
 function rand_live(rng::AbstractRNG, me::MultiEllipsoid, us)
-    u = rand(rng, us)
+    idx = rand(rng, Base.axes(us, 2))
+    u = us[:, idx]
 
     # find which Ellipsoid/s it overlaps with
     idxs = findall(ell -> u ∈ ell, me.ellipsoids)

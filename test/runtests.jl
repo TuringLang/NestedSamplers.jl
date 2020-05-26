@@ -4,7 +4,7 @@ using Random
 using LinearAlgebra
 using IterTools
 
-Random.seed!(70)
+Random.seed!(42)
 
 @testset "Bounds" begin include("bounds/bounds.jl") end
 @testset "Proposals" begin include("proposals/proposals.jl") end

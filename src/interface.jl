@@ -65,11 +65,12 @@ function step!(rng::AbstractRNG,
            exp(s.logz - logz) * (s.h + s.logz) - logz)
     s.logz = logz
 
-    # Get bounding ellipsoid (only every update_interval)
+    # update bounds
     if iszero(iteration % s.update_interval)
         pointvol = exp(s.log_vol) / s.nactive
         s.active_bound = Bounds.scale!(Bounds.fit(B, s.active_us, pointvol = pointvol), s.enlarge)
     end
+    
     # Get a live point to use for evolving with proposal
     point, bound = rand_live(rng, s.active_bound, s.active_us)
     # Get new point and log like

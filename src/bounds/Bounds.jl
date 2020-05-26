@@ -17,7 +17,7 @@ using StatsBase: mean_and_cov
 using Clustering
 using Distributions: Categorical
 
-export AbstractBoundingSpace
+export AbstractBoundingSpace, rand_live
 
 
 """
@@ -33,12 +33,14 @@ The following functionality defines the interface for `AbstractBoundingSpace` fo
 
 | Function | Required | Description |
 |---------:|:--------:|:------------|
-| `Base.rand(::RNG, ::MyBounds)` | x | Sample a single point from the prior volume |
-| `Base.rand(::RNG, ::MyBounds, ::Int)` |  | Sample many points from the prior volume. Will simply repeat the singular version if not implemented. |
+| `Base.rand(::AbstractRNG, ::MyBounds)` | x | Sample a single point from the prior volume |
+| `Base.rand(::AbstractRNG, ::MyBounds, ::Int)` |  | Sample many points from the prior volume. Will simply repeat the singular version if not implemented. |
 | `Base.in(point, ::MyBounds)` | x | Checks if the point is contained by the bounding space |
 | `scale!(::MyBounds, factor)` | x | Scale the volume by the linear `factor`|
 | `volume(::MyBounds)` | | Retrieve the current prior volume occupied by the bounds. |
 | `fit(::Type{<:MyBounds}, points, pointvol=0)` | x | update the bounds given the new `points` each with minimum volume `pointvol`|
+| `Bounds.axes(::MyBounds)` | | Used for transforming proposals that use random walk schemes
+| `Bounds.paxes(::MyBounds)` | | Used for transforming points from the unit cube to the encompassing bound.
 """
 abstract type AbstractBoundingSpace{T <: Number} end
 
@@ -51,11 +53,15 @@ Base.rand(B::AbstractBoundingSpace, N::Integer) = rand(GLOBAL_RNG, B, N)
 # fallback method
 Base.rand(rng::AbstractRNG, B::AbstractBoundingSpace, N::Integer) = reduce(hcat, [rand(rng, B) for _ in 1:N])
 """
-    rand_live([rng], ::AbstractBoundingSpace, us)
+    rand_live([rng], ::AbstractBoundingSpace, us) -> (u, bound)
 
 Returns a random live point and the bounds associated with it.
 """
-rand_live(rng::AbstractRNG, B::AbstractBoundingSpace, us::AbstractMatrix) = rand(rng, us), B
+function rand_live(rng::AbstractRNG, B::AbstractBoundingSpace, us)
+    idx = rand(rng, Base.axes(us, 2))
+    return us[:, idx], B
+end
+rand_live(B::AbstractBoundingSpace, us) = rand_live(GLOBAL_RNG, B, us)
 
 function Base.show(io::IO, bound::B) where {T,B <: AbstractBoundingSpace{T}}
     base = nameof(B) |> string

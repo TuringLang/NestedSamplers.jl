@@ -9,8 +9,8 @@ using StatsBase
     priors = [Uniform(-1, 1)]
     model = NestedModel(logl, priors)
     spl = Nested(1, 10)
-    chain = sample(model, spl; dlogz = 0.2, param_names = ["x"], chain_type = Chains)
-    samples = sample(model, spl; dlogz = 0.2, chain_type = Array)
+    chain = sample(model, spl; dlogz = 0.2, param_names = ["x"], chain_type = Chains, progress=false)
+    samples = sample(model, spl; dlogz = 0.2, chain_type = Array, progress=false)
 end
 
 # @testset "Flat" begin
@@ -46,12 +46,13 @@ end
     
     analytic_logz = log(2 * 2π * σ^2 / 100)
 
-    for bound in [Bounds.NoBounds, Bounds.Ellipsoid, Bounds.MultiEllipsoid]
-        spl = Nested(2, 100, bounds = bound)
-        chain = sample(model, spl, dlogz = 0.1, chain_type = Array)
+    for bound in [Bounds.NoBounds, Bounds.Ellipsoid, Bounds.MultiEllipsoid],
+        proposal in [Proposals.Uniform(), Proposals.RWalk()]
+        spl = Nested(2, 100, bounds = bound, proposal = proposal)
+        chain = sample(model, spl, dlogz = 0.1, chain_type = Array, progress=false)
 
-        @test spl.logz ≈ analytic_logz atol = 2sqrt(spl.h / spl.nactive) # within 2sigma
-        @test sort!(findpeaks(chain[:, 1, 1])[1:2]) ≈ [-1, 1] rtol = 3e-2
-        @test sort!(findpeaks(chain[:, 2, 1])[1:2]) ≈ [-1, 1] rtol = 3e-2
+        @test spl.logz ≈ analytic_logz atol = 3sqrt(spl.h / spl.nactive) # within 3σ
+        @test sort!(findpeaks(chain[:, 1, 1])[1:2]) ≈ [-1, 1] rtol = 5e-2
+        @test sort!(findpeaks(chain[:, 2, 1])[1:2]) ≈ [-1, 1] rtol = 5e-2
     end
 end

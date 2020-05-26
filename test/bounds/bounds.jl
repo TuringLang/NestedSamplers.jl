@@ -8,7 +8,7 @@ function random_ellipsoid(N::Integer)
 end
 
 const BOUNDST = [
-    # Bounds.Ellipsoid,
+    Bounds.Ellipsoid,
     Bounds.MultiEllipsoid
 ]
 
