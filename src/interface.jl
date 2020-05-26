@@ -23,8 +23,8 @@ function sample_init!(rng::AbstractRNG,
 
     # samples in unit space
     s.active_us .= us
-    s.avtive_points .= vs
-    s.avtive_logl .= logl
+    s.active_points .= vs
+    s.active_logl .= logl[1, :]
 
     return nothing
 end

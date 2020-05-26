@@ -54,7 +54,7 @@ function Nested(ndims,
     proposal = :auto,
     enlarge = 1.25,
     min_ncall=2nactive,
-    min_eff=0.10
+    min_eff=0.10,
     kwargs...)
 
     nactive < 2ndims && @warn "Using fewer than 2ndim ($(2ndims)) active points is discouraged"
