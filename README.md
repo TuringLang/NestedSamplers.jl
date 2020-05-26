@@ -61,36 +61,36 @@ spl = Nested(2, 100, bounds=Bounds.MultiEllipsoid)
 # by default, uses dlogz_convergence. Set the keyword args here
 # currently Chains and Array are support chain_types
 chain = sample(model, spl;
-               dlobz=0.2,
+               dlogz=0.2,
                param_names=["x", "y"],
                chain_type=Chains)
 ````
 
 
 ````
-Object of type Chains, with data of type 268×3×1 Array{Float64,3}
+Object of type Chains, with data of type 360×3×1 Array{Float64,3}
 
-Log evidence      = 2.0947299860019433
-Iterations        = 1:268
+Log evidence      = 2.0701573203683425
+Iterations        = 1:360
 Thinning interval = 1
 Chains            = 1
-Samples per chain = 268
+Samples per chain = 360
 internals         = weights
 parameters        = x, y
 
-2-element Array{MCMCChains.ChainDataFrame,1}
+2-element Array{ChainDataFrame,1}
 
 Summary Statistics
   parameters    mean     std  naive_se    mcse       ess   r_hat
   ──────────  ──────  ──────  ────────  ──────  ────────  ──────
-           x  0.5067  0.3030    0.0185  0.0138  185.5509  1.0056
-           y  0.4901  0.3097    0.0189  0.0123  340.9673  0.9964
+           x  0.5576  0.2995    0.0158  0.0353  316.7012  1.0099
+           y  0.4751  0.2918    0.0154  0.0119  424.7692  0.9974
 
 Quantiles
   parameters    2.5%   25.0%   50.0%   75.0%   97.5%
   ──────────  ──────  ──────  ──────  ──────  ──────
-           x  0.0392  0.2245  0.4707  0.7899  0.9740
-           y  0.0473  0.1941  0.4757  0.8025  0.9700
+           x  0.0378  0.2695  0.6037  0.8383  0.9600
+           y  0.0554  0.1864  0.4624  0.7642  0.9509
 ````
 
 
@@ -220,6 +220,7 @@ This module contains the different algorithms for proposing new points within a 
 The available implementations are
 
   * [`Proposals.Uniform`](@ref) - samples uniformly within the bounding volume
+  * [`Proposals.RWalk`](@ref) - random walks to a new point given an existing one
 
 
 
@@ -229,7 +230,19 @@ The available implementations are
 Proposals.Uniform()
 ```
 
-A proposal scheme which samples uniformly within the bounding volume
+Propose a new live point by uniformly sampling within the bounding volume.
+
+
+
+---
+
+```
+Proposals.RWalk(;ratio=0.5, walks=25, scale=1)
+```
+
+Propose a new live point by random walking away from an existing live point.
+
+`ratio` is the target acceptance ratio, `walks` is the minimum number of steps to take, and `scale` is the proposal distribution scale, which will update *between* proposals.
 
 
 
