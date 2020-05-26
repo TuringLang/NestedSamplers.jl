@@ -13,6 +13,7 @@ using ..Bounds
 
 using Random: AbstractRNG
 using LinearAlgebra
+using Parameters
 
 export AbstractProposal
 
@@ -73,7 +74,7 @@ Propose a new live point by random walking away from an existing live point.
 
 `ratio` is the target acceptance ratio, `walks` is the minimum number of steps to take, and `scale` is the proposal distribution scale, which will update _between_ proposals.
 """
-Base.@kwdef mutable struct RWalk <: AbstractProposal
+@with_kw mutable struct RWalk <: AbstractProposal
     ratio = 0.5
     walks = 25
     scale = 1
