@@ -4,7 +4,7 @@ function random_ellipsoid(N::Integer)
     while abs(det(cov)) < 1e-10
         cov = rand(N, N)
     end
-    return Ellipsoid(zeros(N), cov * cov')
+    return Ellipsoid(zeros(N), pinv(cov * cov'))
 end
 
 const BOUNDST = [

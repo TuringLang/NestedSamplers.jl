@@ -95,7 +95,8 @@ function fit(E::Type{<:Ellipsoid{R}}, x::AbstractMatrix{S}; pointvol = 0) where 
     # Covariance is smaller than r^2 by a factor of 1/(n+2)
     cov .*= ndim + 2
     # Ensure cov is nonsingular
-    make_eigvals_positive!(cov)
+    targetprod = (npoints * pointvol / volume_prefactor(ndim))^2
+    make_eigvals_positive!(cov, targetprod)
 
     # get transformation matrix. Note: use pinv to avoid error when cov is all zeros
     A = pinv(cov)
@@ -110,7 +111,7 @@ function fit(E::Type{<:Ellipsoid{R}}, x::AbstractMatrix{S}; pointvol = 0) where 
     if fmax > flex
         A .*= flex / fmax
         # Ensure cov is nonsingular AGAIN
-        make_eigvals_positive!(A)
+        # make_eigvals_positive!(A)
     end
 
     ell = E(vec(center), A)
@@ -160,22 +161,16 @@ function randball(rng::AbstractRNG, T::Type, D::Integer)
     return z
 end
 
-function make_eigvals_positive!(cov::AbstractMatrix{T}) where T
-    ndims = size(cov, 1)
-    for ntries in 1:100
-        try
-            cholesky(cov)
-            E = eigen(cov)
-            all(p -> p > 0 && isfinite(p), E.values) && return cov
-        catch
-            coeff = 1.1^(ntries) / 1.1^100
-            cov .*= (1 - coeff)
-            cov[diagind(cov)] .+= coeff
-        end
+function make_eigvals_positive!(cov::AbstractMatrix, targetprod)
+    E = eigen(cov)
+    mask = E.values .< 1e-10
+    if any(mask)
+        nzprod = prod(E.values[.!mask])
+        nzeros = count(mask)
+        E.values[mask] .= (targetprod / nzprod)^(1 / nzeros)
+        cov .= E.vectors * Diagonal(E.values) / E.vectors
     end
-    @warn "Could not make ellipsoid axes singular; defaulting to unit-ball"
-    cov .= diagm(0 => ones(T, ndims))
     return cov
 end
 
-make_eigvals_positive(cov::AbstractMatrix) = make_eigvals_positive!(copy(cov))
+make_eigvals_positive(cov::AbstractMatrix, targetprod) = make_eigvals_positive!(copy(cov), targetprod)
