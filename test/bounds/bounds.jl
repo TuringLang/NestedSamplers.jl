@@ -56,6 +56,14 @@ const BOUNDST = [
 
     # printing
     @test sprint(show, bound) == "$(string(nameof(B))){$T}(ndims=$D)"
+
+    # rand_live
+    x = rand(bound, 10)
+    point, _bound = Bounds.rand_live(bound, x)
+    count(point ∈ x[:, i] for i in axes(x, 2)) == 1
+    Btarget = B ∈ [Bounds.MultiEllipsoid] ? Bounds.Ellipsoid : B
+    @test _bound isa Btarget
+    @test point ∈ _bound && point ∈ bound
 end
 
 @testset "interface - NoBounds, $T, D=$D" for T in [Float16, Float32, Float64], D in 1:20

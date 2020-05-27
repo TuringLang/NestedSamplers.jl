@@ -8,6 +8,8 @@ Random.seed!(70)
 
 @testset "Bounds" begin include("bounds/bounds.jl") end
 @testset "Proposals" begin include("proposals/proposals.jl") end
+@testset "Sampler" begin include("sampler.jl") end
+
 
 function integrate_on_grid(f, ranges, density)
     rs = []

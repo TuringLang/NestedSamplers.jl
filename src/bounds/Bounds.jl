@@ -34,11 +34,11 @@ The following functionality defines the interface for `AbstractBoundingSpace` fo
 | Function | Required | Description |
 |---------:|:--------:|:------------|
 | `Base.rand(::AbstractRNG, ::MyBounds)` | x | Sample a single point from the prior volume |
-| `randoffset(::AbstractRNG, ::MyBounds)` |  | Get a random offset from the center of the bounds. Required for random walk schemes. |
+| `Bounds.randoffset(::AbstractRNG, ::MyBounds)` |  | Get a random offset from the center of the bounds. Required for random walk schemes, although a fallback is provided. |
 | `Base.in(point, ::MyBounds)` | x | Checks if the point is contained by the bounding space |
-| `scale!(::MyBounds, factor)` | x | Scale the volume by the linear `factor`|
-| `volume(::MyBounds)` | | Retrieve the current prior volume occupied by the bounds. |
-| `fit(::Type{<:MyBounds}, points, pointvol=0)` | x | update the bounds given the new `points` each with minimum volume `pointvol`|
+| `Bounds.scale!(::MyBounds, factor)` | x | Scale the volume by the linear `factor`|
+| `Bounds.volume(::MyBounds)` | | Retrieve the current prior volume occupied by the bounds. |
+| `Bounds.fit(::Type{<:MyBounds}, points, pointvol=0)` | x | update the bounds given the new `points` each with minimum volume `pointvol`|
 | `Bounds.axes(::MyBounds)` | | Used for transforming points from the unit cube to the encompassing bound.
 """
 abstract type AbstractBoundingSpace{T <: Number} end
@@ -52,6 +52,7 @@ randoffset(B::AbstractBoundingSpace) = randoffset(GLOBAL_RNG, B)
 
 # fallback method
 Base.rand(rng::AbstractRNG, B::AbstractBoundingSpace, N::Integer) = reduce(hcat, rand(rng, B) for _ in 1:N)
+
 """
     rand_live([rng], ::AbstractBoundingSpace, us) -> (u, bound)
 
