@@ -4,11 +4,11 @@ function random_ellipsoid(N::Integer)
     while abs(det(cov)) < 1e-10
         cov = rand(N, N)
     end
-    return Ellipsoid(zeros(N), cov * cov')
+    return Ellipsoid(zeros(N), pinv(cov * cov'))
 end
 
 const BOUNDST = [
-    # Bounds.Ellipsoid,
+    Bounds.Ellipsoid,
     Bounds.MultiEllipsoid
 ]
 
@@ -48,9 +48,10 @@ const BOUNDST = [
     @test Bounds.volume(bound) ≈ Bounds.volume(bound_scaled) / volfrac rtol = 1e-3
 
     # expected number of points that will fall within inner bound
-    expect = volfrac * 5000
+    npoints = 5000
+    expect = volfrac * npoints
     σ = sqrt((1 - volfrac) * expect)
-    ninner = count(rand(bound) ∈ bound_scaled for _ in 1:5000)
+    ninner = count(rand(bound) ∈ bound_scaled for _ in 1:npoints)
     @test ninner ≈ expect atol = 3σ
 
     # printing

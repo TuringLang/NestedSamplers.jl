@@ -59,7 +59,7 @@ spl = Nested(2, 100, bounds=Bounds.MultiEllipsoid)
 # by default, uses dlogz_convergence. Set the keyword args here
 # currently Chains and Array are support chain_types
 chain = sample(model, spl;
-               dlobz=0.2,
+               dlogz=0.2,
                param_names=["x", "y"],
                chain_type=Chains)
 ```
@@ -110,6 +110,10 @@ vline!([1/2 - π/tmax, 1/2, 1/2 + π/tmax], c=:black, ls=:dash, subplot=2)
 ---
 ```julia; echo=false
 @doc Proposals.Uniform
+```
+---
+```julia; echo=false
+@doc Proposals.RWalk
 ```
 ---
 ### Convergence

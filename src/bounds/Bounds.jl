@@ -17,7 +17,7 @@ using StatsBase: mean_and_cov
 using Clustering
 using Distributions: Categorical
 
-export AbstractBoundingSpace
+export AbstractBoundingSpace, rand_live, randoffset
 
 
 """
@@ -33,12 +33,13 @@ The following functionality defines the interface for `AbstractBoundingSpace` fo
 
 | Function | Required | Description |
 |---------:|:--------:|:------------|
-| `Base.rand(::RNG, ::MyBounds)` | x | Sample a single point from the prior volume |
-| `Base.rand(::RNG, ::MyBounds, ::Int)` |  | Sample many points from the prior volume. Will simply repeat the singular version if not implemented. |
+| `Base.rand(::AbstractRNG, ::MyBounds)` | x | Sample a single point from the prior volume |
+| `randoffset(::AbstractRNG, ::MyBounds)` |  | Get a random offset from the center of the bounds. Required for random walk schemes. |
 | `Base.in(point, ::MyBounds)` | x | Checks if the point is contained by the bounding space |
 | `scale!(::MyBounds, factor)` | x | Scale the volume by the linear `factor`|
 | `volume(::MyBounds)` | | Retrieve the current prior volume occupied by the bounds. |
 | `fit(::Type{<:MyBounds}, points, pointvol=0)` | x | update the bounds given the new `points` each with minimum volume `pointvol`|
+| `Bounds.axes(::MyBounds)` | | Used for transforming points from the unit cube to the encompassing bound.
 """
 abstract type AbstractBoundingSpace{T <: Number} end
 
@@ -47,9 +48,20 @@ Base.eltype(::AbstractBoundingSpace{T}) where {T} = T
 # convenience
 Base.rand(B::AbstractBoundingSpace) = rand(GLOBAL_RNG, B)
 Base.rand(B::AbstractBoundingSpace, N::Integer) = rand(GLOBAL_RNG, B, N)
+randoffset(B::AbstractBoundingSpace) = randoffset(GLOBAL_RNG, B)
 
 # fallback method
-Base.rand(rng::AbstractRNG, B::AbstractBoundingSpace, N::Integer) = reduce(hcat, [rand(rng, B) for _ in 1:N])
+Base.rand(rng::AbstractRNG, B::AbstractBoundingSpace, N::Integer) = reduce(hcat, rand(rng, B) for _ in 1:N)
+"""
+    rand_live([rng], ::AbstractBoundingSpace, us) -> (u, bound)
+
+Returns a random live point and the bounds associated with it.
+"""
+function rand_live(rng::AbstractRNG, B::AbstractBoundingSpace, us)
+    idx = rand(rng, Base.axes(us, 2))
+    return us[:, idx], B
+end
+rand_live(B::AbstractBoundingSpace, us) = rand_live(GLOBAL_RNG, B, us)
 
 function Base.show(io::IO, bound::B) where {T,B <: AbstractBoundingSpace{T}}
     base = nameof(B) |> string
@@ -73,12 +85,15 @@ NoBounds(T::Type, D::Integer) = NoBounds{T}(D)
 
 Base.ndims(B::NoBounds) = B.ndims
 
+randoffset(rng::AbstractRNG, b::NoBounds{T}) where {T} = rand(rng, T, ndims(b)) .- 0.5
 Base.rand(rng::AbstractRNG, b::NoBounds{T}) where {T} = rand(rng, T, ndims(b))
 Base.rand(rng::AbstractRNG, b::NoBounds{T}, N::Integer) where {T} = rand(rng, T, ndims(b), N)
 Base.in(pt, ::NoBounds) = all(0 .< pt .< 1)
 fit(::Type{<:NoBounds}, points::AbstractMatrix{T}; kwargs...) where {T} = NoBounds(T, size(points, 1))
 scale!(b::NoBounds, factor) = b
 volume(::NoBounds{T}) where {T} = one(T)
+axes(b::NoBounds) = I
+paxes(b::NoBounds) = I
 
 
 include("ellipsoid.jl")
