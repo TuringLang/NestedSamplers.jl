@@ -7,6 +7,7 @@ mutable struct Nested{T,B <: AbstractBoundingSpace{T},P <: AbstractProposal} <: 
     update_interval::Int
     min_ncall::Int
     min_eff::Float64
+    has_bounds::Bool
     active_us::Matrix{T}
     active_points::Matrix{T}
     active_logl::Vector{T}
@@ -81,6 +82,7 @@ function Nested(ndims,
         update_interval,
         min_ncall,
         min_eff,
+        false,
         zeros(ndims, nactive),
         zeros(ndims, nactive),
         zeros(nactive),

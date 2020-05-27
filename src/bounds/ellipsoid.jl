@@ -95,8 +95,7 @@ function fit(E::Type{<:Ellipsoid{R}}, x::AbstractMatrix{S}; pointvol = 0) where 
     # Covariance is smaller than r^2 by a factor of 1/(n+2)
     cov .*= ndim + 2
     # Ensure cov is nonsingular
-    targetprod = (npoints * pointvol / volume_prefactor(ndim))^2
-    make_eigvals_positive!(cov, targetprod)
+    make_eigvals_positive!(cov)
 
     # get transformation matrix. Note: use pinv to avoid error when cov is all zeros
     A = pinv(cov)

@@ -88,12 +88,12 @@ Base.ndims(B::NoBounds) = B.ndims
 randoffset(rng::AbstractRNG, b::NoBounds{T}) where {T} = rand(rng, T, ndims(b)) .- 0.5
 Base.rand(rng::AbstractRNG, b::NoBounds{T}) where {T} = rand(rng, T, ndims(b))
 Base.rand(rng::AbstractRNG, b::NoBounds{T}, N::Integer) where {T} = rand(rng, T, ndims(b), N)
-Base.in(pt, ::NoBounds) = all(0 .< pt .< 1)
-fit(::Type{<:NoBounds}, points::AbstractMatrix{T}; kwargs...) where {T} = NoBounds(T, size(points, 1))
+Base.in(pt, ::NoBounds) = all(p -> 0 < p < 1, pt)
+fit(::Type{<:NoBounds}, points::AbstractMatrix{T}; kwargs...) where T = 
+    NoBounds(T, size(points, 1))
 scale!(b::NoBounds, factor) = b
 volume(::NoBounds{T}) where {T} = one(T)
 axes(b::NoBounds) = I
-paxes(b::NoBounds) = I
 
 
 include("ellipsoid.jl")

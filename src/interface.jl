@@ -68,20 +68,33 @@ function step!(rng::AbstractRNG,
            exp(s.logz - logz) * (s.h + s.logz) - logz)
     s.logz = logz
 
-    # update bounds
-    if iszero(iteration % s.update_interval) && s.ncall > s.min_ncall && iteration / s.ncall < s.min_eff
+    # check if ready for first update
+    if !s.has_bounds && s.ncall > s.min_ncall && iteration / s.ncall < s.min_eff
+        debug && @info "First update: it=$iteration, ncall=$(s.ncall), eff=$(iteration / s.ncall)"
+        s.has_bounds = true
         pointvol = exp(s.log_vol) / s.nactive
         s.active_bound = Bounds.scale!(Bounds.fit(B, s.active_us, pointvol = pointvol), s.enlarge)
     end
 
-    # Get a live point to use for evolving with proposal
-    if s.ncall > s.min_ncall && iteration / s.ncall < s.min_eff
-        point, bound = rand_live(rng, s.active_bound, s.active_us)
-    else
-        point, bound = rand_live(rng, Bounds.NoBounds(s.ndims), s.active_us)
+    # update bounds
+    if iszero(iteration % s.update_interval) && s.has_bounds
+        debug && @info "Updating bounds: it=$iteration, ncall=$(s.ncall), eff=$(iteration / s.ncall)"
+        pointvol = exp(s.log_vol) / s.nactive
+        s.active_bound = Bounds.scale!(Bounds.fit(B, s.active_us, pointvol = pointvol), s.enlarge)
     end
+    
+    # Get a live point to use for evolving with proposal
+    if s.has_bounds
+        point, bound = rand_live(rng, s.active_bound, s.active_us)
+        u, v, logl, ncall = s.proposal(rng, point, logL, bound, model.loglike, model.prior_transform)
+    else
+        point = rand(rng, T, s.ndims)
+        bound = Bounds.NoBounds(T, s.ndims)
+        proposal = Proposals.Uniform()
+        u, v, logl, ncall = proposal(rng, point, logL, bound, model.loglike, model.prior_transform)
+    end
+
     # Get new point and log like
-    u, v, logl, ncall = s.proposal(rng, point, logL, bound, model.loglike, model.prior_transform)
     s.active_us[:, idx] = u
     s.active_points[:, idx] = v
     s.active_logl[idx] = logl
