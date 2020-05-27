@@ -110,8 +110,6 @@ function fit(E::Type{<:Ellipsoid{R}}, x::AbstractMatrix{S}; pointvol = 0) where 
     flex = 1 - sqrt(eps(T))
     if fmax > flex
         A .*= flex / fmax
-        # Ensure cov is nonsingular AGAIN
-        # make_eigvals_positive!(A)
     end
 
     ell = E(vec(center), A)

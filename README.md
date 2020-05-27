@@ -70,7 +70,7 @@ chain = sample(model, spl;
 ````
 Object of type Chains, with data of type 360×3×1 Array{Float64,3}
 
-Log evidence      = 2.0701573203683425
+Log evidence      = 2.0732388578259826
 Iterations        = 1:360
 Thinning interval = 1
 Chains            = 1
@@ -78,19 +78,19 @@ Samples per chain = 360
 internals         = weights
 parameters        = x, y
 
-2-element Array{ChainDataFrame,1}
+2-element Array{MCMCChains.ChainDataFrame,1}
 
 Summary Statistics
   parameters    mean     std  naive_se    mcse       ess   r_hat
   ──────────  ──────  ──────  ────────  ──────  ────────  ──────
-           x  0.5576  0.2995    0.0158  0.0353  316.7012  1.0099
-           y  0.4751  0.2918    0.0154  0.0119  424.7692  0.9974
+           x  0.5123  0.3071    0.0162  0.0086  397.0281  0.9972
+           y  0.5149  0.3072    0.0162  0.0244  355.1881  1.0012
 
 Quantiles
   parameters    2.5%   25.0%   50.0%   75.0%   97.5%
   ──────────  ──────  ──────  ──────  ──────  ──────
-           x  0.0378  0.2695  0.6037  0.8383  0.9600
-           y  0.0554  0.1864  0.4624  0.7642  0.9509
+           x  0.0293  0.2202  0.5088  0.8070  0.9799
+           y  0.0437  0.1992  0.5071  0.8212  0.9667
 ````
 
 
@@ -129,10 +129,12 @@ NestedModel(loglike, priors::AbstractVector{<:Distribution})
 
 ```
 Nested(ndims, nactive;
-    bounds=Bounds.Ellipsoid,
-    proposal=Proposals.Uniform(),
-    enlarge=1.2,
-    update_interval=round(Int, 0.6nactive))
+    bounds=Bounds.MultiEllipsoid,
+    proposal=:auto,
+    enlarge=1.25,
+    update_interval=default_update_interval(proposal),
+    min_ncall=2nactive,
+    min_eff=0.10)
 ```
 
 Static nested sampler with `nactive` active points and `ndims` parameters.
@@ -141,14 +143,22 @@ Static nested sampler with `nactive` active points and `ndims` parameters.
 
 ## Bounds and Proposals
 
-`bounds` declares the Type of [`Bounds.AbstractBoundingSpace`](@ref) to use in the prior volume. The available bounds are described by [`Bounds`](@ref). `proposal` declares the algorithm used for proposing new points. The available proposals are described in [`Proposals`](@ref).
+`bounds` declares the Type of [`Bounds.AbstractBoundingSpace`](@ref) to use in the prior volume. The available bounds are described by [`Bounds`](@ref). `proposal` declares the algorithm used for proposing new points. The available proposals are described in [`Proposals`](@ref). If `proposal` is `:auto`, will choose the proposal based on `ndims`
 
-The original nested sampling algorithm is equivalent to using `Bounds.Ellipsoid` with `Proposals.Uniform`. The MultiNest algorithm is equivalent to `Bounds.MultiEllipsoid` with `Proposals.Uniform`.
+  * `ndims < 10` - [`Proposals.Uniform`](@ref)
+  * `ndims ≥ 10` - [`Proposals.RWalk`](@ref)
+
+The original nested sampling algorithm is roughly equivalent to using `Bounds.Ellipsoid` with `Proposals.Uniform`. The MultiNest algorithm is roughly equivalent to `Bounds.MultiEllipsoid` with `Proposals.Uniform`.
 
 ## Other Parameters
 
   * `enlarge` - When fitting the bounds to live points, they will be enlarged (in terms of volume) by this linear factor.
-  * `update_interval` - How often to refit the live points with the bounds
+  * `update_interval` - How often to refit the live points with the bounds as a fraction of `nactive`. By default this will be determined using `default_update_interval` for the given proposal
+
+      * `Proposals.Uniform` - `1.5`
+      * `Proposals.RWalk` - `0.15walks`
+  * `min_ncall` - The minimum number of iterations before trying to fit the first bound
+  * `min_eff` - The maximum efficiency before trying to fit the first bound
 
 
 
@@ -189,7 +199,9 @@ Bounds.Ellipsoid(center::AbstractVector, A::AbstractMatrix)
 
 An `N`-dimensional ellipsoid defined by
 
-$ (x - center)^T A (x - center) = 1 $
+$$
+(x - center)^T A (x - center) = 1
+$$
 
 where `size(center) == (N,)` and `size(A) == (N,N)`.
 
