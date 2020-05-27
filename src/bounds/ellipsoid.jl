@@ -4,7 +4,9 @@
 
 An `N`-dimensional ellipsoid defined by
 
-\$ (x - center)^T A (x - center) = 1 \$
+```math
+(x - center)^T A (x - center) = 1
+```
 
 where `size(center) == (N,)` and `size(A) == (N,N)`.
 """
@@ -39,7 +41,7 @@ axes(ell::Ellipsoid) = ell.axes
 function decompose(A::AbstractMatrix)
     E = eigen(A)
     axlens = @. 1 / sqrt(E.values)
-    axes = E.vectors .* axlens
+    axes = E.vectors * Diagonal(axlens)
     return axes, axlens
 end
 
@@ -66,7 +68,7 @@ end
 
 function Base.in(x::AbstractVector, ell::Ellipsoid)
     d = x .- ell.center
-    return d' * (ell.A * d) ≤ 1.0
+    return dot(d, ell.A * d) ≤ 1.0
 end
 
 randoffset(rng::AbstractRNG, ell::Ellipsoid{T}) where {T} = axes(ell) * randball(rng, T, ndims(ell))
@@ -79,27 +81,24 @@ function fit(E::Type{<:Ellipsoid{R}}, x::AbstractMatrix{S}; pointvol = 0) where 
     x = T.(x)
     ndim, npoints = size(x)
 
+    # single element is an n-sphere with pointvol volume
+    if npoints == 1
+        pointvol > 0 || error("Cannot compute bounding ellipsoid with one point without a valid pointvol (got $pointvol)")
+        d = log(pointvol) - log(volume_prefactor(ndim))
+        r = exp(d / ndim)
+        A = diagm(0 => fill(1 / r^2, ndim))
+        return Ellipsoid(vec(x), A)
+    end
+    # get estimators
     center, cov = mean_and_cov(x, 2)
     delta = x .- center
-
-    # single element covariance will return NaN, but we want 0
-    if npoints == 1
-        cov = zeros(T, ndim, ndim)
-    end
-
     # Covariance is smaller than r^2 by a factor of 1/(n+2)
     cov .*= ndim + 2
-
     # Ensure cov is nonsingular
-    targetprod = (npoints * pointvol / volume_prefactor(ndim))^2
-    make_eigvals_positive!(cov, targetprod)
+    make_eigvals_positive!(cov)
 
-    # edge case- single 0 is non-singular
-    if size(cov) == (1, 1) && iszero(cov[1, 1])
-        A = cov
-    else
-        A = inv(cov)
-    end
+    # get transformation matrix. Note: use pinv to avoid error when cov is all zeros
+    A = pinv(cov)
 
     # calculate expansion factor necessary to bound each points
     f = diag(delta' * (A * delta))
@@ -110,8 +109,11 @@ function fit(E::Type{<:Ellipsoid{R}}, x::AbstractMatrix{S}; pointvol = 0) where 
     flex = 1 - sqrt(eps(T))
     if fmax > flex
         A .*= flex / fmax
+        # Ensure cov is nonsingular AGAIN
+        make_eigvals_positive!(A)
     end
-    ell = E(center[:, 1], A)
+
+    ell = E(vec(center), A)
 
     if pointvol > 0
         minvol = npoints * pointvol
@@ -135,16 +137,9 @@ for n even:      (2pi)^(n    /2) / (2 * 4 * ... * n)
 for n odd :  2 * (2pi)^((n-1)/2) / (1 * 3 * ... * n)
 """
 function volume_prefactor(n::Integer)
-    if iseven(n)
-        f = 1.0
-        for i in 2:2:n
-            f *= 2π / i
-        end
-    else
-        f = 2.0
-        for i in 3:2:n
-            f *= 2π / i
-        end
+    f, range = iseven(n) ? (1.0, 2:2:n) : (2.0, 3:2:n)
+    for i in range
+        f *= 2π / i
     end
     return f
 end
@@ -165,7 +160,7 @@ function randball(rng::AbstractRNG, T::Type, D::Integer)
     return z
 end
 
-function make_eigvals_positive!(cov::AbstractMatrix{T}, targetprod) where T
+function make_eigvals_positive!(cov::AbstractMatrix{T}) where T
     ndims = size(cov, 1)
     for ntries in 1:100
         try
@@ -183,4 +178,4 @@ function make_eigvals_positive!(cov::AbstractMatrix{T}, targetprod) where T
     return cov
 end
 
-make_eigvals_positive(cov::AbstractMatrix, targetprod) = make_eigvals_positive!(deepcopy(cov), targetprod)
+make_eigvals_positive(cov::AbstractMatrix) = make_eigvals_positive!(copy(cov))

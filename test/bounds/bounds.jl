@@ -48,10 +48,11 @@ const BOUNDST = [
     @test Bounds.volume(bound) ≈ Bounds.volume(bound_scaled) / volfrac rtol = 1e-3
 
     # expected number of points that will fall within inner bound
-    expect = volfrac * 10000
+    npoints = 5000
+    expect = volfrac * npoints
     σ = sqrt((1 - volfrac) * expect)
-    ninner = count(rand(bound) ∈ bound_scaled for _ in 1:10000)
-    @test ninner ≈ expect atol = 5σ
+    ninner = count(rand(bound) ∈ bound_scaled for _ in 1:npoints)
+    @test ninner ≈ expect atol = 3σ
 
     # printing
     @test sprint(show, bound) == "$(string(nameof(B))){$T}(ndims=$D)"
