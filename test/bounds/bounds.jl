@@ -4,11 +4,11 @@ function random_ellipsoid(N::Integer)
     while abs(det(cov)) < 1e-10
         cov = rand(N, N)
     end
-    return Ellipsoid(zeros(N), cov * cov')
+    return Ellipsoid(zeros(N), pinv(cov * cov'))
 end
 
 const BOUNDST = [
-    # Bounds.Ellipsoid,
+    Bounds.Ellipsoid,
     Bounds.MultiEllipsoid
 ]
 
@@ -48,13 +48,22 @@ const BOUNDST = [
     @test Bounds.volume(bound) ≈ Bounds.volume(bound_scaled) / volfrac rtol = 1e-3
 
     # expected number of points that will fall within inner bound
-    expect = volfrac * 5000
+    npoints = 5000
+    expect = volfrac * npoints
     σ = sqrt((1 - volfrac) * expect)
-    ninner = count(rand(bound) ∈ bound_scaled for _ in 1:5000)
+    ninner = count(rand(bound) ∈ bound_scaled for _ in 1:npoints)
     @test ninner ≈ expect atol = 3σ
 
     # printing
     @test sprint(show, bound) == "$(string(nameof(B))){$T}(ndims=$D)"
+
+    # rand_live
+    x = rand(bound, 10)
+    point, _bound = Bounds.rand_live(bound, x)
+    count(point ∈ x[:, i] for i in axes(x, 2)) == 1
+    Btarget = B ∈ [Bounds.MultiEllipsoid] ? Bounds.Ellipsoid : B
+    @test _bound isa Btarget
+    @test point ∈ _bound && point ∈ bound
 end
 
 @testset "interface - NoBounds, $T, D=$D" for T in [Float16, Float32, Float64], D in 1:20

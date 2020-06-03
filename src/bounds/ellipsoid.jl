@@ -4,80 +4,75 @@
 
 An `N`-dimensional ellipsoid defined by
 
-\$ (x - center)^T A (x - center) = 1 \$
+```math
+(x - center)^T A (x - center) = 1
+```
 
 where `size(center) == (N,)` and `size(A) == (N,N)`.
 """
 mutable struct Ellipsoid{T} <: AbstractBoundingSpace{T}
     center::Vector{T}
     A::Matrix{T}
+    axes::Matrix{T}
+    axlens::Vector{T}
     volume::T
 end
 
+
+function Ellipsoid(center::AbstractVector, A::AbstractMatrix)
+    axes, axlens = decompose(A)
+    Ellipsoid(center, A, axes, axlens, _volume(A))
+end
 Ellipsoid(ndim::Integer) = Ellipsoid(Float64, ndim)
-Ellipsoid(T::Type, ndim::Integer) = Ellipsoid(zeros(T, ndim), diagm(0 => ones(T, ndim)), T(volume_prefactor(ndim)))
-Ellipsoid(center::AbstractVector, A::AbstractMatrix) = Ellipsoid(center, A, _volume(A))
-Ellipsoid{T}(center::AbstractVector, A::AbstractMatrix) where {T} = Ellipsoid(T.(center), T.(A), T(_volume(A)))
+Ellipsoid(T::Type, ndim::Integer) = Ellipsoid(zeros(T, ndim), diagm(0 => ones(T, ndim)))
+Ellipsoid{T}(center::AbstractVector, A::AbstractMatrix) where {T} = Ellipsoid(T.(center), T.(A))
 
 Base.broadcastable(e::Ellipsoid) = (e,)
 
 Base.ndims(ell::Ellipsoid) = length(ell.center)
 
 # Returns the volume of an ellipsoid given its axes matrix
-_volume(A::AbstractMatrix) = volume_prefactor(size(A, 1)) / sqrt(det(A))
+_volume(A::AbstractMatrix{T}) where {T} = T(volume_prefactor(size(A, 1))) / sqrt(det(A))
 volume(ell::Ellipsoid) = ell.volume
 
 # Returns the principal axes
-function span(ell::Ellipsoid)
-    E = eigen(ell.A)
-    axlens = @. 1 / sqrt(E.values)
-    axes = E.vectors * Diagonal(axlens)
-    return axes
-end
+axes(ell::Ellipsoid) = ell.axes
 
-# axes and axlens
-function decompose(ell::Ellipsoid)
-    E = eigen(ell.A)
+function decompose(A::AbstractMatrix)
+    E = eigen(A)
     axlens = @. 1 / sqrt(E.values)
     axes = E.vectors * Diagonal(axlens)
     return axes, axlens
 end
 
+# axes and axlens
+decompose(ell::Ellipsoid) = ell.axes, ell.axlens
+
 # Scale to new volume
 function scale!(ell::Ellipsoid, factor)
-    ell.A ./= factor^(2 / ndims(ell))
-    ell.volume = _volume(ell.A)
+    # linear factor
+    f = factor^(1 / ndims(ell))
+    ell.A ./= f^2
+    ell.axes .*= f
+    ell.axlens .*= f
+    ell.volume *= factor
     return ell
 end
 
 function endpoints(ell::Ellipsoid)
-    # get axes lengths
-    E = eigen(ell.A)
-    axlens = 1 ./ sqrt.(E.values)
-
-    # get axes
-    axes = E.vectors * Diagonal(axlens)
-    
-    # find major axis
+    axes, axlens = decompose(ell)
+        # find major axis
     major_axis = axes[:, argmax(axlens)]
     return ell.center .- major_axis, ell.center .+ major_axis
 end
 
 function Base.in(x::AbstractVector, ell::Ellipsoid)
     d = x .- ell.center
-    return d' * (ell.A * d) ≤ 1.0
+    return dot(d, ell.A * d) ≤ 1.0
 end
 
-function Base.rand(rng::AbstractRNG, ell::Ellipsoid{T}) where T
-    # Generate random offset from center
-    offset = span(ell) * randball(rng, T, ndims(ell))
-    return ell.center .+ offset
-end
-
-function Base.rand(rng::AbstractRNG, ell::Ellipsoid{T}, N::Integer) where T
-    offset = span(ell) * randball(rng, T, ndims(ell), N)
-    return ell.center .+ offset
-end
+randoffset(rng::AbstractRNG, ell::Ellipsoid{T}) where {T} = axes(ell) * randball(rng, T, ndims(ell))
+Base.rand(rng::AbstractRNG, ell::Ellipsoid) = ell.center .+ randoffset(rng, ell)
 
 fit(E::Type{<:Ellipsoid}, x::AbstractMatrix{S}; pointvol = 0) where {S} = fit(E{float(S)}, x; pointvol = pointvol)
 
@@ -86,27 +81,25 @@ function fit(E::Type{<:Ellipsoid{R}}, x::AbstractMatrix{S}; pointvol = 0) where 
     x = T.(x)
     ndim, npoints = size(x)
 
+    # single element is an n-sphere with pointvol volume
+    if npoints == 1
+        pointvol > 0 || error("Cannot compute bounding ellipsoid with one point without a valid pointvol (got $pointvol)")
+        d = log(pointvol) - log(volume_prefactor(ndim))
+        r = exp(d / ndim)
+        A = diagm(0 => fill(1 / r^2, ndim))
+        return Ellipsoid(vec(x), A)
+    end
+    # get estimators
     center, cov = mean_and_cov(x, 2)
     delta = x .- center
-
-    # single element covariance will return NaN, but we want 0
-    if npoints == 1 
-        cov = zeros(T, ndim, ndim)
-    end
-
     # Covariance is smaller than r^2 by a factor of 1/(n+2)
     cov .*= ndim + 2
-
     # Ensure cov is nonsingular
     targetprod = (npoints * pointvol / volume_prefactor(ndim))^2
     make_eigvals_positive!(cov, targetprod)
 
-    # edge case- single 0 is non-singular
-    if size(cov) == (1, 1) && iszero(cov[1, 1])
-        A = cov
-    else
-        A = inv(cov)
-    end
+    # get transformation matrix. Note: use pinv to avoid error when cov is all zeros
+    A = pinv(cov)
 
     # calculate expansion factor necessary to bound each points
     f = diag(delta' * (A * delta))
@@ -118,15 +111,16 @@ function fit(E::Type{<:Ellipsoid{R}}, x::AbstractMatrix{S}; pointvol = 0) where 
     if fmax > flex
         A .*= flex / fmax
     end
-    vol = _volume(A)
+
+    ell = E(vec(center), A)
+
     if pointvol > 0
         minvol = npoints * pointvol
-        if vol < minvol
-            A ./= (minvol / vol)^(2 / ndim)
-        end
+        vol = volume(ell)
+        vol < minvol && scale!(ell, minvol / vol)
     end
 
-    return E(center[:, 1], A)
+    return ell
 end
 
 
@@ -142,16 +136,9 @@ for n even:      (2pi)^(n    /2) / (2 * 4 * ... * n)
 for n odd :  2 * (2pi)^((n-1)/2) / (1 * 3 * ... * n)
 """
 function volume_prefactor(n::Integer)
-    if iseven(n)
-        f = 1.0
-        for i in 2:2:n
-            f *= 2π / i
-        end
-    else
-        f = 2.0
-        for i in 3:2:n
-            f *= 2π / i
-        end
+    f, range = iseven(n) ? (1.0, 2:2:n) : (2.0, 3:2:n)
+    for i in range
+        f *= 2π / i
     end
     return f
 end
@@ -184,4 +171,4 @@ function make_eigvals_positive!(cov::AbstractMatrix, targetprod)
     return cov
 end
 
-make_eigvals_positive(cov::AbstractMatrix, targetprod) = make_eigvals_positive!(deepcopy(cov), targetprod)
+make_eigvals_positive(cov::AbstractMatrix, targetprod) = make_eigvals_positive!(copy(cov), targetprod)

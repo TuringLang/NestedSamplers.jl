@@ -8,9 +8,9 @@ using StatsBase
     logl(x::AbstractVector) =  exp(-x[1]^2 / 2) / √(2π)
     priors = [Uniform(-1, 1)]
     model = NestedModel(logl, priors)
-    spl = Nested(1, 10)
-    chain = sample(model, spl; dlogz = 0.2, param_names = ["x"], chain_type = Chains)
-    samples = sample(model, spl; dlogz = 0.2, chain_type = Array)
+    spl = Nested(1, 500)
+    chain = sample(model, spl; dlogz = 0.2, param_names = ["x"], chain_type = Chains, progress=false)
+    samples = sample(model, spl; dlogz = 0.2, chain_type = Array, progress=false)
 end
 
 # @testset "Flat" begin
@@ -27,7 +27,8 @@ end
 #     end
 # end
 
-@testset "Gaussian" begin
+@testset "Gaussian - $bound, $P" for bound in [Bounds.NoBounds, Bounds.Ellipsoid, Bounds.MultiEllipsoid],
+                        P in [Proposals.Uniform, Proposals.RWalk]
     σ = 0.1
     μ1 = ones(2)
     μ2 = -ones(2)
@@ -44,14 +45,12 @@ end
     prior(X) = 10 .* X .- 5
     model = NestedModel(logl, prior)
     
-    analytic_logz = log(2 * 2π * σ^2 / 100)
+    analytic_logz = log(4π * σ^2 / 100)
 
-    for bound in [Bounds.NoBounds, Bounds.Ellipsoid, Bounds.MultiEllipsoid]
-        spl = Nested(2, 100, bounds = bound)
-        chain = sample(model, spl, dlogz = 0.1, chain_type = Array)
-
-        @test spl.logz ≈ analytic_logz atol = 2sqrt(spl.h / spl.nactive) # within 2sigma
-        @test sort!(findpeaks(chain[:, 1, 1])[1:2]) ≈ [-1, 1] rtol = 3e-2
-        @test sort!(findpeaks(chain[:, 2, 1])[1:2]) ≈ [-1, 1] rtol = 3e-2
-    end
+    
+    spl = Nested(2, 500, bounds = bound, proposal = P())
+    chain = sample(model, spl, dlogz=0.1, chain_type = Array, progress=false)
+    @test spl.logz ≈ analytic_logz atol = 3sqrt(spl.h / spl.nactive) # within 3σ
+    @test sort!(findpeaks(chain[:, 1, 1])[1:2]) ≈ [-1, 1] rtol = 3e-2
+    @test sort!(findpeaks(chain[:, 2, 1])[1:2]) ≈ [-1, 1] rtol = 3e-2
 end
