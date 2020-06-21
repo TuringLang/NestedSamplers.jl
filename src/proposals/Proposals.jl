@@ -6,6 +6,7 @@ This module contains the different algorithms for proposing new points within a 
 The available implementations are
 * [`Proposals.Uniform`](@ref) - samples uniformly within the bounding volume
 * [`Proposals.RWalk`](@ref) - random walks to a new point given an existing one
+* [`Proposals.RStagger`](@ref) - random staggers away to a new point given an existing one
 """
 module Proposals
 
@@ -138,5 +139,42 @@ function (prop::RWalk)(rng::AbstractRNG,
     return u, v, logl, ncall
 end
 
+"""
+    Proposals.RStagger(;ratio=0.5, walks=25, scale=1)  (note-to-self: check if more kwargs... go in here)
+
+Propose a new live point by random staggering away from an existing live point. 
+This differs from the random walk proposal in that the step size here is exponentially adjusted
+to reach a target acceptane rate _during_ each proposal, in addition to _between_
+proposals.
+
+`ratio` is the target acceptance ratio, `walks` is the minimum number of steps to take, and `scale` is the proposal distribution scale, which will update (_during_ and?) _between_ proposals.
+"""
+
+@with_kw mutable struct RStagger <: AbstractProposal
+    ratio = 0.5
+    walks = 25
+    scale = 1.0
+end
+
+function (prop::RStagger)(rng::AbstractRNG,
+        point::AbstractVector,
+        logl_star,
+        bounds::AbstractBoundingSpace,
+        loglike,
+        prior_transform;
+        kwargs...)
+        #setup
+        n = length(point)
+        scale_init = prop.scale
+        accept = reject = fail = nfail = nc = ncall = 0
+        stagger = 1.0
+        local drhat, dr, du, u_prop, logl_prop (u, v, logl not to define here?)
+    
+        while nc < prop.walks || iszero(accept)
+            # get proposed point
+            while true:
+                # check scale factor to avoid over-shrinking
 
 end # module Proposals
+
+
