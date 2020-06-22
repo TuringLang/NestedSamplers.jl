@@ -6,7 +6,7 @@ This module contains the different algorithms for proposing new points within a 
 The available implementations are
 * [`Proposals.Uniform`](@ref) - samples uniformly within the bounding volume
 * [`Proposals.RWalk`](@ref) - random walks to a new point given an existing one
-* [`Proposals.RStagger`](@ref) - random staggers away to a new point given an existing one
+* [`Proposals.RStagger`](@ref) - random staggering away to a new point given an existing one
 """
 module Proposals
 
