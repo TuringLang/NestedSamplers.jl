@@ -207,7 +207,7 @@ function (prop::RStagger)(rng::AbstractRNG,
         ncall += 1
         
         # adjust _stagger_ to target an acceptance ratio of `prop.ratio`
-        ratio = 1 * accept/(accept + reject)
+        ratio = accept / (accept + reject)
         if ratio > prop.ratio
             stagger *= exp(1/accept)
         if ratio < prop.ratio
