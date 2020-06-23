@@ -172,7 +172,7 @@ function (prop::RStagger)(rng::AbstractRNG,
     
     while nc < prop.walks || iszero(accept)
         # get proposed point
-        while true:
+        while true
             # check scale factor to avoid over-shrinking
             prop.scale < 1e-5scale_init && error("Random walk sampling appears to be stuck.")
             # transform to proposal distribution
