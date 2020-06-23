@@ -209,7 +209,7 @@ function (prop::RStagger)(rng::AbstractRNG,
         # adjust _stagger_ to target an acceptance ratio of `prop.ratio`
         ratio = accept / (accept + reject)
         if ratio > prop.ratio
-            stagger *= exp(1/accept)
+            stagger *= exp(1 / accept)
         if ratio < prop.ratio
             stagger /= exp(1/reject)
         
