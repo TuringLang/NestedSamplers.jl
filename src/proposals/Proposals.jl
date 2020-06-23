@@ -177,7 +177,7 @@ function (prop::RStagger)(rng::AbstractRNG,
             prop.scale < 1e-5scale_init && error("Random walk sampling appears to be stuck.")
             # transform to proposal distribution
             du = randoffset(rng, bounds)
-            u_prop = @. point + prop.scale*stagger*du
+            u_prop = @. point + prop.scale * stagger * du
             # inside unit-cube
             all(u -> 0 < u < 1, u_prop) && break
             
