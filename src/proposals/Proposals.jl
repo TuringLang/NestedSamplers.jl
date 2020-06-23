@@ -140,14 +140,14 @@ function (prop::RWalk)(rng::AbstractRNG,
 end
 
 """
-    Proposals.RStagger(;ratio=0.5, walks=25, scale=1)  (note-to-self: check if more kwargs... go in here)
+    Proposals.RStagger(;ratio=0.5, walks=25, scale=1)
 
 Propose a new live point by random staggering away from an existing live point. 
 This differs from the random walk proposal in that the step size here is exponentially adjusted
 to reach a target acceptane rate _during_ each proposal, in addition to _between_
 proposals.
 
-`ratio` is the target acceptance ratio, `walks` is the minimum number of steps to take, and `scale` is the proposal distribution scale, which will update (_during_ and?) _between_ proposals.
+`ratio` is the target acceptance ratio, `walks` is the minimum number of steps to take, and `scale` is the proposal distribution scale, which will update _between_ proposals.
 """
 
 @with_kw mutable struct RStagger <: AbstractProposal
@@ -157,69 +157,78 @@ proposals.
 end
 
 function (prop::RStagger)(rng::AbstractRNG,
-        point::AbstractVector,
-        logl_star,
-        bounds::AbstractBoundingSpace,
-        loglike,
-        prior_transform;
-        kwargs...)
-        #setup
-        n = length(point)
-        scale_init = prop.scale
-        accept = reject = fail = nfail = nc = ncall = 0
-        stagger = 1
-        local drhat, dr, du, u_prop, logl_prop (u, v, logl not to define here?)
+    point::AbstractVector,
+    logl_star,
+    bounds::AbstractBoundingSpace,
+    loglike,
+    prior_transform;
+    kwargs...)
+    #setup
+    n = length(point)
+    scale_init = prop.scale
+    accept = reject = fail = nfail = nc = ncall = 0
+    stagger = 1
+    local drhat, dr, du, u_prop, logl_prop, u, v, logl
     
-        while nc < prop.walks || iszero(accept)
-            # get proposed point
-            while true:
-                # check scale factor to avoid over-shrinking
-                prop.scale < 1e-5scale_init && error("Random walk sampling appears to be stuck.")
-                
-                # transform to proposal distribution
-                du = randoffset(rng, bounds)
-                u_prop = @. point + prop.scale*stagger*du
-                # inside unit-cube
-                all(u -> 0 < u < 1, u_prop) && break
+    while nc < prop.walks || iszero(accept)
+        # get proposed point
+        while true:
+            # check scale factor to avoid over-shrinking
+            prop.scale < 1e-5scale_init && error("Random walk sampling appears to be stuck.")
+            # transform to proposal distribution
+            du = randoffset(rng, bounds)
+            u_prop = @. point + prop.scale*stagger*du
+            # inside unit-cube
+            all(u -> 0 < u < 1, u_prop) && break
             
-                fail += 1
-                nfail += 1
+            fail += 1
+            nfail += 1
             
-                # check if stuck generating bad numbers
-                if fail > 100prop.walks
-                    @warn "Random number generation appears extremely inefficient. Adjusting the scale-factor accordingly"
-                    fail = 0
-                    prop.scale *= exp(-1/n)
-                end
-            end
-        
-            # check proposed point
-            v_prop = prior_transform(u_prop)
-            logl_prop = loglike(v_prop)
-            if logl_prop ≥ logl_star
-                u = u_prop
-                v = v_prop
-                logl = logl1_prop
-                accept += 1
-            else
-                reject += 1
-            end
-            nc += 1
-            ncall += 1
-        
-            # adjust _stagger_ to target an acceptance ratio of `prop.ratio`
-            ratio = 1 * accept/(accept + reject)
-            if ratio > prop.ratio
-                stagger *= exp(1/accept)
-            if ratio < prop.ratio
-                stagger /= exp(1/reject)
-        
-            # check if stuck generating bad points
-            if nc > 50prop.walks
-                @warn "Random walk proposals appear to be extremely inefficient. Adjusting the scale-factor accordingly"
+            # check if stuck generating bad numbers
+            if fail > 100prop.walks
+                @warn "Random number generation appears extremely inefficient. Adjusting the scale-factor accordingly"
+                fail = 0
                 prop.scale *= exp(-1/n)
-                nc = accept = reject = 0
             end
         end
-  
+        
+        # check proposed point
+        v_prop = prior_transform(u_prop)
+        logl_prop = loglike(v_prop)
+        if logl_prop ≥ logl_star
+            u = u_prop
+            v = v_prop
+            logl = logl1_prop
+            accept += 1
+        else
+            reject += 1
+        end
+        nc += 1
+        ncall += 1
+        
+        # adjust _stagger_ to target an acceptance ratio of `prop.ratio`
+        ratio = 1 * accept/(accept + reject)
+        if ratio > prop.ratio
+            stagger *= exp(1/accept)
+        if ratio < prop.ratio
+            stagger /= exp(1/reject)
+        
+        # check if stuck generating bad points
+        if nc > 50prop.walks
+            @warn "Random walk proposals appear to be extremely inefficient. Adjusting the scale-factor accordingly"
+            prop.scale *= exp(-1/n)
+            nc = accept = reject = 0
+        end
+    end
+            
+    # update proposal scale
+    ratio = accept/ (accept + reject)
+    norm = max(prop.ratio, 1 - prop.ratio)*n
+    scale = prop.scale * exp((ratio - prop.ratio) / norm)
+    prop.scale = min(scale, sqrt(n))
+            
+    return u, v, logl, ncall
+end
+        
+        
 end # module Proposals
