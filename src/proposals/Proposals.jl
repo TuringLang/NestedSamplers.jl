@@ -207,10 +207,12 @@ function (prop::RStagger)(rng::AbstractRNG,
             nc += 1
             ncall += 1
         
-            # adjust _stagger_ to target an acceptance ratio of `ratio`
-            
-        
-        
+            # adjust _stagger_ to target an acceptance ratio of `prop.ratio`
+            ratio = 1 * accept/(accept + reject)
+            if ratio > prop.ratio
+                stagger *= exp(1/accept)
+            if ratio < prop.ratio
+                stagger /= exp(1/reject)
         
             # check if stuck generating bad points
             if nc > 50prop.walks
