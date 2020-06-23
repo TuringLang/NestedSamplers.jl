@@ -1,6 +1,7 @@
 const PROPOSALS = [
     Proposals.Uniform(),
-    Proposals.RWalk()
+    Proposals.RWalk(),
+    Proposals.RStagger()
 ]
 
 const BOUNDS = [
@@ -31,4 +32,9 @@ end
 end
 
 @testset "RWalk" begin
+end
+
+@testset "RStagger" begin
+    # printing
+    @test sprint(show, Proposals.RStagger(;ratio=0.5, walks=25, scale=1)) == "NestedSamplers.Proposals.RStagger"
 end
