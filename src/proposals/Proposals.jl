@@ -167,14 +167,57 @@ function (prop::RStagger)(rng::AbstractRNG,
         n = length(point)
         scale_init = prop.scale
         accept = reject = fail = nfail = nc = ncall = 0
-        stagger = 1.0
+        stagger = 1
         local drhat, dr, du, u_prop, logl_prop (u, v, logl not to define here?)
     
         while nc < prop.walks || iszero(accept)
             # get proposed point
             while true:
                 # check scale factor to avoid over-shrinking
-
+                prop.scale < 1e-5scale_init && error("Random walk sampling appears to be stuck.")
+                
+                # transform to proposal distribution
+                du = randoffset(rng, bounds)
+                u_prop = @. point + prop.scale*stagger*du
+                # inside unit-cube
+                all(u -> 0 < u < 1, u_prop) && break
+            
+                fail += 1
+                nfail += 1
+            
+                # check if stuck generating bad numbers
+                if fail > 100prop.walks
+                    @warn "Random number generation appears extremely inefficient. Adjusting the scale-factor accordingly"
+                    fail = 0
+                    prop.scale *= exp(-1/n)
+                end
+            end
+        
+            # check proposed point
+            v_prop = prior_transform(u_prop)
+            logl_prop = loglike(v_prop)
+            if logl_prop ≥ logl_star
+                u = u_prop
+                v = v_prop
+                logl = logl1_prop
+                accept += 1
+            else
+                reject += 1
+            end
+            nc += 1
+            ncall += 1
+        
+            # adjust _stagger_ to target an acceptance ratio of `ratio`
+            
+        
+        
+        
+            # check if stuck generating bad points
+            if nc > 50prop.walks
+                @warn "Random walk proposals appear to be extremely inefficient. Adjusting the scale-factor accordingly"
+                prop.scale *= exp(-1/n)
+                nc = accept = reject = 0
+            end
+        end
+  
 end # module Proposals
-
-
