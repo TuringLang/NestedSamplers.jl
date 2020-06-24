@@ -138,5 +138,29 @@ function (prop::RWalk)(rng::AbstractRNG,
     return u, v, logl, ncall
 end
 
+"""
+    Proposals.Slice(;slices=5)
+Propose a new live point by a series of raandom slices away from an existing live point.
+This is a standard _Gibbs-like_ implementation where a single multivariate _slice_ is a combination of _n_ (say) univariate slices through each axis.
+`slices` is the minimum number of slices.
+"""
 
+@with_kw mutable struct Slice <: AbstractProposal
+    slices = 5
+end
+
+function (prop::Slice)(rng::AbstractRNG,
+    point::AbstractVector,
+    logl_star,
+    bounds::AbstractBoundingSpace,
+    loglike,
+    prior_transform;
+    kwargs...)
+    # setup
+    n = length(point)
+    slices_init = prop.slices
+    nc = nexpand = ncontract = 0
+    fscale = [] 
+    
+    
 end # module Proposals
