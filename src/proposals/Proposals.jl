@@ -210,8 +210,9 @@ function (prop::RStagger)(rng::AbstractRNG,
         ratio = accept / (accept + reject)
         if ratio > prop.ratio
             stagger *= exp(1 / accept)
-        if ratio < prop.ratio
+        else
             stagger /= exp(1 / reject)
+        end
         
         # check if stuck generating bad points
         if nc > 50prop.walks
