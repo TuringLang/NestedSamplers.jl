@@ -116,6 +116,10 @@ vline!([1/2 - π/tmax, 1/2, 1/2 + π/tmax], c=:black, ls=:dash, subplot=2)
 @doc Proposals.RWalk
 ```
 ---
+```julia; echo=false
+@doc Proposals.RStagger
+```
+---
 ### Convergence
 ```julia; echo=false
 @doc dlogz_convergence
