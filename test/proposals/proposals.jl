@@ -36,5 +36,5 @@ end
 
 @testset "RStagger" begin
     # printing
-    @test sprint(show, Proposals.RStagger(;ratio=0.5, walks=25, scale=1)) == "NestedSamplers.Proposals.RStagger"
+    @test Proposals.RStagger(;ratio=0.5, walks=25, scale=1) isa NestedSamplers.Proposals.RStagger
 end
