@@ -37,7 +37,8 @@ Static nested sampler with `nactive` active points and `ndims` parameters.
 
 `bounds` declares the Type of [`Bounds.AbstractBoundingSpace`](@ref) to use in the prior volume. The available bounds are described by [`Bounds`](@ref). `proposal` declares the algorithm used for proposing new points. The available proposals are described in [`Proposals`](@ref). If `proposal` is `:auto`, will choose the proposal based on `ndims`
 * `ndims < 10` - [`Proposals.Uniform`](@ref)
-* `ndims ≥ 10` - [`Proposals.RWalk`](@ref)
+* `10 <= ndims <= 20` - [`Proposals.RWalk`](@ref)
+* `10 <= ndims <= 20` - [`Proposals.RStagger`](@ref)
 
 The original nested sampling algorithm is roughly equivalent to using `Bounds.Ellipsoid` with `Proposals.Uniform`. The MultiNest algorithm is roughly equivalent to `Bounds.MultiEllipsoid` with `Proposals.Uniform`.
 
@@ -46,6 +47,7 @@ The original nested sampling algorithm is roughly equivalent to using `Bounds.El
 * `update_interval` - How often to refit the live points with the bounds as a fraction of `nactive`. By default this will be determined using `default_update_interval` for the given proposal
     * `Proposals.Uniform` - `1.5`
     * `Proposals.RWalk` - `0.15walks`
+    * `Proposals.RStagger` - `0.15walks`
 * `min_ncall` - The minimum number of iterations before trying to fit the first bound
 * `min_eff` - The maximum efficiency before trying to fit the first bound
 """
@@ -65,7 +67,8 @@ function Nested(ndims,
         proposal = if ndims < 10
             Proposals.Uniform()
         else#if 10 ≤ ndims ≤ 20
-            Proposals.RWalk()
+            Proposals.RWalk() # _Proposals.RStagger()_ can be taken as an alternative to _Proposals.RWalk_ 
+            # for ndims > 20, _Proposals.HSlice_ method if _gradient_ is provided, else _Proposals.Slice_ method to be used (this will be included later on)  
         end
     end
 
@@ -97,6 +100,7 @@ end
 
 default_update_interval(p::Proposals.Uniform) = 1.5
 default_update_interval(p::Proposals.RWalk) = 0.15p.walks
+default_update_interval(p::Proposals.RStagger) = 0.15p.walks
 
 
 function Base.show(io::IO, n::Nested)
