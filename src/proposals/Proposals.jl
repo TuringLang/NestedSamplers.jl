@@ -195,7 +195,7 @@ function (prop::RStagger)(rng::AbstractRNG,
         # check proposed point
         v_prop = prior_transform(u_prop)
         logl_prop = loglike(v_prop)
-        if logl_prop ≥ logl_star
+        if logl_prop >= logl_star
             u = u_prop
             v = v_prop
             logl = logl1_prop
