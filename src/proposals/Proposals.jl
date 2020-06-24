@@ -215,7 +215,7 @@ function (prop::RStagger)(rng::AbstractRNG,
         end
         
         # check if stuck generating bad points
-        if nc > 50prop.walks
+        if nc > 50 * prop.walks
             @warn "Random walk proposals appear to be extremely inefficient. Adjusting the scale-factor accordingly"
             prop.scale *= exp(-1 / n)
             nc = accept = reject = 0
