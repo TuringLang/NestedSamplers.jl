@@ -198,7 +198,7 @@ function (prop::RStagger)(rng::AbstractRNG,
         if logl_prop >= logl_star
             u = u_prop
             v = v_prop
-            logl = logl1_prop
+            logl = logl_prop
             accept += 1
         else
             reject += 1
