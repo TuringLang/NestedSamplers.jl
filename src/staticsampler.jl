@@ -37,17 +37,15 @@ Static nested sampler with `nactive` active points and `ndims` parameters.
 
 `bounds` declares the Type of [`Bounds.AbstractBoundingSpace`](@ref) to use in the prior volume. The available bounds are described by [`Bounds`](@ref). `proposal` declares the algorithm used for proposing new points. The available proposals are described in [`Proposals`](@ref). If `proposal` is `:auto`, will choose the proposal based on `ndims`
 * `ndims < 10` - [`Proposals.Uniform`](@ref)
-* `10 <= ndims <= 20` - [`Proposals.RWalk`](@ref)
-* `10 <= ndims <= 20` - [`Proposals.RStagger`](@ref)
+* `10 <= ndims <= 20` - [`Proposals.RWalk`](@ref) or [`Proposals.RStagger`](@ref)
 
 The original nested sampling algorithm is roughly equivalent to using `Bounds.Ellipsoid` with `Proposals.Uniform`. The MultiNest algorithm is roughly equivalent to `Bounds.MultiEllipsoid` with `Proposals.Uniform`.
 
 ## Other Parameters
 * `enlarge` - When fitting the bounds to live points, they will be enlarged (in terms of volume) by this linear factor.
 * `update_interval` - How often to refit the live points with the bounds as a fraction of `nactive`. By default this will be determined using `default_update_interval` for the given proposal
-    * `Proposals.Uniform` - `1.5`
-    * `Proposals.RWalk` - `0.15walks`
-    * `Proposals.RStagger` - `0.15walks`
+    * For `Proposals.Uniform` - `1.5`
+    * For `Proposals.RWalk` and `Proposals.RStagger` - `0.15walks`
 * `min_ncall` - The minimum number of iterations before trying to fit the first bound
 * `min_eff` - The maximum efficiency before trying to fit the first bound
 """
