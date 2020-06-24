@@ -4,6 +4,8 @@ using NestedSamplers: default_update_interval
     @test default_update_interval(Proposals.Uniform()) == 1.5
     @test default_update_interval(Proposals.RWalk()) == 3.75
     @test default_update_interval(Proposals.RWalk(walks=10)) == 1.5
+    @test default_update_interval(Proposals.RStagger()) == 3.75
+    @test default_update_interval(Proposals.RStagger(walks=10)) == 1.5
 end
 
 spl = Nested(3, 100)
@@ -26,4 +28,5 @@ Nested(ndims=3, nactive=100, enlarge=1.25, update_interval=150)
 
 spl = Nested(10, 1000)
 @test spl.proposal isa Proposals.RWalk
+@test spl.proposal isa Proposals.RStagger
 @test spl.update_interval == 3750
