@@ -185,7 +185,7 @@ function (prop::RStagger)(rng::AbstractRNG,
             nfail += 1
             
             # check if stuck generating bad numbers
-            if fail > 100prop.walks
+            if fail > 100 * prop.walks
                 @warn "Random number generation appears extremely inefficient. Adjusting the scale-factor accordingly"
                 fail = 0
                 prop.scale *= exp(-1/n)
