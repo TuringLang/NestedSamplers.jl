@@ -37,7 +37,7 @@ Static nested sampler with `nactive` active points and `ndims` parameters.
 
 `bounds` declares the Type of [`Bounds.AbstractBoundingSpace`](@ref) to use in the prior volume. The available bounds are described by [`Bounds`](@ref). `proposal` declares the algorithm used for proposing new points. The available proposals are described in [`Proposals`](@ref). If `proposal` is `:auto`, will choose the proposal based on `ndims`
 * `ndims < 10` - [`Proposals.Uniform`](@ref)
-* `ndims >= 10` - [`Proposals.RWalk`](@ref) or [`Proposals.RStagger`](@ref)
+* `ndims ≥ 10` - [`Proposals.RWalk`](@ref)
 
 The original nested sampling algorithm is roughly equivalent to using `Bounds.Ellipsoid` with `Proposals.Uniform`. The MultiNest algorithm is roughly equivalent to `Bounds.MultiEllipsoid` with `Proposals.Uniform`.
 
