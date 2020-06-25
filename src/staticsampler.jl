@@ -65,7 +65,7 @@ function Nested(ndims,
         proposal = if ndims < 10
             Proposals.Uniform()
         else#if 10 ≤ ndims ≤ 20
-            Proposals.RWalk() # _Proposals.RStagger()_ can be taken as an alternative to _Proposals.RWalk_ 
+            Proposals.RWalk() 
         end
     end
 
