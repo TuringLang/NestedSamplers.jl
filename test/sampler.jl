@@ -28,5 +28,8 @@ Nested(ndims=3, nactive=100, enlarge=1.25, update_interval=150)
 
 spl = Nested(10, 1000)
 @test spl.proposal isa Proposals.RWalk
+@test spl.update_interval == 3750
+
+spl = Nested(10, 1000)
 @test spl.proposal isa Proposals.RStagger
 @test spl.update_interval == 3750
