@@ -144,7 +144,7 @@ end
 
 Propose a new live point by random staggering away from an existing live point. 
 This differs from the random walk proposal in that the step size here is exponentially adjusted
-to reach a target acceptane rate _during_ each proposal, in addition to _between_
+to reach a target acceptance rate _during_ each proposal, in addition to _between_
 proposals.
 
 `ratio` is the target acceptance ratio, `walks` is the minimum number of steps to take, and `scale` is the proposal distribution scale, which will update _between_ proposals.
