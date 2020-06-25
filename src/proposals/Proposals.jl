@@ -141,7 +141,7 @@ end
 """
     Proposals.Slice(;slices=5)
 Propose a new live point by a series of raandom slices away from an existing live point.
-This is a standard _Gibbs-like_ implementation where a single multivariate _slice_ is a combination of _n_ (say) univariate slices through each axis.
+This is a standard _Gibbs-like_ implementation where a single multivariate slice is a combination of `slices` univariate slices through each axis.
 `slices` is the minimum number of slices.
 """
 
