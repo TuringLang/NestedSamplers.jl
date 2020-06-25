@@ -36,5 +36,8 @@ end
 
 @testset "RStagger" begin
     # printing
-    @test Proposals.RStagger(;ratio=0.5, walks=25, scale=1) isa NestedSamplers.Proposals.RStagger
+    prop = Proposals.RStagger()
+    @test prop.ratio == 0.5
+    @test prop.walks == 25
+    @test prop.scale == 1
 end
