@@ -66,7 +66,6 @@ function Nested(ndims,
             Proposals.Uniform()
         else#if 10 ≤ ndims ≤ 20
             Proposals.RWalk() # _Proposals.RStagger()_ can be taken as an alternative to _Proposals.RWalk_ 
-            # for ndims > 20, _Proposals.HSlice_ method if _gradient_ is provided, else _Proposals.Slice_ method to be used (this will be included later on)  
         end
     end
 
