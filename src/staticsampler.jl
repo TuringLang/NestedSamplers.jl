@@ -44,8 +44,8 @@ The original nested sampling algorithm is roughly equivalent to using `Bounds.El
 ## Other Parameters
 * `enlarge` - When fitting the bounds to live points, they will be enlarged (in terms of volume) by this linear factor.
 * `update_interval` - How often to refit the live points with the bounds as a fraction of `nactive`. By default this will be determined using `default_update_interval` for the given proposal
-    * For `Proposals.Uniform` - `1.5`
-    * For `Proposals.RWalk` and `Proposals.RStagger` - `0.15walks`
+    * `Proposals.Uniform` - `1.5`
+    * `Proposals.RWalk` and `Proposals.RStagger` - `0.15walks`
 * `min_ncall` - The minimum number of iterations before trying to fit the first bound
 * `min_eff` - The maximum efficiency before trying to fit the first bound
 """
