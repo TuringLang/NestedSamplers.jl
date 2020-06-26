@@ -37,7 +37,10 @@ end
 @testset "RStagger" begin
     # printing
     prop = Proposals.RStagger()
+    prop2 = Proposals.RStagger(ratio=0.1, walks=20)
     @test prop.ratio == 0.5
     @test prop.walks == 25
     @test prop.scale == 1
+    @test prop2.ratio == 0.1
+    @test prop2.walks == 20
 end
