@@ -149,7 +149,6 @@ proposals.
 
 `ratio` is the target acceptance ratio, `walks` is the minimum number of steps to take, and `scale` is the proposal distribution scale, which will update _between_ proposals.
 """
-
 @with_kw mutable struct RStagger <: AbstractProposal
     ratio = 0.5
     walks = 25
