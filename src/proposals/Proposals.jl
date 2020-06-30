@@ -163,12 +163,12 @@ proposals.
 end
 
 function (prop::RStagger)(rng::AbstractRNG,
-        point::AbstractVector,
-        logl_star,
-        bounds::AbstractBoundingSpace,
-        loglike,
-        prior_transform;
-        kwargs...)
+                          point::AbstractVector,
+                          logl_star,
+                          bounds::AbstractBoundingSpace,
+                          loglike,
+                          prior_transform;
+                          kwargs...)
     #setup
     n = length(point)
     scale_init = prop.scale
@@ -180,7 +180,7 @@ function (prop::RStagger)(rng::AbstractRNG,
         # get proposed point
         while true
             # check scale factor to avoid over-shrinking
-            prop.scale < 1e-5scale_init && error("Random walk sampling appears to be stuck.")
+            prop.scale < 1e-5 * scale_init && error("Random walk sampling appears to be stuck.")
             # transform to proposal distribution
             du = randoffset(rng, bounds)
             u_prop = @. point + prop.scale * stagger * du
@@ -189,15 +189,13 @@ function (prop::RStagger)(rng::AbstractRNG,
             
             fail += 1
             nfail += 1
-            
             # check if stuck generating bad numbers
             if fail > 100 * prop.walks
                 @warn "Random number generation appears extremely inefficient. Adjusting the scale-factor accordingly"
                 fail = 0
                 prop.scale *= exp(-1/n)
             end
-        end
-        
+        end 
         # check proposed point
         v_prop = prior_transform(u_prop)
         logl_prop = loglike(v_prop)
@@ -221,18 +219,27 @@ function (prop::RStagger)(rng::AbstractRNG,
         end
         
         # check if stuck generating bad points
-        if nc > 50 * prop.walks
+        if ncall > 50 * prop.walks
             @warn "Random walk proposals appear to be extremely inefficient. Adjusting the scale-factor accordingly"
             prop.scale *= exp(-1 / n)
             nc = accept = reject = 0
         end
     end
             
-    # update proposal scale
+    # update proposal scale using acceptance ratio
     update_scale!(prop, accept, reject, n)
             
     return u, v, logl, ncall
 end
         
-        
+# update proposal scale using target acceptance ratio
+function update_scale!(prop, accept, reject, n)
+    ratio = accept / (accept + reject)
+    norm = max(prop.ratio, 1 - prop.ratio) * n
+    scale = prop.scale * exp((ratio - prop.ratio) / norm)
+    prop.scale = min(scale, sqrt(n))
+    return prop
+end    
+      
+
 end # module Proposals
