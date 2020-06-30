@@ -244,15 +244,6 @@ function (prop::RStagger)(rng::AbstractRNG,
             
     return u, v, logl, ncall
 end
-        
-# update proposal scale using target acceptance ratio
-function update_scale!(prop, accept, reject, n)
-    ratio = accept / (accept + reject)
-    norm = max(prop.ratio, 1 - prop.ratio) * n
-    scale = prop.scale * exp((ratio - prop.ratio) / norm)
-    prop.scale = min(scale, sqrt(n))
-    return prop
-end    
       
 
 end # module Proposals
