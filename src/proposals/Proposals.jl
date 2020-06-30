@@ -66,32 +66,39 @@ Base.show(io::IO, p::Uniform) = print(io, "NestedSamplers.Proposals.Uniform")
 
 Propose a new live point by random walking away from an existing live point.
 
-`ratio` is the target acceptance ratio, `walks` is the minimum number of steps to take, and `scale` is the proposal distribution scale, which will update _between_ proposals.
+## Parameters
+- `ratio` is the target acceptance ratio
+- `walks` is the minimum number of steps to take
+- `scale` is the proposal distribution scale, which will update _between_ proposals.
 """
 @with_kw mutable struct RWalk <: AbstractProposal
     ratio = 0.5
     walks = 25
     scale = 1.0
+
+    @assert 0 ≤ ratio ≤ 1 "Target acceptance ratio must be between 0 and 1"
+    @assert walks > 0 "Number of steps must be positive"
+    @assert scale ≥ 0 "Proposal scale must be non-negative"
 end
 
 function (prop::RWalk)(rng::AbstractRNG,
-    point::AbstractVector,
-    logl_star,
-    bounds::AbstractBoundingSpace,
-    loglike,
-    prior_transform;
-    kwargs...)
+                       point::AbstractVector,
+                       logl_star,
+                       bounds::AbstractBoundingSpace,
+                       loglike,
+                       prior_transform;
+                       kwargs...)
     # setup
     n = length(point)
     scale_init = prop.scale
     accept = reject = fail = nfail = nc = ncall = 0
-    local dr̂, dr, du, u_prop, logl_prop, u, v, logl
+    local du, u_prop, logl_prop, u, v, logl
 
     while nc < prop.walks || iszero(accept)
         # get proposed point
         while true
             # check scale factor to avoid over-shrinking
-            prop.scale < 1e-5scale_init && error("Random walk sampling appears to be stuck.")
+            prop.scale < 1e-5 * scale_init && error("Random walk sampling appears to be stuck.")
             # transform to proposal distribution
             du = randoffset(rng, bounds)
             u_prop = @. point + prop.scale * du
@@ -101,7 +108,7 @@ function (prop::RWalk)(rng::AbstractRNG,
             fail += 1
             nfail += 1
             # check if stuck generating bad numbers
-            if fail > 100prop.walks
+            if fail > 100 * prop.walks
                 @warn "Random number generation appears extremely inefficient. Adjusting the scale-factor accordingly"
                 fail = 0
                 prop.scale *= exp(-1/n)
@@ -122,20 +129,26 @@ function (prop::RWalk)(rng::AbstractRNG,
         ncall += 1
         
         # check if stuck generating bad points
-        if ncall > 50prop.walks
+        if ncall > 50 * prop.walks
             @warn "Random walk proposals appear to be extremely inefficient. Adjusting the scale-factor accordingly"
             prop.scale *= exp(-1/n)
             nc = accept = reject = 0
         end
     end
     
-    # update proposal scale
+    # update proposal scale using acceptance ratio
+    update_scale!(prop, accept, reject, n)
+
+    return u, v, logl, ncall
+end
+
+# update proposal scale using target acceptance ratio
+function update_scale!(prop, accept, reject, n)
     ratio = accept / (accept + reject)
     norm = max(prop.ratio, 1 - prop.ratio) * n
     scale = prop.scale * exp((ratio - prop.ratio) / norm)
     prop.scale = min(scale, sqrt(n))
-
-    return u, v, logl, ncall
+    return prop
 end
 
 
