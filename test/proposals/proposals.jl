@@ -16,7 +16,7 @@ const BOUNDS = [
     us = rand(2, 10)
     point, _bound = Bounds.rand_live(bound, us)
     loglstar = logl(prior(point))
-    u, v, logL = P(Random.GLOBAL_RNG, point, loglstar, _bound, logl, prior)
+    u, v, logL = prop(Random.GLOBAL_RNG, point, loglstar, _bound, logl, prior)
     # simple bounds checks
     @test all(x -> 0 < x < 1, u)
     @test all(x -> -1 < x < 1, v)
@@ -35,7 +35,7 @@ end
     @test prop.scale == 1
     @test prop.ratio == 0.5
     @test prop.walks == 25
-    
+
     @test_throws AssertionError Proposals.RWalk(ratio=-0.2)
     @test_throws AssertionError Proposals.RWalk(ratio=1.2)
     @test_throws AssertionError Proposals.RWalk(walks=0)
