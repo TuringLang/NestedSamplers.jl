@@ -157,12 +157,12 @@ proposals.
 end
 
 function (prop::RStagger)(rng::AbstractRNG,
-    point::AbstractVector,
-    logl_star,
-    bounds::AbstractBoundingSpace,
-    loglike,
-    prior_transform;
-    kwargs...)
+        point::AbstractVector,
+        logl_star,
+        bounds::AbstractBoundingSpace,
+        loglike,
+        prior_transform;
+        kwargs...)
     #setup
     n = length(point)
     scale_init = prop.scale
