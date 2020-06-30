@@ -210,7 +210,7 @@ function (prop::RStagger)(rng::AbstractRNG,
         ratio = accept / (accept + reject)
         if ratio > prop.ratio
             stagger *= exp(1 / accept)
-        else
+        elseif ratio < prop.ratio
             stagger /= exp(1 / reject)
         end
         
