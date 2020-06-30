@@ -168,7 +168,7 @@ function (prop::RStagger)(rng::AbstractRNG,
     scale_init = prop.scale
     accept = reject = fail = nfail = nc = ncall = 0
     stagger = 1
-    local drhat, dr, du, u_prop, logl_prop, u, v, logl
+    local du, u_prop, logl_prop, u, v, logl
     
     while nc < prop.walks || iszero(accept)
         # get proposed point
