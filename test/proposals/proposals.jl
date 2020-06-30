@@ -9,20 +9,19 @@ const BOUNDS = [
     Bounds.MultiEllipsoid(2)
 ]
 
-@testset "interface" for P in PROPOSALS, bound in BOUNDS
+@testset "interface - $(typeof(prop))" for prop in PROPOSALS, bound in BOUNDS
     logl(X) = -sum(x->x^2, X)
     prior(u) = 2u .- 1 # Uniform -1, to 1
-    loglstar = -25
     us = rand(2, 10)
     point, _bound = Bounds.rand_live(bound, us)
-    u, v, logL = P(Random.GLOBAL_RNG, point, loglstar, _bound, logl, prior)
+    loglstar = logl(prior(point))
+    u, v, logL = prop(Random.GLOBAL_RNG, point, loglstar, _bound, logl, prior)
     # simple bounds checks
     @test all(x -> 0 < x < 1, u)
     @test all(x -> -1 < x < 1, v)
-    @test logL > loglstar
     
     # check new point actually has better likelihood
-    @test logl(v) == logL ≥ -25
+    @test logl(v) == logL ≥ loglstar
 end
 
 @testset "Uniform" begin
@@ -31,4 +30,13 @@ end
 end
 
 @testset "RWalk" begin
+    prop = Proposals.RWalk()
+    @test prop.scale == 1
+    @test prop.ratio == 0.5
+    @test prop.walks == 25
+
+    @test_throws AssertionError Proposals.RWalk(ratio=-0.2)
+    @test_throws AssertionError Proposals.RWalk(ratio=1.2)
+    @test_throws AssertionError Proposals.RWalk(walks=0)
+    @test_throws AssertionError Proposals.RWalk(scale=-4)
 end
