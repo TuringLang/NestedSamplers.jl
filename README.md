@@ -147,7 +147,7 @@ Static nested sampler with `nactive` active points and `ndims` parameters.
 `bounds` declares the Type of [`Bounds.AbstractBoundingSpace`](@ref) to use in the prior volume. The available bounds are described by [`Bounds`](@ref). `proposal` declares the algorithm used for proposing new points. The available proposals are described in [`Proposals`](@ref). If `proposal` is `:auto`, will choose the proposal based on `ndims`
 
   * `ndims < 10` - [`Proposals.Uniform`](@ref)
-  * `ndims ≥ 10` - [`Proposals.RWalk`](@ref)
+  * `ndims >= 10` - [`Proposals.RWalk`](@ref) or [`Proposals.RStagger`](@ref). `Proposals.RStagger` is provided as an alternative to `Proposals.RWalk`.
 
 The original nested sampling algorithm is roughly equivalent to using `Bounds.Ellipsoid` with `Proposals.Uniform`. The MultiNest algorithm is roughly equivalent to `Bounds.MultiEllipsoid` with `Proposals.Uniform`.
 
@@ -155,9 +155,8 @@ The original nested sampling algorithm is roughly equivalent to using `Bounds.El
 
   * `enlarge` - When fitting the bounds to live points, they will be enlarged (in terms of volume) by this linear factor.
   * `update_interval` - How often to refit the live points with the bounds as a fraction of `nactive`. By default this will be determined using `default_update_interval` for the given proposal
-
-      * `Proposals.Uniform` - `1.5`
-      * `Proposals.RWalk` - `0.15walks`
+      * For `Proposals.Uniform` - `1.5`
+      * For `Proposals.RWalk` and `Proposals.RStagger` - `0.15walks`
   * `min_ncall` - The minimum number of iterations before trying to fit the first bound
   * `min_eff` - The maximum efficiency before trying to fit the first bound
 
@@ -234,6 +233,7 @@ The available implementations are
 
   * [`Proposals.Uniform`](@ref) - samples uniformly within the bounding volume
   * [`Proposals.RWalk`](@ref) - random walks to a new point given an existing one
+  * [`Proposals.RStagger`](@ref) - random staggering to a new point given an existing one
 
 
 
@@ -254,6 +254,19 @@ Proposals.RWalk(;ratio=0.5, walks=25, scale=1)
 ```
 
 Propose a new live point by random walking away from an existing live point.
+
+`ratio` is the target acceptance ratio, `walks` is the minimum number of steps to take, and `scale` is the proposal distribution scale, which will update *between* proposals.
+
+
+
+---
+
+```
+Proposals.RStagger(;ratio=0.5, walks=25, scale=1)
+```
+
+Propose a new live point by random staggering away from an existing live point. This differs from the random walk proposal in that the step size here is exponentially adjusted
+to reach a target acceptane rate *during* each proposal, in addition to *between* proposals. 
 
 `ratio` is the target acceptance ratio, `walks` is the minimum number of steps to take, and `scale` is the proposal distribution scale, which will update *between* proposals.
 
