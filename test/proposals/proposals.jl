@@ -39,6 +39,7 @@ end
     @test_throws AssertionError Proposals.RWalk(ratio=-0.2)
     @test_throws AssertionError Proposals.RWalk(ratio=1.2)
     @test_throws AssertionError Proposals.RWalk(walks=0)
+    @test_throws AssertionError Proposals.RWalk(walks=2, ratio=0.2)
     @test_throws AssertionError Proposals.RWalk(scale=-4)
 end
 
@@ -51,5 +52,6 @@ end
     @test_throws AssertionError Proposals.RStagger(ratio=-0.2)
     @test_throws AssertionError Proposals.RStagger(ratio=1.2)
     @test_throws AssertionError Proposals.RStagger(walks=0)
+    @test_throws AssertionError Proposals.RStagger(walks=2, ratio=0.2)
     @test_throws AssertionError Proposals.RStagger(scale=-4)
 end

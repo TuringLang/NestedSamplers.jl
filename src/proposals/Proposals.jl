@@ -77,8 +77,8 @@ Propose a new live point by random walking away from an existing live point.
     walks = 25
     scale = 1.0
 
-    @assert 0 ≤ ratio ≤ 1 "Target acceptance ratio must be between 0 and 1"
-    @assert walks > 0 "Number of steps must be positive"
+    @assert 1 / walks ≤ ratio ≤ 1 "Target acceptance ratio must be between 1/`walks` and 1"
+    @assert walks > 1 "Number of steps must be greater than 1"
     @assert scale ≥ 0 "Proposal scale must be non-negative"
 end
 
@@ -170,8 +170,8 @@ proposals.
     walks = 25
     scale = 1.0
 
-    @assert 0 ≤ ratio ≤ 1 "Target acceptance ratio must be between 0 and 1"
-    @assert walks > 0 "Number of steps must be positive"
+    @assert 1 / walks ≤ ratio ≤ 1 "Target acceptance ratio must be between 1/`walks` and 1"
+    @assert walks > 1 "Number of steps must be greater than 1"
     @assert scale ≥ 0 "Proposal scale must be non-negative"
 end
 
