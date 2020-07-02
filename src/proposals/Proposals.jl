@@ -140,27 +140,57 @@ end
 
 """
     Proposals.Slice(;slices=5)
-Propose a new live point by a series of raandom slices away from an existing live point.
-This is a standard _Gibbs-like_ implementation where a single multivariate slice is a combination of `slices` univariate slices through each axis.
-`slices` is the minimum number of slices.
-"""
 
+Propose a new live point by a series of random slices away from an existing live point.
+This is a standard _Gibbs-like_ implementation where a single multivariate slice is a combination of `slices` univariate slices through each axis.
+
+## Parameters
+- `slices` is the minimum number of slices.
+"""
 @with_kw mutable struct Slice <: AbstractProposal
     slices = 5
 end
 
 function (prop::Slice)(rng::AbstractRNG,
-    point::AbstractVector,
-    logl_star,
-    bounds::AbstractBoundingSpace,
-    loglike,
-    prior_transform;
-    kwargs...)
+                       point::AbstractVector,
+                       logl_star,
+                       bounds::AbstractBoundingSpace,
+                       loglike,
+                       prior_transform;
+                       kwargs...)
     # setup
     n = length(point)
     slices_init = prop.slices
     nc = nexpand = ncontract = 0
     fscale = [] 
     
+    # modifying axes and computing lengths
+    axes =          # scale based on past tuning
+    axlens =
+    
+    # slice sampling loop
+    for
+        
+        # shuffle axis update order
+        
+        
+        
+        # slice sample along a random direction
+        for 
+            
+            # select axis
+            
+            
+            
+            # define starting window
+            
+            
+            
+            
+            # stepping out left and right bounds
+            while logl_l >= loglstar
+                u_l -= axis
+                
+        
     
 end # module Proposals
