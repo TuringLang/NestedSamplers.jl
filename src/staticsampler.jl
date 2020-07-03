@@ -45,7 +45,7 @@ The original nested sampling algorithm is roughly equivalent to using `Bounds.El
 * `enlarge` - When fitting the bounds to live points, they will be enlarged (in terms of volume) by this linear factor.
 * `update_interval` - How often to refit the live points with the bounds as a fraction of `nactive`. By default this will be determined using `default_update_interval` for the given proposal
     * `Proposals.Uniform` - `1.5`
-    * `Proposals.RWalk` - `0.15walks`
+    * `Proposals.RWalk` and `Proposals.RStagger` - `0.15walks`
 * `min_ncall` - The minimum number of iterations before trying to fit the first bound
 * `min_eff` - The maximum efficiency before trying to fit the first bound
 """
@@ -65,7 +65,7 @@ function Nested(ndims,
         proposal = if ndims < 10
             Proposals.Uniform()
         else#if 10 ≤ ndims ≤ 20
-            Proposals.RWalk()
+            Proposals.RWalk() 
         end
     end
 
@@ -97,6 +97,7 @@ end
 
 default_update_interval(p::Proposals.Uniform) = 1.5
 default_update_interval(p::Proposals.RWalk) = 0.15p.walks
+default_update_interval(p::Proposals.RStagger) = 0.15p.walks
 
 
 function Base.show(io::IO, n::Nested)

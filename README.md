@@ -69,13 +69,13 @@ chain = sample(model, spl;
 
 
 ````
-Object of type Chains, with data of type 360×3×1 Array{Float64,3}
+Object of type Chains, with data of type 359×3×1 Array{Float64,3}
 
-Log evidence      = 2.0732388578259826
-Iterations        = 1:360
+Log evidence      = 2.0768046287159097
+Iterations        = 1:359
 Thinning interval = 1
 Chains            = 1
-Samples per chain = 360
+Samples per chain = 359
 internals         = weights
 parameters        = x, y
 
@@ -84,14 +84,14 @@ parameters        = x, y
 Summary Statistics
   parameters    mean     std  naive_se    mcse       ess   r_hat
   ──────────  ──────  ──────  ────────  ──────  ────────  ──────
-           x  0.5123  0.3071    0.0162  0.0086  397.0281  0.9972
-           y  0.5149  0.3072    0.0162  0.0244  355.1881  1.0012
+           x  0.5038  0.3034    0.0160  0.0303  322.1553  1.0011
+           y  0.4903  0.2971    0.0157  0.0139  251.3237  0.9976
 
 Quantiles
   parameters    2.5%   25.0%   50.0%   75.0%   97.5%
   ──────────  ──────  ──────  ──────  ──────  ──────
-           x  0.0293  0.2202  0.5088  0.8070  0.9799
-           y  0.0437  0.1992  0.5071  0.8212  0.9667
+           x  0.0319  0.2054  0.5202  0.7827  0.9713
+           y  0.0352  0.1974  0.5018  0.7867  0.9397
 ````
 
 
@@ -157,7 +157,7 @@ The original nested sampling algorithm is roughly equivalent to using `Bounds.El
   * `update_interval` - How often to refit the live points with the bounds as a fraction of `nactive`. By default this will be determined using `default_update_interval` for the given proposal
 
       * `Proposals.Uniform` - `1.5`
-      * `Proposals.RWalk` - `0.15walks`
+      * `Proposals.RWalk` and `Proposals.RStagger` - `0.15walks`
   * `min_ncall` - The minimum number of iterations before trying to fit the first bound
   * `min_eff` - The maximum efficiency before trying to fit the first bound
 
@@ -234,6 +234,7 @@ The available implementations are
 
   * [`Proposals.Uniform`](@ref) - samples uniformly within the bounding volume
   * [`Proposals.RWalk`](@ref) - random walks to a new point given an existing one
+  * [`Proposals.RStagger`](@ref) - random staggering away to a new point given an existing one
 
 
 
@@ -255,7 +256,27 @@ Proposals.RWalk(;ratio=0.5, walks=25, scale=1)
 
 Propose a new live point by random walking away from an existing live point.
 
-`ratio` is the target acceptance ratio, `walks` is the minimum number of steps to take, and `scale` is the proposal distribution scale, which will update *between* proposals.
+## Parameters
+
+  * `ratio` is the target acceptance ratio
+  * `walks` is the minimum number of steps to take
+  * `scale` is the proposal distribution scale, which will update *between* proposals.
+
+
+
+---
+
+```
+Proposals.RStagger(;ratio=0.5, walks=25, scale=1)
+```
+
+Propose a new live point by random staggering away from an existing live point.  This differs from the random walk proposal in that the step size here is exponentially adjusted to reach a target acceptance rate *during* each proposal, in addition to *between* proposals.
+
+## Parameters
+
+  * `ratio` is the target acceptance ratio
+  * `walks` is the minimum number of steps to take
+  * `scale` is the proposal distribution scale, which will update *between* proposals.
 
 
 
