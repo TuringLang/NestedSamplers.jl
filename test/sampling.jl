@@ -28,7 +28,7 @@ end
 # end
 
 @testset "Gaussian - $bound, $P" for bound in [Bounds.NoBounds, Bounds.Ellipsoid, Bounds.MultiEllipsoid],
-                        P in [Proposals.Uniform, Proposals.RWalk]
+                        P in [Proposals.Uniform, Proposals.RWalk, Proposals.RStagger]
     σ = 0.1
     μ1 = ones(2)
     μ2 = -ones(2)
@@ -48,9 +48,9 @@ end
     analytic_logz = log(4π * σ^2 / 100)
 
     
-    spl = Nested(2, 500, bounds = bound, proposal = P())
+    spl = Nested(2, 1000, bounds = bound, proposal = P())
     chain = sample(model, spl, dlogz=0.1, chain_type = Array, progress=false)
-    @test spl.logz ≈ analytic_logz atol = 3sqrt(spl.h / spl.nactive) # within 3σ
+    @test spl.logz ≈ analytic_logz atol = 5sqrt(spl.h / spl.nactive) # within 5σ
     @test sort!(findpeaks(chain[:, 1, 1])[1:2]) ≈ [-1, 1] rtol = 3e-2
     @test sort!(findpeaks(chain[:, 2, 1])[1:2]) ≈ [-1, 1] rtol = 3e-2
 end
