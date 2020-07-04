@@ -254,11 +254,14 @@ This is a standard _Gibbs-like_ implementation where a single multivariate slice
 
 ## Parameters
 - `slices` is the minimum number of slices
-- `scale`
+- `scale` is the proposal distribution scale, which will update _between_ proposals.
 """
 @with_kw mutable struct Slice <: AbstractProposal
     slices = 5
-    scale = 1.0
+    scale = 1
+    
+    @assert slices ≥ 1 "Number of slices must be greater than or equal to 1"
+    @assert scale ≥ 0 "Proposal scale must be non-negative"
 end
 
 function (prop::Slice)(rng::AbstractRNG,
@@ -273,28 +276,30 @@ function (prop::Slice)(rng::AbstractRNG,
     slices_init = prop.slices
     nc = nexpand = ncontract = 0
     fscale = [] 
+    axlens = []
     
     # modifying axes and computing lengths
-    axes = prop.scale*         # scale based on past tuning
-    axlens =
+    axes = prop.scale*transpose(axes)  # scale based on past tuning
+    for axis in axes
+        append!(axlens, axis)
+    end
     
     # slice sampling loop
-    for
+    for it in 1:slices
         
         # shuffle axis update order
-        
-        
+        idxs = shuffle!(rng, Vector(1:n))
         
         # slice sample along a random direction
-        for 
+        for idx in idxs
             
             # select axis
-            
-            
+            axis = axes[idx]
+            axlen = axlens[idx]
             
             # define starting window
-            r =         # initial scale/offset
-            u_l =       # left bound
+            r = rand()  # initial scale/offset
+            u_l =  u - r * axis  # left bound
             if all( , u_l)
                 v_l = prior_transform(u_l)
                 log_l = loglike(v_l)
@@ -303,7 +308,8 @@ function (prop::Slice)(rng::AbstractRNG,
             end
             nc += 1
             nexpand += 1 
-            u_r =       # right bound
+            
+            u_r =  u + (1 - r) * axis # right bound
             if all( , u_r)
                 v_r = prior_transform(u_r)
                 logl_r = loglike(v_r)
@@ -324,6 +330,8 @@ function (prop::Slice)(rng::AbstractRNG,
                 end
                 nc += 1
                 nexpand += 1 
+            end
+            
             while logl_r >= loglstar
                 u_r += axis
                 if all( , u_r)
@@ -334,18 +342,21 @@ function (prop::Slice)(rng::AbstractRNG,
                 end
                 nc += 1
                 nexpand += 1 
+            end
                     
             # sample within limits. If the sample is not valid, shrink the limits until the `loglstar` bound is hit
             window_init = norm(u_r - u_l)  # initial window size
             while true
+                
                 # define slice and window
                 u_hat = u_r - u_l
                 window = norm(u_hat)
                 
                 # check if the slice has shrunk to be ridiculously small
                 window < 1e-5 * window_init && error("Slice sampling appears to be stuck.")
+                
                 # propose a new position
-                u_prop =        # scale from left
+                u_prop = u_l + rand() * u_hat   # scale from left
                 if all( , u_prop)
                     v_prop = prior_transform(u_prop)
                     logl_prop = loglike(v_prop)
@@ -359,10 +370,10 @@ function (prop::Slice)(rng::AbstractRNG,
                 if logl_prop >= loglstar
                     append!(fscale, window/axlen)
                     u = u_prop
-                    # incomplete
+                    break                
                 # if fail, then check if the new point is to the left/right of the original point along the proposal axis and update the bounds accordingly
                 else
-                    s =        # check sign (+/-)
+                    s = dot(u_prop - u, u_hat)       # check sign (+/-)
                     if s < 0   # left
                         u_l = u_prop
                     elseif s > 0  # right
@@ -371,12 +382,15 @@ function (prop::Slice)(rng::AbstractRNG,
                         error("Slice sampler has failed to find a valid point.")
                     end
                 end
-                
-                # update_scale!  # use the earlier function?
-                # incomplete step        
-                        
+            end # end of sample within limits while    
+        end # end of slice sample along a random direction             
+    end # end of slice sampling loop    
+    
+    # update_scale!  # use the earlier function?
+    # incomplete step  
+        
     return u_prop, v_prop, logl_prop, nc                     
-end                
+end   # end of function Slice             
                         
                         
 end # module Proposals
