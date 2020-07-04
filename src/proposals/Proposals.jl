@@ -247,7 +247,7 @@ function (prop::RStagger)(rng::AbstractRNG,
 end
       
 """
-    Proposals.Slice(;slices=5)
+    Proposals.Slice(;slices=5, scale=1)
 
 Propose a new live point by a series of random slices away from an existing live point.
 This is a standard _Gibbs-like_ implementation where a single multivariate slice is a combination of `slices` univariate slices through each axis.
@@ -277,6 +277,7 @@ function (prop::Slice)(rng::AbstractRNG,
     nc = nexpand = ncontract = 0
     fscale = [] 
     axlens = []
+    local u_prop, logl_prop, u, v, logl   # incomplete here: check this also what return at last command
     
     # modifying axes and computing lengths
     axes = prop.scale*transpose(axes)  # scale based on past tuning
