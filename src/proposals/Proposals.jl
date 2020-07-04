@@ -291,14 +291,90 @@ function (prop::Slice)(rng::AbstractRNG,
             
             
             # define starting window
-            
-            
-            
-            
+            r =         # initial scale/offset
+            u_l =       # left bound
+            if all( , u_l)
+                v_l = prior_transform(u_l)
+                log_l = loglike(v_l)
+            else
+                logl_l = -Inf
+            end
+            nc += 1
+            nexpand += 1 
+            u_r =       # right bound
+            if all( , u_r)
+                v_r = prior_transform(u_r)
+                logl_r = loglike(v_r)
+            else
+                logl_r = -Inf
+            end    
+            nc += 1
+            nexpand += 1 
+         
             # stepping out left and right bounds
             while logl_l >= loglstar
                 u_l -= axis
+                if all( , u_l)
+                    v_l = prior_transform(u_l)
+                    log_l = loglike(v_l)
+                else
+                    logl_l = -Inf
+                end
+                nc += 1
+                nexpand += 1 
+            while logl_r >= loglstar
+                u_r += axis
+                if all( , u_r)
+                    v_r = prior_transform(u_r)
+                    logl_r = loglike(v_r)
+                else
+                    logl_r = -Inf
+                end
+                nc += 1
+                nexpand += 1 
+                    
+            # sample within limits. If the sample is not valid, shrink the limits until the `loglstar` bound is hit
+            window_init = norm(u_r - u_l)  # initial window size
+            while true
+                # define slice and window
+                u_hat = u_r - u_l
+                window = norm(u_hat)
                 
-        
-    
+                # check if the slice has shrunk to be ridiculously small
+                window < 1e-5 * window_init && error("Slice sampling appears to be stuck.")
+                # propose a new position
+                u_prop =        # scale from left
+                if all( , u_prop)
+                    v_prop = prior_transform(u_prop)
+                    logl_prop = loglike(v_prop)
+                else
+                    logl_prop = -Inf
+                end
+                nc += 1
+                ncontract += 1
+                        
+                # if success, then move to the new position
+                if logl_prop >= loglstar
+                    # incomplete
+                    u = u_prop
+                    # incomplete
+                # if fail, then check if the new point is to the left/right of the original point along the proposal axis and update the bounds accordingly
+                else
+                    s =        # check sign (+/-)
+                    if s < 0   # left
+                        u_l = u_prop
+                    elseif s > 0  # right
+                        u_r = u_prop
+                    else # if `s = 0` something has gone wrong
+                        error("Slice sampler has failed to find a valid point.")
+                    end
+                end
+                
+                # update_scale!  # use the earlier function?
+                # incomplete step        
+                        
+    return u_prop, v_prop, logl_prop, nc                     
+end                
+                        
+                        
 end # module Proposals
