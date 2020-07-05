@@ -277,10 +277,10 @@ function (prop::Slice)(rng::AbstractRNG,
     nc = nexpand = ncontract = 0
     fscale = [] 
     axlens = []
-    local u_prop, logl_prop, u, v, logl   # incomplete here: check this also what return at last command
+    local idxs, r, u, u_prop, v_prop, logl_prop, logl_l, logl_r
     
     # modifying axes and computing lengths
-    axes = prop.scale*transpose(axes)  # scale based on past tuning
+    axes = prop.scale * transpose(axes)  # scale based on past tuning
     for axis in axes
         append!(axlens, axis)
     end
@@ -301,9 +301,9 @@ function (prop::Slice)(rng::AbstractRNG,
             # define starting window
             r = rand()  # initial scale/offset
             u_l =  u - r * axis  # left bound
-            if all( , u_l)
+            if all(u -> -0.5 < u < 1.5 , u_l)    ## ??confirm if this non-periodic boundary condition is correct, it allows to exceed the unit cube 
                 v_l = prior_transform(u_l)
-                log_l = loglike(v_l)
+                logl_l = loglike(v_l)
             else
                 logl_l = -Inf
             end
@@ -311,7 +311,7 @@ function (prop::Slice)(rng::AbstractRNG,
             nexpand += 1 
             
             u_r =  u + (1 - r) * axis # right bound
-            if all( , u_r)
+            if all(u -> -0.5 < u < 1.5 , u_r)   ## ??confirm if this non-periodic boundary condition is correct, it allows to exceed the unit cube 
                 v_r = prior_transform(u_r)
                 logl_r = loglike(v_r)
             else
@@ -321,9 +321,9 @@ function (prop::Slice)(rng::AbstractRNG,
             nexpand += 1 
          
             # stepping out left and right bounds
-            while logl_l >= loglstar
+            while logl_l >= logl_star
                 u_l -= axis
-                if all( , u_l)
+                if all(u -> -0.5 < u < 1.5 , u_l)  ## ??confirm if this non-periodic boundary condition is correct, it allows to exceed the unit cube 
                     v_l = prior_transform(u_l)
                     log_l = loglike(v_l)
                 else
@@ -333,9 +333,9 @@ function (prop::Slice)(rng::AbstractRNG,
                 nexpand += 1 
             end
             
-            while logl_r >= loglstar
+            while logl_r >= logl_star
                 u_r += axis
-                if all( , u_r)
+                if all(u -> -0.5 < u < 1.5 , u_r)   ## ??confirm if this non-periodic boundary condition is correct, it allows to exceed the unit cube 
                     v_r = prior_transform(u_r)
                     logl_r = loglike(v_r)
                 else
@@ -358,7 +358,7 @@ function (prop::Slice)(rng::AbstractRNG,
                 
                 # propose a new position
                 u_prop = u_l + rand() * u_hat   # scale from left
-                if all( , u_prop)
+                if all(u -> -0.5 < u < 1.5 , u_prop)  ## ??confirm if this non-periodic boundary condition is correct, it allows to exceed the unit cube 
                     v_prop = prior_transform(u_prop)
                     logl_prop = loglike(v_prop)
                 else
@@ -368,7 +368,7 @@ function (prop::Slice)(rng::AbstractRNG,
                 ncontract += 1
                         
                 # if success, then move to the new position
-                if logl_prop >= loglstar
+                if logl_prop >= logl_star
                     append!(fscale, window/axlen)
                     u = u_prop
                     break                
@@ -387,8 +387,7 @@ function (prop::Slice)(rng::AbstractRNG,
         end # end of slice sample along a random direction             
     end # end of slice sampling loop    
     
-    # update_scale!  # use the earlier function?
-    # incomplete step  
+    # incomplete step  # should include updation of: fscale, nexpand, ncontract 
         
     return u_prop, v_prop, logl_prop, nc                     
 end   # end of function Slice             
