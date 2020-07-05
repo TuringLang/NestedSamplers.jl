@@ -55,3 +55,11 @@ end
     @test_throws AssertionError Proposals.RStagger(walks=2, ratio=0.2)
     @test_throws AssertionError Proposals.RStagger(scale=-4)
 end
+
+@testset "unitcheck" begin
+    @test Proposals.unitcheck(rand(1000))
+    @test !Proposals.unitcheck(randn(1000))
+
+    # works with tuples, too
+    @test Proposals.unitcheck((0.3, 0.6, 0.8))
+end

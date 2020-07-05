@@ -35,6 +35,9 @@ abstract type AbstractProposal end
 
 # ----------------------------------------
 
+# Helper for checking unit-space bounds
+unitcheck(us) = all(u -> 0 < u < 1, us)
+
 """
     Proposals.Uniform()
 
@@ -52,7 +55,7 @@ function (::Uniform)(rng::AbstractRNG,
     ncall = 0
     while true
         u = rand(rng, bounds)
-        all(p->0 < p < 1, u) || continue
+        unitcheck(u) || continue
         v = prior_transform(u)
         logl = loglike(v)
         ncall += 1
@@ -104,7 +107,7 @@ function (prop::RWalk)(rng::AbstractRNG,
             du = randoffset(rng, bounds)
             u_prop = @. point + prop.scale * du
             # inside unit-cube
-            all(u -> 0 < u < 1, u_prop) && break
+            unitcheck(u_prop) && break
             
             fail += 1
             nfail += 1
@@ -198,7 +201,7 @@ function (prop::RStagger)(rng::AbstractRNG,
             du = randoffset(rng, bounds)
             u_prop = @. point + prop.scale * stagger * du
             # inside unit-cube
-            all(u -> 0 < u < 1, u_prop) && break
+            unitcheck(u_prop) && break
             
             fail += 1
             nfail += 1
@@ -212,7 +215,7 @@ function (prop::RStagger)(rng::AbstractRNG,
         # check proposed point
         v_prop = prior_transform(u_prop)
         logl_prop = loglike(v_prop)
-        if logl_prop >= logl_star
+        if logl_prop ≥ logl_star
             u = u_prop
             v = v_prop
             logl = logl_prop
