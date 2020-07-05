@@ -362,7 +362,7 @@ function (prop::Slice)(rng::AbstractRNG,
                 window < 1e-5 * window_init && error("Slice sampling appears to be stuck.")
                 
                 # propose a new position
-                u_prop = u_l + rand() * u_hat   # scale from left
+                u_prop = @. u_l + rand(rng) * u_hat   # scale from left
                 if all(u -> -0.5 < u < 1.5, u_prop)  ## ??check if this non-periodic boundary condition is correct, it allows to exceed the unit cube 
                     v_prop = prior_transform(u_prop)
                     logl_prop = loglike(v_prop)
