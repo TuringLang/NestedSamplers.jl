@@ -301,7 +301,7 @@ function (prop::Slice)(rng::AbstractRNG,
             # define starting window
             r = rand()  # initial scale/offset
             u_l =  u - r * axis  # left bound
-            if all(u -> -0.5 < u < 1.5 , u_l)    ## ??confirm if this non-periodic boundary condition is correct, it allows to exceed the unit cube 
+            if all(u -> -0.5 < u < 1.5 , u_l)    ## ??check if this non-periodic boundary condition is correct, it allows to exceed the unit cube 
                 v_l = prior_transform(u_l)
                 logl_l = loglike(v_l)
             else
@@ -311,7 +311,7 @@ function (prop::Slice)(rng::AbstractRNG,
             nexpand += 1 
             
             u_r =  u + (1 - r) * axis # right bound
-            if all(u -> -0.5 < u < 1.5 , u_r)   ## ??confirm if this non-periodic boundary condition is correct, it allows to exceed the unit cube 
+            if all(u -> -0.5 < u < 1.5 , u_r)   ## ??check if this non-periodic boundary condition is correct, it allows to exceed the unit cube 
                 v_r = prior_transform(u_r)
                 logl_r = loglike(v_r)
             else
@@ -323,9 +323,9 @@ function (prop::Slice)(rng::AbstractRNG,
             # stepping out left and right bounds
             while logl_l >= logl_star
                 u_l -= axis
-                if all(u -> -0.5 < u < 1.5 , u_l)  ## ??confirm if this non-periodic boundary condition is correct, it allows to exceed the unit cube 
+                if all(u -> -0.5 < u < 1.5 , u_l)  ## ??check if this non-periodic boundary condition is correct, it allows to exceed the unit cube 
                     v_l = prior_transform(u_l)
-                    log_l = loglike(v_l)
+                    logl_l = loglike(v_l)
                 else
                     logl_l = -Inf
                 end
@@ -335,7 +335,7 @@ function (prop::Slice)(rng::AbstractRNG,
             
             while logl_r >= logl_star
                 u_r += axis
-                if all(u -> -0.5 < u < 1.5 , u_r)   ## ??confirm if this non-periodic boundary condition is correct, it allows to exceed the unit cube 
+                if all(u -> -0.5 < u < 1.5 , u_r)   ## ??check if this non-periodic boundary condition is correct, it allows to exceed the unit cube 
                     v_r = prior_transform(u_r)
                     logl_r = loglike(v_r)
                 else
@@ -358,7 +358,7 @@ function (prop::Slice)(rng::AbstractRNG,
                 
                 # propose a new position
                 u_prop = u_l + rand() * u_hat   # scale from left
-                if all(u -> -0.5 < u < 1.5 , u_prop)  ## ??confirm if this non-periodic boundary condition is correct, it allows to exceed the unit cube 
+                if all(u -> -0.5 < u < 1.5 , u_prop)  ## ??check if this non-periodic boundary condition is correct, it allows to exceed the unit cube 
                     v_prop = prior_transform(u_prop)
                     logl_prop = loglike(v_prop)
                 else
