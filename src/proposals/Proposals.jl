@@ -336,7 +336,7 @@ function (prop::Slice)(rng::AbstractRNG,
             end
             
             while logl_r >= logl_star
-                u_r += axis
+                u_r .+= axis
                 if all(u -> -0.5 < u < 1.5, u_r)   ## ??check if this non-periodic boundary condition is correct, it allows to exceed the unit cube 
                     v_r = prior_transform(u_r)
                     logl_r = loglike(v_r)
