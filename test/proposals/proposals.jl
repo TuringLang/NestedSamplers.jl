@@ -13,10 +13,10 @@ const BOUNDS = [
 @testset "interface - $(typeof(prop))" for prop in PROPOSALS, bound in BOUNDS
     logl(X) = -sum(x->x^2, X)
     prior(u) = 2u .- 1 # Uniform -1, to 1
-    us = rand(2, 10)
-    point, _bound = Bounds.rand_live(bound, us)
+    us = rand(rng, 2, 10)
+    point, _bound = Bounds.rand_live(rng, bound, us)
     loglstar = logl(prior(point))
-    u, v, logL = prop(Random.GLOBAL_RNG, point, loglstar, _bound, logl, prior)
+    u, v, logL = prop(rng, point, loglstar, _bound, logl, prior)
     # simple bounds checks
     @test all(x -> 0 < x < 1, u)
     @test all(x -> -1 < x < 1, v)
@@ -57,8 +57,8 @@ end
 end
 
 @testset "unitcheck" begin
-    @test Proposals.unitcheck(rand(1000))
-    @test !Proposals.unitcheck(randn(1000))
+    @test Proposals.unitcheck(rand(rng, 1000))
+    @test !Proposals.unitcheck(randn(rng, 1000))
 
     # works with tuples, too
     @test Proposals.unitcheck((0.3, 0.6, 0.8))

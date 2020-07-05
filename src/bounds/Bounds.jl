@@ -15,7 +15,7 @@ using Random: GLOBAL_RNG, AbstractRNG
 
 using StatsBase: mean_and_cov
 using Clustering
-using Distributions: Categorical
+using Distributions: Categorical, Uniform
 
 export AbstractBoundingSpace, rand_live, randoffset
 
@@ -86,9 +86,9 @@ NoBounds(T::Type, D::Integer) = NoBounds{T}(D)
 
 Base.ndims(B::NoBounds) = B.ndims
 
-randoffset(rng::AbstractRNG, b::NoBounds{T}) where {T} = rand(rng, T, ndims(b)) .- 0.5
-Base.rand(rng::AbstractRNG, b::NoBounds{T}) where {T} = rand(rng, T, ndims(b))
-Base.rand(rng::AbstractRNG, b::NoBounds{T}, N::Integer) where {T} = rand(rng, T, ndims(b), N)
+randoffset(rng::AbstractRNG, b::NoBounds{T}) where {T} = rand(rng, Uniform(0, 1), ndims(b)) .- 0.5 .|> T
+Base.rand(rng::AbstractRNG, b::NoBounds{T}) where {T} = rand(rng, Uniform(0, 1), ndims(b)) .|> T
+Base.rand(rng::AbstractRNG, b::NoBounds{T}, N::Integer) where {T} = rand(rng, Uniform(0, 1), ndims(b), N) .|> T
 Base.in(pt, ::NoBounds) = all(p -> 0 < p < 1, pt)
 fit(::Type{<:NoBounds}, points::AbstractMatrix{T}; kwargs...) where T = 
     NoBounds(T, size(points, 1))

@@ -17,7 +17,7 @@ const NMAX = 20
     @testset "Scaling" begin
         scale = 1.5
         center = zeros(N)
-        A = diagm(0 => rand(N))
+        A = diagm(0 => rand(rng, N))
         ell = Ellipsoid(center, A)
 
         ell2 = Ellipsoid(center, A ./ scale^2)
@@ -41,7 +41,7 @@ const NMAX = 20
         pt = (1 / √N - E) .* ones(N)
         @test pt ∈ ell
 
-        A = diagm(0 => rand(N))
+        A = diagm(0 => rand(rng, N))
         ell = Ellipsoid(zeros(N), A)
 
         for i in 1:N
