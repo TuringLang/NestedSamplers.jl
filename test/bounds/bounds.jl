@@ -1,8 +1,8 @@
 # Helper that returns a random N-dimensional ellipsoid
 function random_ellipsoid(N::Integer)
-    cov = rand(N, N)
+    cov = rand(rng, N, N)
     while abs(det(cov)) < 1e-10
-        cov = rand(N, N)
+        cov = rand(rng, N, N)
     end
     return Ellipsoid(zeros(N), pinv(cov * cov'))
 end
@@ -19,14 +19,14 @@ const BOUNDST = [
     @test ndims(bound) == D
     
     # sampling
-    sample = rand(bound)
+    sample = rand(rng, bound)
 
     @test eltype(sample) == T
     @test size(sample) == (D,)
     @test sample ∈ bound
     
     nsamples = 1000
-    samples = rand(bound, nsamples)
+    samples = rand(rng, bound, nsamples)
 
     @test eltype(samples) == T
     @test size(samples) == (D, nsamples)
@@ -51,15 +51,15 @@ const BOUNDST = [
     npoints = 5000
     expect = volfrac * npoints
     σ = sqrt((1 - volfrac) * expect)
-    ninner = count(rand(bound) ∈ bound_scaled for _ in 1:npoints)
+    ninner = count(rand(rng, bound) ∈ bound_scaled for _ in 1:npoints)
     @test ninner ≈ expect atol = 3σ
 
     # printing
     @test sprint(show, bound) == "$(string(nameof(B))){$T}(ndims=$D)"
 
     # rand_live
-    x = rand(bound, 10)
-    point, _bound = Bounds.rand_live(bound, x)
+    x = rand(rng, bound, 10)
+    point, _bound = Bounds.rand_live(rng, bound, x)
     count(point ∈ x[:, i] for i in axes(x, 2)) == 1
     Btarget = B ∈ [Bounds.MultiEllipsoid] ? Bounds.Ellipsoid : B
     @test _bound isa Btarget
@@ -74,20 +74,31 @@ end
     @test ndims(bound) == D
     
     # sampling
-    sample = rand(bound)
+    sample = rand(rng, bound)
 
     @test eltype(sample) == T
     @test length(sample) == D
     @test sample ∈ bound
     
-    samples = rand(bound, 3)
+    samples = rand(rng, bound, 3)
 
     @test eltype(samples) == T
     @test size(samples) == (D, 3)
-    @test all(samples[:, i] ∈ bound for i in axes(samples, 2))
+    p = all(samples[:, i] ∈ bound for i in axes(samples, 2))
+    if !p
+        @info "ERROR DETECTED, CALCULATING MISGRIEVANCES"
+        for i in axes(samples, 2)
+            if samples[:, i] ∉ bound
+                @info "    unbound point at idx $i"
+                @info "    point: $(samples[:, i])"
+            end
+        end
+        
+    end
+    @test p
 
     # fitting
-    samples = randn(T, D, 100)
+    samples = randn(rng, T, D, 100)
     @test Bounds.fit(Bounds.NoBounds, samples) == bound
     @test eltype(bound) == T # matches eltype
 

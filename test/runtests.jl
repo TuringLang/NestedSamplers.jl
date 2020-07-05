@@ -1,10 +1,11 @@
 using NestedSamplers
 using Test
 using Random
+using StableRNGs
 using LinearAlgebra
 using IterTools
 
-Random.seed!(70)
+rng = StableRNG(8425)
 
 @testset "Bounds" begin include("bounds/bounds.jl") end
 @testset "Proposals" begin include("proposals/proposals.jl") end

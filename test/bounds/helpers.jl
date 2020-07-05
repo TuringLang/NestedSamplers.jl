@@ -2,7 +2,7 @@ using NestedSamplers.Bounds: randball, volume_prefactor
 
 @testset "Rand Sphere" begin
     for _ in 1:100, k in 1:10
-        x = randball(Float64, k)
+        x = randball(rng, Float64, k)
         @test sum(t->t^2, x) < 1
     end
 end
