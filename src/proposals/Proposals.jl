@@ -259,6 +259,8 @@ This is a standard _Gibbs-like_ implementation where a single multivariate slice
 @with_kw mutable struct Slice <: AbstractProposal
     slices = 5
     scale = 1
+    # fmove = 0.9 this parameter to be included in Proposals.HSlice
+    # max_move = 100 ?? not sure if this parameter is to be included only in Proposals.HSlice or in all 3 Slice Proposals
     
     @assert slices ≥ 1 "Number of slices must be greater than or equal to 1"
     @assert scale ≥ 0 "Proposal scale must be non-negative"
@@ -387,7 +389,8 @@ function (prop::Slice)(rng::AbstractRNG,
         end # end of slice sample along a random direction             
     end # end of slice sampling loop    
     
-    # incomplete step  # should include updation of: fscale, nexpand, ncontract 
+    # update slice proposal scale based on the relative size of the slices compared to the initial guess
+    prop.scale = prop.scale * nexpand / (2 * ncontract)
         
     return u_prop, v_prop, logl_prop, nc                     
 end   # end of function Slice             
