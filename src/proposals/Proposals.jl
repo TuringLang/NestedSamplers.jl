@@ -261,9 +261,7 @@ This is a standard _Gibbs-like_ implementation where a single multivariate slice
 """
 @with_kw mutable struct Slice <: AbstractProposal
     slices = 5
-    scale = 1
-    # fmove = 0.9 this parameter to be included in Proposals.HSlice
-    # max_move = 100 ?? not sure if this parameter is to be included only in Proposals.HSlice or in all 3 Slice Proposals
+    scale = 1.0
     
     @assert slices ≥ 1 "Number of slices must be greater than or equal to 1"
     @assert scale ≥ 0 "Proposal scale must be non-negative"
