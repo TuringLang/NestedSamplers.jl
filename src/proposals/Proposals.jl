@@ -305,7 +305,7 @@ function (prop::Slice)(rng::AbstractRNG,
             
             # define starting window
             r = rand(rng)  # initial scale/offset
-            u_l =  u - r * axis  # left bound
+            u_l = @. u - r * axis  # left bound
             if all(u -> 0 < u < 1, u_l)
                 v_l = prior_transform(u_l)
                 logl_l = loglike(v_l)
