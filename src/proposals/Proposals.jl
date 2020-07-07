@@ -289,7 +289,7 @@ function (prop::Slice)(rng::AbstractRNG,
     end
     
     # slice sampling loop
-    for it in 1:slices
+    for it in 1:prop.slices
         
         # shuffle axis update order
         idxs = shuffle!(rng, Vector(1:n))
