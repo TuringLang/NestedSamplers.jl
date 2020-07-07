@@ -276,7 +276,6 @@ function (prop::Slice)(rng::AbstractRNG,
                        kwargs...)
     # setup
     n = length(point)
-    slices_init = prop.slices
     nc = nexpand = ncontract = 0
     fscale = [] 
     axlens = []
@@ -391,7 +390,7 @@ function (prop::Slice)(rng::AbstractRNG,
     end # end of slice sampling loop    
     
     # update slice proposal scale based on the relative size of the slices compared to the initial guess
-    prop.scale = prop.scale * nexpand / (2 * ncontract)
+    prop.scale = prop.scale * nexpand / (2.0 * ncontract)
         
     return u_prop, v_prop, logl_prop, nc                     
 end   # end of function Slice             
