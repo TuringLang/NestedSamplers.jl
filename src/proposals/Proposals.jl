@@ -348,7 +348,7 @@ function (prop::Slice)(rng::AbstractRNG,
                 nexpand += 1 
             end
                     
-            # sample within limits. If the sample is not valid, shrink the limits until the `loglstar` bound is hit
+            # sample within limits. If the sample is not valid, shrink the limits until the `logl_star` bound is hit
             window_init = norm(u_r - u_l)  # initial window size
             while true
                 
