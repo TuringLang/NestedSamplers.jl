@@ -40,6 +40,7 @@ The following functionality defines the interface for `AbstractBoundingSpace` fo
 | `Bounds.volume(::MyBounds)` | | Retrieve the current prior volume occupied by the bounds. |
 | `Bounds.fit(::Type{<:MyBounds}, points, pointvol=0)` | x | update the bounds given the new `points` each with minimum volume `pointvol`|
 | `Bounds.axes(::MyBounds)` | | Used for transforming points from the unit cube to the encompassing bound.
+| `Bounds.tran_axes(::MyBounds)` | | Used for Gibbs-like multivariate slice sampling (`Proposals.Slice`)
 """
 abstract type AbstractBoundingSpace{T <: Number} end
 
@@ -95,6 +96,7 @@ fit(::Type{<:NoBounds}, points::AbstractMatrix{T}; kwargs...) where T =
 scale!(b::NoBounds, factor) = b
 volume(::NoBounds{T}) where {T} = one(T)
 axes(b::NoBounds) = I
+tran_axes(b::NoBounds) = I
 
 
 include("ellipsoid.jl")

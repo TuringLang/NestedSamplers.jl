@@ -6,12 +6,14 @@ const NMAX = 20
     @testset "Spheres" begin 
         scale = 5
         center = 2scale .* ones(N)
-        A = diagm(0 => ones(N) ./ scale^2)
+        A = Matrix(I, N, N) ./ scale^2
         ell = Ellipsoid(center, A)
         @test volume(ell) ≈ volume_prefactor(N) * scale^N
         axs, axlens = decompose(ell)
         @test axlens ≈ fill(scale, N)
-        @test axs ≈ Bounds.axes(ell) ≈ diagm(0 => fill(scale, N))
+        @test axs ≈ Bounds.axes(ell) ≈ scale * Matrix(I, N, N)
+        T = Bounds.tran_axes(ell)
+        @test inv(T * T') ≈ ell.A
     end
 
     @testset "Scaling" begin

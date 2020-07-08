@@ -69,13 +69,13 @@ chain = sample(model, spl;
 
 
 ````
-Object of type Chains, with data of type 359×3×1 Array{Float64,3}
+Object of type Chains, with data of type 362×3×1 Array{Float64,3}
 
-Log evidence      = 2.0768046287159097
-Iterations        = 1:359
+Log evidence      = 2.058546305361165
+Iterations        = 1:362
 Thinning interval = 1
 Chains            = 1
-Samples per chain = 359
+Samples per chain = 362
 internals         = weights
 parameters        = x, y
 
@@ -84,14 +84,14 @@ parameters        = x, y
 Summary Statistics
   parameters    mean     std  naive_se    mcse       ess   r_hat
   ──────────  ──────  ──────  ────────  ──────  ────────  ──────
-           x  0.5038  0.3034    0.0160  0.0303  322.1553  1.0011
-           y  0.4903  0.2971    0.0157  0.0139  251.3237  0.9976
+           x  0.5041  0.2963    0.0156  0.0120  403.7804  1.0010
+           y  0.4996  0.2929    0.0154  0.0289  366.7010  0.9981
 
 Quantiles
   parameters    2.5%   25.0%   50.0%   75.0%   97.5%
   ──────────  ──────  ──────  ──────  ──────  ──────
-           x  0.0319  0.2054  0.5202  0.7827  0.9713
-           y  0.0352  0.1974  0.5018  0.7867  0.9397
+           x  0.0309  0.2203  0.4961  0.7975  0.9539
+           y  0.0583  0.2110  0.4911  0.7982  0.9677
 ````
 
 
