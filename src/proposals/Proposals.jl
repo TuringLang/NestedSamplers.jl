@@ -282,10 +282,8 @@ function (prop::Slice)(rng::AbstractRNG,
     local idxs, r, u, u_prop, v_prop, logl_prop, logl_l, logl_r
     
     # modifying axes and computing lengths
-    axes = prop.scale * transpose(axes)  # scale based on past tuning
-    for axis in axes
-        append!(axlens, axis)
-    end
+    axes = prop.scale .* Bounds.tran_axes(bound)'
+    axlens = [norm(@view(axes[i, :])) for i in Base.axes(axes, 1)]
     
     # slice sampling loop
     for it in 1:prop.slices
