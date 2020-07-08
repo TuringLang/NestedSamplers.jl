@@ -84,18 +84,7 @@ end
 
     @test eltype(samples) == T
     @test size(samples) == (D, 3)
-    p = all(samples[:, i] ∈ bound for i in axes(samples, 2))
-    if !p
-        @info "ERROR DETECTED, CALCULATING MISGRIEVANCES"
-        for i in axes(samples, 2)
-            if samples[:, i] ∉ bound
-                @info "    unbound point at idx $i"
-                @info "    point: $(samples[:, i])"
-            end
-        end
-        
-    end
-    @test p
+    @test all(samples[:, i] ∈ bound for i in axes(samples, 2))
 
     # fitting
     samples = randn(rng, T, D, 100)
@@ -113,6 +102,7 @@ end
     @test bound_scaled == bound
     @test Bounds.volume(bound_scaled) == 1
 
+    @test Bounds.axes(bound) == Bounds.tran_axes(bound) == I
 end
 
 include("helpers.jl")
