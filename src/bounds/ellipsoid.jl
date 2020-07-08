@@ -38,6 +38,8 @@ volume(ell::Ellipsoid) = ell.volume
 # Returns the principal axes
 axes(ell::Ellipsoid) = ell.axes
 
+tran_axes(ell::Ellipsoid) = inv(cholesky(ell.A).L)
+
 function decompose(A::AbstractMatrix)
     E = eigen(A)
     axlens = @. 1 / sqrt(E.values)
