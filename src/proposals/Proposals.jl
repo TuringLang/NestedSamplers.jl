@@ -299,7 +299,7 @@ function (prop::RSlice)(rng::AbstractRNG,
         nc += 1    
         nexpand += 1
         
-        u_r = @. u + (1 - r) * axis # right bound
+        u_r = u_l .+ axis # right bound
         if unitcheck(u_r)
             v_r = prior_transform(u_r)
             logl_r = loglike(v_r)
