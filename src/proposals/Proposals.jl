@@ -282,7 +282,7 @@ function (prop::Slice)(rng::AbstractRNG,
     local idxs, r, u, u_prop, v_prop, logl_prop, logl_l, logl_r
     
     # modifying axes and computing lengths
-    axes = prop.scale .* Bounds.tran_axes(bound)'
+    axes = prop.scale .* Bounds.tran_axes(bounds)'
     axlens = [norm(@view(axes[i, :])) for i in Base.axes(axes, 1)]
     
     # slice sampling loop
