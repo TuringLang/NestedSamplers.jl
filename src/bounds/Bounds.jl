@@ -95,8 +95,8 @@ fit(::Type{<:NoBounds}, points::AbstractMatrix{T}; kwargs...) where T =
     NoBounds(T, size(points, 1))
 scale!(b::NoBounds, factor) = b
 volume(::NoBounds{T}) where {T} = one(T)
-axes(b::NoBounds) = I(b.ndims)
-tran_axes(b::NoBounds) = I(b.ndims)
+axes(b::NoBounds) = I
+tran_axes(b::NoBounds) = I
 
 
 include("ellipsoid.jl")
