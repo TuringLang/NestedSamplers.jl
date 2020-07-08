@@ -375,8 +375,9 @@ function (prop::RSlice)(rng::AbstractRNG,
         end # end of sample within limits while       
         end # end of random slice sampling loop
     
-    # update random slice proposal scale... # incomplete (check formula for this step)
-
+    # update random slice proposal scale based on the relative size of the slices compared to the initial guess... ## incomplete (check formula for this step)
+    prop.scale = prop.scale * nexpand / (2.0 * ncontract)
+    
     return u_prop, v_prop, logl_prop, nc
 end # end of function RSlice
     
