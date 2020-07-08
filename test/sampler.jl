@@ -6,8 +6,8 @@ using NestedSamplers: default_update_interval
     @test default_update_interval(Proposals.RWalk(walks=10)) == 1.5
     @test default_update_interval(Proposals.RStagger()) == 3.75
     @test default_update_interval(Proposals.RStagger(walks=10)) == 1.5
-    # @test default_update_interval(Proposals.Slice()) == 0.9 * npdim * 5   ## check what default to set for npdim?
-    # @test default_update_interval(Proposals.Slice(slices=10)) == 0.9 * npdim * 10  ## check what default to set for npdim?
+    # @test default_update_interval(Proposals.Slice()) == 0.9 * ndims * 5   ## check what default to set for ndims?
+    # @test default_update_interval(Proposals.Slice(slices=10)) == 0.9 * ndims * 10  ## check what default to set for ndims?
 end
 
 spl = Nested(3, 100)
@@ -34,4 +34,4 @@ spl = Nested(10, 1000)
 
 ## spl = Nested(25, 1500)
 ## @test spl.proposal isa Proposals.Slice
-## @test spl.update_interval ==    ## decide this once default for npdim is set!
+## @test spl.update_interval ==    ## decide this once default for ndims is set!
