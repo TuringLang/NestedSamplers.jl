@@ -247,6 +247,45 @@ function (prop::RStagger)(rng::AbstractRNG,
             
     return u, v, logl, ncall
 end
-      
+ 
+"""
+    Proposals.HSlice(;slices=5, scale=1)
+Propose a new live point by "Hamiltonian" Slice Sampling using a series of random trajectories away from an existing live point.
+Each trajectory is based on the provided axes and samples are determined by moving forwards/ backwards in time until the trajectory hits an edge 
+and approximately reflecting off the boundaries.
+After a series of reflections is established, a new live point is proposed by slice sampling across the entire path.
+## Parameters
+- `slices` is the minimum number of slices
+- `scale` is the proposal distribution scale, which will update _between_ proposals
+- `grad` is the gradient of the log-likelihood
+- `max_move` is the limit for `ncall`
+- `compute_jac` a true/false statement for whether the Jacobian is needed.
+"""
+@with_kw mutable struct HSlice <: AbstractProposal
+    slices = 5
+    scale = 1.0
+    grad = nothing 
+    max_move = 100
+    compute_jac = false
+    
+    @assert slices ≥ 1 "Number of slices must be greater than or equal to 1"
+    @assert scale ≥ 0 "Proposal scale must be non-negative"
+end
 
+function (prop::HSlice)(rng::AbstractRNG,
+                       point::AbstractVector,
+                       logl_star,
+                       bounds::AbstractBoundingSpace,
+                       loglike,
+                       prior_transform;
+                       kwargs...)
+    
+    # setup
+    n = length(point)
+    jitter = 0.25 # 25% jitter
+    nc = nmove = nreflect = ncontract = 0
+
+end    
+    
+    
 end # module Proposals
