@@ -1,7 +1,8 @@
 const PROPOSALS = [
     Proposals.Uniform(),
     Proposals.RWalk(),
-    Proposals.RStagger()
+    Proposals.RStagger(),
+    Proposals.RSlice()
 ]
 
 const BOUNDS = [
@@ -62,4 +63,13 @@ end
 
     # works with tuples, too
     @test Proposals.unitcheck((0.3, 0.6, 0.8))
+end
+
+@testset "RSlice" begin
+    prop = Proposals.RSlice()
+    @test prop.slices == 5
+    @test prop.scale == 1
+
+    @test_throws AssertionError Proposals.RSlice(slices=-2)
+    @test_throws AssertionError Proposals.RSlice(scale=-3)
 end
