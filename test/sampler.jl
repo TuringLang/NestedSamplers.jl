@@ -6,6 +6,8 @@ using NestedSamplers: default_update_interval
     @test default_update_interval(Proposals.RWalk(walks=10)) == 1.5
     @test default_update_interval(Proposals.RStagger()) == 3.75
     @test default_update_interval(Proposals.RStagger(walks=10)) == 1.5
+    @test default_update_interval(Proposals.RSlice(), ndims=30) == 10  
+    @test default_update_interval(Proposals.RSlice(slices=10), ndims=25) == 20
 end
 
 spl = Nested(3, 100)
