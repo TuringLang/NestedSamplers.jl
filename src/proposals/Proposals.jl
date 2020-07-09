@@ -13,7 +13,7 @@ module Proposals
 
 using ..Bounds
 
-using Random: AbstractRNG
+using Random
 using LinearAlgebra
 using Parameters
 
@@ -289,7 +289,7 @@ function (prop::Slice)(rng::AbstractRNG,
     for it in 1:prop.slices
         
         # shuffle axis update order
-        idxs = shuffle(rng, Vector(1:n))
+        idxs = shuffle!(rng, Vector(1:n))
         
         # slice sample along a random direction
         for idx in idxs
