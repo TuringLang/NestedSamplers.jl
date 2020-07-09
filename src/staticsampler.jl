@@ -46,6 +46,7 @@ The original nested sampling algorithm is roughly equivalent to using `Bounds.El
 * `update_interval` - How often to refit the live points with the bounds as a fraction of `nactive`. By default this will be determined using `default_update_interval` for the given proposal
     * `Proposals.Uniform` - `1.5`
     * `Proposals.RWalk` and `Proposals.RStagger` - `0.15walks`
+    * `Proposals.RSlice` - `2.0 * slices`
 * `min_ncall` - The minimum number of iterations before trying to fit the first bound
 * `min_eff` - The maximum efficiency before trying to fit the first bound
 """
@@ -98,6 +99,7 @@ end
 default_update_interval(p::Proposals.Uniform) = 1.5
 default_update_interval(p::Proposals.RWalk) = 0.15p.walks
 default_update_interval(p::Proposals.RStagger) = 0.15p.walks
+default_update_interval(p::Proposals.RSlice, ndims) = 2.0 * p.slices
 
 
 function Base.show(io::IO, n::Nested)
