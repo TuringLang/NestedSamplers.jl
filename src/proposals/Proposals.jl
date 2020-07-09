@@ -274,18 +274,21 @@ function (prop::RSlice)(rng::AbstractRNG,
                        kwargs...)
     # setup
     n = length(point)
-    ## slices_init = prop.slices  ## either use it in the slice sampling loop or drop this definition unless it is required elsewhere
     nc = nexpand = ncontract = 0
     fscale = [] 
-    # axlens = []
-    local idxs, r, u, u_prop, v_prop, logl_prop, logl_l, logl_r, drhat      
+    local r, u, u_prop, v_prop, logl_prop, logl_l, logl_r, drhat      
 
     # random slice sampling loop
     for it in 1:prop.slices
     
         # propose a direction on the unit n-sphere 
+        drhat = randn(rng, n)
+        drhat /= norm(drhat)
         
         # transform and scale based on past tuning
+        axes = Bounds.tran_axes(bounds)'
+        axis = dot(axes, drhat) * prop.scale
+        axlen = norm(axis)
         
         # define starting "window"
         r = rand(rng) # initial scale/offset
