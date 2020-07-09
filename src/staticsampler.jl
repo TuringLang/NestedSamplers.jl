@@ -25,7 +25,7 @@ end
         bounds=Bounds.MultiEllipsoid,
         proposal=:auto,
         enlarge=1.25,
-        update_interval=default_update_interval(proposal),
+        update_interval=default_update_interval(proposal, ndims),
         min_ncall=2nactive,
         min_eff=0.10)
 
@@ -73,7 +73,7 @@ function Nested(ndims,
         end
     end
 
-    update_interval_frac = get(kwargs, :update_interval, default_update_interval(proposal))
+    update_interval_frac = get(kwargs, :update_interval, default_update_interval(proposal, ndims))
     update_interval = round(Int, update_interval_frac * nactive)
     B = bounds(ndims)
     # Initial point will have volume 1 - exp(-1/npoints)
