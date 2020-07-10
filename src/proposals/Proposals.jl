@@ -286,7 +286,7 @@ function (prop::RSlice)(rng::AbstractRNG,
         drhat /= norm(drhat)
         
         # transform and scale based on past tuning
-        axes = Bounds.tran_axes(bounds)'
+        axes = Bounds.tran_axes(bounds)
         axis = dot(axes, drhat) * prop.scale
         axlen = norm(axis)
         
