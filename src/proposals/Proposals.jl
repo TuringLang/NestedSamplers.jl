@@ -15,6 +15,7 @@ using ..Bounds
 using Random: AbstractRNG
 using LinearAlgebra
 using Parameters
+using Distributions: Uniform
 
 export AbstractProposal
 
@@ -270,6 +271,7 @@ After a series of reflections is established, a new live point is proposed by sl
     
     @assert slices ≥ 1 "Number of slices must be greater than or equal to 1"
     @assert scale ≥ 0 "Proposal scale must be non-negative"
+    @assert max_move ≥ 1 "The limit for ncall must be greater than or equal to 1"
 end
 
 function (prop::HSlice)(rng::AbstractRNG,
@@ -284,7 +286,149 @@ function (prop::HSlice)(rng::AbstractRNG,
     n = length(point)
     jitter = 0.25 # 25% jitter
     nc = nmove = nreflect = ncontract = 0
-
+    local   # incomplete
+    
+    # Hamiltonian slice sampling loop
+    for it in 1:prop.slices
+        # define the left, inner, and right nodes for a given chord
+        # slice sampling will be done using these chords
+        nodes_l = []
+        nodes_m = []
+        nodes_r = []
+        
+        # propose a direction on the unit n-sphere
+        drhat = randn(rng, n)
+        drhat /= norm(drhat)
+        
+        # transform and scale based on past tuning
+        axes = Bounds.tran_axes(bounds)
+        axis = dot(axes, drhat) * prop.scale * 0.01
+        
+        # creating starting window
+        vel = axis    # current velocity
+        u_l = @. u - Uniform(1.0 - jitter, 1.0 + jitter) * vel
+        u_r = @. u + Uniform(1.0 - jitter, 1.0 + jitter) * vel
+        append!(nodes_l, u_l)
+        append!(nodes_m, u)
+        append!(nodes_r, u_r)
+        
+        # progress right (i.e. forwards in time)
+        reverse = false
+        reflect = false
+        u_r = u
+        ncall = 0
+        
+        while ncall <= max_move
+            
+            # iterate until the edge of the distribution is bracketed
+            append!(nodes_l, u_r)
+            u_out = nothing
+            u_in = []
+            
+            while true
+            
+                # step forward
+                u_r .+= Uniform(1.0 - jitter, 1.0 + jitter) * vel
+                
+                # evaluate point
+                if unitcheck(u_r)
+                    v_r = prior_transform(u_r)
+                    logl_r = loglike(v_r)
+                    nc += 1
+                    ncall += 1
+                    nmove += 1
+                else
+                    logl_r = -Inf
+                end    
+                
+                # check if the log-likelihood constraint is satisfied
+                # (i.e. if in or out of bounds)
+                
+                if logl_r < logl_star
+                    if reflect
+                    # if out of bounds and just reflected, then reverse the direction and terminate immediately
+                        reverse = true
+                        pop!(nodes_l)   # remove since chord does not exist
+                        break
+                    else
+                        # if already in bounds, then safe
+                        u_out = u_r
+                        logl_out = logl_r
+                    end
+                    # check if gradients can be computed assuming termination is with the current `u_out`
+                    if isfinite(logl_out)
+                        reverse = false
+                    else
+                        reverse = true
+                    end
+                else
+                    reflect = false
+                    append!(u_in, u_r)
+                end 
+                
+                # check if the edge is bracketed
+                if ## incomplete line 938
+                    break
+                end    
+            end
+            
+            # define the rest of chord
+            if ## incomplete
+                
+            end
+            
+            # check if turned around
+            if reverse
+                break
+            end  
+            
+            # reflect off the boundary
+            u_r = u_out
+            logl_r = logl_out
+            if ## incomplete
+                # if the gradient is not provided, approximate it numerically using 2nd-order methods
+                h = zeros(n)
+                for i in 1:n
+                    u_r_l = u_r
+                    u_r_r = u_r
+                    
+                    # right side
+                    u_r_r[i] += 1e-10
+                    if unitcheck(u_r_r)
+                        v_r_r = prior_transform(u_r_r)
+                        logl_r_r = loglike(v_r_r)
+                    else
+                        logl_r_r = -Inf
+                        reverse = true    # cannot compute gradient
+                    end    
+                    nc += 1
+                    
+                    # left side
+                    u_r_l[i] += 1e-10
+                    if unitcheck(u_r_l)
+                        v_r_l = prior_transform(u_r_l)
+                        logl_r_l = loglike(v_r_l)
+                    else
+                        logl_r_l = -Inf
+                        reverse = true    # cannot compute gradient
+                    end 
+                    
+                    if reverse
+                        break    # give up because have to turn around
+                    end    
+                    nc += 1
+                    
+                    # compute dlnl/du
+                    h[i] = (logl_r_r - logl_r_l) / 2e-10
+                end
+            else  
+                # if the gradient is provided, evaluate it
+                h = ## incomplete
+                
+                if compute_jac
+            end
+        end   
+    end
 end    
     
     
