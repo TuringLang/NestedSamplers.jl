@@ -657,10 +657,12 @@ function (prop::HSlice)(rng::AbstractRNG,
     end
     
     # initialize lengths of cords
-    if ## incomplete
+    if length(nodes_l) > 1
        
         # remove initial fallback chord
-        ## incomplete   
+        popfirst!(nodes_l)
+        popfirst!(nodes_m)
+        popfirst!(nodes_r)
     end
     
     ## incomplete
