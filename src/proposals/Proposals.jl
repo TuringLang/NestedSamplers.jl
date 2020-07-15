@@ -13,7 +13,7 @@ module Proposals
 
 using ..Bounds
 
-using Random: AbstractRNG
+using Random
 using LinearAlgebra
 using Parameters
 
