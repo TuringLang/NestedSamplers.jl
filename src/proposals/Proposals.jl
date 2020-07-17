@@ -275,7 +275,6 @@ function (prop::RSlice)(rng::AbstractRNG,
     # setup
     n = length(point)
     nc = nexpand = ncontract = 0
-    fscale = [] 
     local r, u, u_prop, v_prop, logl_prop, logl_l, logl_r, drhat      
 
     # random slice sampling loop
