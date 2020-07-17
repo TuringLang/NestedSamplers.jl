@@ -102,7 +102,7 @@ end
     @test bound_scaled == bound
     @test Bounds.volume(bound_scaled) == 1
 
-    @test Bounds.axes(bound) == Bounds.tran_axes(bound) == I
+    @test Bounds.axes(bound) == I
 end
 
 include("helpers.jl")

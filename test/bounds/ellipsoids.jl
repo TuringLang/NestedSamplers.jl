@@ -12,8 +12,6 @@ const NMAX = 20
         axs, axlens = decompose(ell)
         @test axlens ≈ fill(scale, N)
         @test axs ≈ Bounds.axes(ell) ≈ scale * Matrix(I, N, N)
-        T = Bounds.tran_axes(ell)
-        @test inv(T * T') ≈ ell.A
     end
 
     @testset "Scaling" begin
