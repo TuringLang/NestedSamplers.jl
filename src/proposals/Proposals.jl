@@ -280,8 +280,8 @@ function (prop::Slice)(rng::AbstractRNG,
     local idxs, r, u, u_prop, v_prop, logl_prop, logl_l, logl_r
     
     # modifying axes and computing lengths
-    axes = prop.scale .* Bounds.axes(bounds)
-    axlens = Bounds.axlens(bounds)    
+    axes, axlens = Bounds.decompose(bounds)
+    axes = prop.scale .* axes'
     # slice sampling loop
     for it in 1:prop.slices
         
