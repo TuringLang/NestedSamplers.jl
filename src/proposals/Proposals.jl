@@ -286,7 +286,7 @@ function (prop::Slice)(rng::AbstractRNG,
     for it in 1:prop.slices
         
         # shuffle axis update order
-        idxs = shuffle!(rng, Vector(1:n))
+        idxs = shuffle!(rng, Base.axes(axes, 1))
         
         # slice sample along a random direction
         for idx in idxs
