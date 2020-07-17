@@ -359,7 +359,6 @@ function (prop::RSlice)(rng::AbstractRNG,
             
             # if success, then move to the new position
             if logl_prop >= logl_star
-                append!(fscale, window/axlen)
                 u = u_prop
                 break
             # if fail, then check if the new point is to the left/right of the original point along the proposal axis and update the bounds accordingly
