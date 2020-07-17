@@ -292,7 +292,7 @@ function (prop::Slice)(rng::AbstractRNG,
         for idx in idxs
             
             # select axis
-            axis = axes[idx]
+            axis = axes[idx, :]
             axlen = axlens[idx]
             
             # define starting window
