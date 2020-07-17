@@ -285,9 +285,8 @@ function (prop::RSlice)(rng::AbstractRNG,
         drhat = randn(rng, n)
         drhat /= norm(drhat)
         
-        # transform and scale based on past tuning
-        axes = Bounds.tran_axes(bounds)
-        axis = dot(axes, drhat) * prop.scale
+        # transform and scale into parameter space
+        axis = prop.scale .* (axes * drhat)
         axlen = norm(axis)
         
         # define starting "window"
