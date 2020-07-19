@@ -40,10 +40,10 @@ abstract type AbstractProposal end
 unitcheck(us) = all(u -> 0 < u < 1, us)
 
 # Method for slice sampling
-function slicing(axis, u, logl_star, nc, nexpand, ncontract)
+function slicing(axis, point, logl_star, nc, nexpand, ncontract)
     # define starting window
     r = rand(rng)  # initial scale/offset
-    u_l = @. u - r * axis  # left bound
+    u_l = @. point - r * axis  # left bound
     if unitcheck(u_l)
         v_l = prior_transform(u_l)
         logl_l = loglike(v_l)
@@ -371,13 +371,13 @@ function (prop::Slice)(rng::AbstractRNG,
     local idxs, r, u, u_prop, v_prop, logl_prop, logl_l, logl_r
     
     # modifying axes and computing lengths
-    axes = Bounds.decompose(bounds)
+    axes = Bounds.axes(bounds)
     axes = prop.scale .* axes'
     # slice sampling loop
     for it in 1:prop.slices
         
         # shuffle axis update order
-        idxs = shuffle!(rng, Base.axes(axes, 1))
+        idxs = shuffle!(rng, collect(Base.axes(axes, 1)))
         
         # slice sample along a random direction
         for idx in idxs
