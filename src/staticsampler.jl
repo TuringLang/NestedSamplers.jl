@@ -99,7 +99,7 @@ function Nested(ndims,
         0)
 end
 
-default_update_interval(p::Proposals.Uniform) = 1.5
+default_update_interval(p::Proposals.Uniform, ndims) = 1.5
 default_update_interval(p::Proposals.RWalk, ndims) = 0.15 * p.walks
 default_update_interval(p::Proposals.RStagger, ndims) = 0.15 * p.walks
 default_update_interval(p::Proposals.Slice, ndims) = 0.9 * ndims * p.slices
