@@ -371,7 +371,7 @@ function (prop::Slice)(rng::AbstractRNG,
     local idxs, r, u, u_prop, v_prop, logl_prop, logl_l, logl_r
     
     # modifying axes and computing lengths
-    axes, axlens = Bounds.decompose(bounds)
+    axes = Bounds.decompose(bounds)
     axes = prop.scale .* axes'
     # slice sampling loop
     for it in 1:prop.slices
@@ -384,7 +384,6 @@ function (prop::Slice)(rng::AbstractRNG,
             
             # select axis
             axis = axes[idx, :]
-            axlen = axlens[idx]
             
             slicing(axis, u, logl_star, nc, nexpand, ncontract)
             
