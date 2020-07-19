@@ -377,7 +377,6 @@ function (prop::RSlice)(rng::AbstractRNG,
         
         # transform and scale into parameter space
         axis = prop.scale .* (axes * drhat)
-        axlen = norm(axis)
         
         slicing(axis, u, logl_star, nc, nexpand, ncontract)
     
