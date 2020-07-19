@@ -385,7 +385,7 @@ function (prop::Slice)(rng::AbstractRNG,
             # select axis
             axis = axes[idx, :]
             
-            slicing(axis, u, logl_star, nc, nexpand, ncontract)
+            slicing(axis, point, logl_star, nc, nexpand, ncontract)
             
         end # end of slice sample along a random direction             
     end # end of slice sampling loop    
