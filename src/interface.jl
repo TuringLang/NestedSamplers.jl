@@ -41,7 +41,7 @@ function step!(::AbstractRNG,
 
     # update sampler
     logz = logaddexp(s.logz, log_wt)
-    s.h = (exp(log_wt - logz) * logL
+    s.h = (exp(log_wt - logz) * logL +
            exp(s.logz - logz) * (s.h + s.logz) - logz)
     s.logz = logz
 
@@ -64,7 +64,7 @@ function step!(rng::AbstractRNG,
 
     # update evidence and information
     logz = logaddexp(s.logz, prev.log_wt)
-    s.h = (exp(prev.log_wt - logz) * prev.logL
+    s.h = (exp(prev.log_wt - logz) * prev.logL +
            exp(s.logz - logz) * (s.h + s.logz) - logz)
     s.logz = logz
 
@@ -125,7 +125,7 @@ function sample_end!(::AbstractRNG,
 
         # update sampler
         logz = logaddexp(s.logz, log_wt)
-        s.h = (exp(log_wt - logz) * logL
+        s.h = (exp(log_wt - logz) * logL +
                exp(s.logz - logz) * (s.h + s.logz) - logz)
         s.logz = logz
 
