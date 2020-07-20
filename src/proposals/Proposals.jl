@@ -278,7 +278,7 @@ function (prop::Slice)(rng::AbstractRNG,
     # setup
     n = length(point)
     nc = nexpand = ncontract = 0
-    local idxs, r, u_prop, v_prop, logl_prop, logl_l, logl_r, u, v, logl 
+    local u, v, logl 
     
     # modifying axes and computing lengths
     axes = Bounds.axes(bounds)
