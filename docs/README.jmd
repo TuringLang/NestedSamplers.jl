@@ -31,7 +31,7 @@ The samplers are built using the [AbstractMCMC](https://github.com/turinglang/ab
 
 ```julia; echo=false
 using Random
-Random.seed!(8452)
+Random.seed!(8452);
 ```
 
 ```julia
