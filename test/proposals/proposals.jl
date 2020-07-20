@@ -2,7 +2,8 @@ const PROPOSALS = [
     Proposals.Uniform(),
     Proposals.RWalk(),
     Proposals.RStagger(),
-    Proposals.Slice()
+    Proposals.Slice(),
+    Proposals.RSlice()
 ]
 
 const BOUNDS = [
@@ -72,4 +73,13 @@ end
 
     @test_throws AssertionError Proposals.Slice(slices=-2)
     @test_throws AssertionError Proposals.Slice(scale=-3)
+end
+
+@testset "RSlice" begin
+    prop = Proposals.RSlice()
+    @test prop.slices == 5
+    @test prop.scale == 1
+
+    @test_throws AssertionError Proposals.RSlice(slices=-2)
+    @test_throws AssertionError Proposals.RSlice(scale=-3)
 end

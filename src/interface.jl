@@ -74,13 +74,13 @@ function step!(rng::AbstractRNG,
         s.has_bounds = true
         pointvol = exp(s.log_vol) / s.nactive
         s.active_bound = Bounds.scale!(Bounds.fit(B, s.active_us, pointvol = pointvol), s.enlarge)
-    end
-
-    # update bounds
-    if iszero(iteration % s.update_interval) && s.has_bounds
+        s.since_update = 0
+    # if accepted first update, is it time to update again?
+    elseif iszero(s.since_update % s.update_interval)
         debug && @info "Updating bounds: it=$iteration, ncall=$(s.ncall), eff=$(iteration / s.ncall)"
         pointvol = exp(s.log_vol) / s.nactive
         s.active_bound = Bounds.scale!(Bounds.fit(B, s.active_us, pointvol = pointvol), s.enlarge)
+        s.since_update = 0
     end
     
     # Get a live point to use for evolving with proposal
@@ -100,6 +100,7 @@ function step!(rng::AbstractRNG,
     s.active_logl[idx] = logl
     s.ndecl = log_wt < prev.log_wt ? s.ndecl + 1 : 0
     s.ncall += ncall
+    s.since_update += 1
 
     # Shrink interval
     s.log_vol -=  1 / s.nactive

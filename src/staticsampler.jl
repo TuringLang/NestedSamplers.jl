@@ -18,6 +18,7 @@ mutable struct Nested{T,B <: AbstractBoundingSpace{T},P <: AbstractProposal} <: 
     log_vol::Float64
     ndecl::Int
     ncall::Int
+    since_update::Int
 end
 
 """
@@ -40,14 +41,15 @@ Static nested sampler with `nactive` active points and `ndims` parameters.
 * `10 ≤ ndims ≤ 20` - [`Proposals.RWalk`](@ref)
 * `ndims > 20` - [`Proposals.Slice`](@ref)
 
-The original nested sampling algorithm is roughly equivalent to using `Bounds.Ellipsoid` with `Proposals.Uniform`. The MultiNest algorithm is roughly equivalent to `Bounds.MultiEllipsoid` with `Proposals.Uniform`.
+The original nested sampling algorithm is roughly equivalent to using `Bounds.Ellipsoid` with `Proposals.Uniform`. The MultiNest algorithm is roughly equivalent to `Bounds.MultiEllipsoid` with `Proposals.Uniform`. The PolyChord algorithm is roughly equivalent to using `Proposals.RSlice`.
 
 ## Other Parameters
 * `enlarge` - When fitting the bounds to live points, they will be enlarged (in terms of volume) by this linear factor.
 * `update_interval` - How often to refit the live points with the bounds as a fraction of `nactive`. By default this will be determined using `default_update_interval` for the given proposal
     * `Proposals.Uniform` - `1.5`
-    * `Proposals.RWalk` and `Proposals.RStagger` - `0.15walks`
+    * `Proposals.RWalk` and `Proposals.RStagger` - `0.15 * walks`
     * `Proposals.Slice` - `0.9 * ndims * slices`
+    * `Proposals.RSlice` - `2 * slices`
 * `min_ncall` - The minimum number of iterations before trying to fit the first bound
 * `min_eff` - The maximum efficiency before trying to fit the first bound
 """
@@ -66,7 +68,7 @@ function Nested(ndims,
     if proposal === :auto
         proposal = if ndims < 10
             Proposals.Uniform()
-        elseif 10 <= ndims <= 20
+        elseif 10 ≤ ndims ≤ 20
             Proposals.RWalk() 
         else
             Proposals.Slice()
@@ -96,6 +98,7 @@ function Nested(ndims,
         0.0,
         log_vol,
         0,
+        0,
         0)
 end
 
@@ -103,7 +106,7 @@ default_update_interval(p::Proposals.Uniform, ndims) = 1.5
 default_update_interval(p::Proposals.RWalk, ndims) = 0.15 * p.walks
 default_update_interval(p::Proposals.RStagger, ndims) = 0.15 * p.walks
 default_update_interval(p::Proposals.Slice, ndims) = 0.9 * ndims * p.slices
-
+default_update_interval(p::Proposals.RSlice, ndims) = 2.0 * p.slices
 
 
 function Base.show(io::IO, n::Nested)
