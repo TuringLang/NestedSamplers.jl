@@ -18,6 +18,7 @@ mutable struct Nested{T,B <: AbstractBoundingSpace{T},P <: AbstractProposal} <: 
     log_vol::Float64
     ndecl::Int
     ncall::Int
+    since_update::Int
 end
 
 """
@@ -95,6 +96,7 @@ function Nested(ndims,
         -1e300,
         0.0,
         log_vol,
+        0,
         0,
         0)
 end
