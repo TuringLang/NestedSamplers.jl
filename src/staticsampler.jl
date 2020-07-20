@@ -40,14 +40,14 @@ Static nested sampler with `nactive` active points and `ndims` parameters.
 * `10 ≤ ndims ≤ 20` - [`Proposals.RWalk`](@ref)
 * `ndims > 20` - [`Proposals.RSlice`](@ref)
 
-The original nested sampling algorithm is roughly equivalent to using `Bounds.Ellipsoid` with `Proposals.Uniform`. The MultiNest algorithm is roughly equivalent to `Bounds.MultiEllipsoid` with `Proposals.Uniform`.
+The original nested sampling algorithm is roughly equivalent to using `Bounds.Ellipsoid` with `Proposals.Uniform`. The MultiNest algorithm is roughly equivalent to `Bounds.MultiEllipsoid` with `Proposals.Uniform`. The PolyChord algorithm is roughly equivalent to using `Proposals.RSlice`.
 
 ## Other Parameters
 * `enlarge` - When fitting the bounds to live points, they will be enlarged (in terms of volume) by this linear factor.
 * `update_interval` - How often to refit the live points with the bounds as a fraction of `nactive`. By default this will be determined using `default_update_interval` for the given proposal
     * `Proposals.Uniform` - `1.5`
-    * `Proposals.RWalk` and `Proposals.RStagger` - `0.15walks`
-    * `Proposals.RSlice` - `2.0 * slices`
+    * `Proposals.RWalk` and `Proposals.RStagger` - `0.15 * walks`
+    * `Proposals.RSlice` - `2 * slices`
 * `min_ncall` - The minimum number of iterations before trying to fit the first bound
 * `min_eff` - The maximum efficiency before trying to fit the first bound
 """

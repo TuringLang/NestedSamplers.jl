@@ -29,6 +29,10 @@ julia> ]add NestedSamplers
 
 The samplers are built using the [AbstractMCMC](https://github.com/turinglang/abstractmcmc.jl) interface. To use it, we need to create a `NestedModel`.
 
+```julia; echo=false
+using Random
+Random.seed!(8452)
+```
 
 ```julia
 using NestedSamplers
