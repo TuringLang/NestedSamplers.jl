@@ -4,6 +4,8 @@
 [![PkgEval](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/N/NestedSamplers.svg)](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/report.html)
 [![Coverage](https://codecov.io/gh/turinglang/NestedSamplers.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/turinglang/NestedSamplers.jl)
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3950594.svg)](https://doi.org/10.5281/zenodo.3950594)
+
 A Julian implementation of single- and multi-ellipsoidal nested sampling algorithms using the [AbstractMCMC](https://github.com/turinglang/abstractmcmc.jl) interface.
 
 This package was heavily influenced by [`nestle`](https://github.com/kbarbary/nestle), [`dynesty`](https://github.com/joshspeagle/dynesty), and [`NestedSampling.jl`](https://github.com/kbarbary/NestedSampling.jl).
@@ -69,13 +71,13 @@ chain = sample(model, spl;
 
 
 ````
-Object of type Chains, with data of type 362×3×1 Array{Float64,3}
+Object of type Chains, with data of type 360×3×1 Array{Float64,3}
 
-Log evidence      = 2.058546305361165
-Iterations        = 1:362
+Log evidence      = 2.076126127231367
+Iterations        = 1:360
 Thinning interval = 1
 Chains            = 1
-Samples per chain = 362
+Samples per chain = 360
 internals         = weights
 parameters        = x, y
 
@@ -84,14 +86,14 @@ parameters        = x, y
 Summary Statistics
   parameters    mean     std  naive_se    mcse       ess   r_hat
   ──────────  ──────  ──────  ────────  ──────  ────────  ──────
-           x  0.5041  0.2963    0.0156  0.0120  403.7804  1.0010
-           y  0.4996  0.2929    0.0154  0.0289  366.7010  0.9981
+           x  0.5154  0.3133    0.0165  0.0151  419.8884  0.9979
+           y  0.5211  0.3070    0.0162  0.0088  405.3305  1.0002
 
 Quantiles
   parameters    2.5%   25.0%   50.0%   75.0%   97.5%
   ──────────  ──────  ──────  ──────  ──────  ──────
-           x  0.0309  0.2203  0.4961  0.7975  0.9539
-           y  0.0583  0.2110  0.4911  0.7982  0.9677
+           x  0.0511  0.1998  0.5155  0.8162  0.9609
+           y  0.0438  0.2037  0.5227  0.8235  0.9737
 ````
 
 
@@ -133,7 +135,7 @@ Nested(ndims, nactive;
     bounds=Bounds.MultiEllipsoid,
     proposal=:auto,
     enlarge=1.25,
-    update_interval=default_update_interval(proposal),
+    update_interval=default_update_interval(proposal, ndims),
     min_ncall=2nactive,
     min_eff=0.10)
 ```
@@ -147,7 +149,8 @@ Static nested sampler with `nactive` active points and `ndims` parameters.
 `bounds` declares the Type of [`Bounds.AbstractBoundingSpace`](@ref) to use in the prior volume. The available bounds are described by [`Bounds`](@ref). `proposal` declares the algorithm used for proposing new points. The available proposals are described in [`Proposals`](@ref). If `proposal` is `:auto`, will choose the proposal based on `ndims`
 
   * `ndims < 10` - [`Proposals.Uniform`](@ref)
-  * `ndims ≥ 10` - [`Proposals.RWalk`](@ref)
+  * `10 ≤ ndims ≤ 20` - [`Proposals.RWalk`](@ref)
+  * `ndims > 20` - [`Proposals.RSlice`](@ref)
 
 The original nested sampling algorithm is roughly equivalent to using `Bounds.Ellipsoid` with `Proposals.Uniform`. The MultiNest algorithm is roughly equivalent to `Bounds.MultiEllipsoid` with `Proposals.Uniform`.
 
@@ -158,6 +161,7 @@ The original nested sampling algorithm is roughly equivalent to using `Bounds.El
 
       * `Proposals.Uniform` - `1.5`
       * `Proposals.RWalk` and `Proposals.RStagger` - `0.15walks`
+      * `Proposals.RSlice` - `2.0 * slices`
   * `min_ncall` - The minimum number of iterations before trying to fit the first bound
   * `min_eff` - The maximum efficiency before trying to fit the first bound
 
@@ -235,6 +239,7 @@ The available implementations are
   * [`Proposals.Uniform`](@ref) - samples uniformly within the bounding volume
   * [`Proposals.RWalk`](@ref) - random walks to a new point given an existing one
   * [`Proposals.RStagger`](@ref) - random staggering away to a new point given an existing one
+  * [`Proposals.RSlice`](@ref) - random slicing away to a new point given an existing one
 
 
 
@@ -276,6 +281,21 @@ Propose a new live point by random staggering away from an existing live point. 
 
   * `ratio` is the target acceptance ratio
   * `walks` is the minimum number of steps to take
+  * `scale` is the proposal distribution scale, which will update *between* proposals.
+
+
+
+---
+
+```
+Proposals.RSlice(;slices=5, scale=1)
+```
+
+Propose a new live point by a series of random slices away from an existing live point. This is a standard *random* implementation where each slice is along a random direction based on the provided axes.
+
+## Parameters
+
+  * `slices` is the minimum number of slices
   * `scale` is the proposal distribution scale, which will update *between* proposals.
 
 
