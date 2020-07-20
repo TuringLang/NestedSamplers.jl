@@ -50,7 +50,7 @@ end
     
     spl = Nested(2, 1000, bounds = bound, proposal = P())
     chain = sample(rng, model, spl, dlogz=0.1, chain_type = Array, progress=false)
-    @test spl.logz ≈ analytic_logz atol = 5sqrt(spl.h / spl.nactive) # within 5σ
+    @test spl.logz ≈ analytic_logz atol = 6sqrt(spl.h / spl.nactive) # within 6σ
     @test sort!(findpeaks(chain[:, 1, 1])[1:2]) ≈ [-1, 1] rtol = 3e-2
     @test sort!(findpeaks(chain[:, 2, 1])[1:2]) ≈ [-1, 1] rtol = 3e-2
 end

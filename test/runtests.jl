@@ -11,7 +11,6 @@ rng = StableRNG(8425)
 @testset "Proposals" begin include("proposals/proposals.jl") end
 @testset "Sampler" begin include("sampler.jl") end
 
-
 function integrate_on_grid(f, ranges, density)
     rs = []
     for r in ranges
