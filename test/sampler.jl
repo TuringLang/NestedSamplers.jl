@@ -36,4 +36,4 @@ spl = Nested(10, 1000)
 
 spl = Nested(30, 1500)
 @test spl.proposal isa Proposals.Slice
-@test spl.update_interval == 15000
+@test spl.update_interval == 202500
