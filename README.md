@@ -150,7 +150,7 @@ Static nested sampler with `nactive` active points and `ndims` parameters.
 
   * `ndims < 10` - [`Proposals.Uniform`](@ref)
   * `10 ≤ ndims ≤ 20` - [`Proposals.RWalk`](@ref)
-  * `ndims > 20` - [`Proposals.RSlice`](@ref)
+  * `ndims > 20` - [`Proposals.Slice`](@ref)
 
 The original nested sampling algorithm is roughly equivalent to using `Bounds.Ellipsoid` with `Proposals.Uniform`. The MultiNest algorithm is roughly equivalent to `Bounds.MultiEllipsoid` with `Proposals.Uniform`. The PolyChord algorithm is roughly equivalent to using `Proposals.RSlice`.
 
@@ -161,6 +161,7 @@ The original nested sampling algorithm is roughly equivalent to using `Bounds.El
 
       * `Proposals.Uniform` - `1.5`
       * `Proposals.RWalk` and `Proposals.RStagger` - `0.15 * walks`
+      * `Proposals.Slice` - `0.9 * ndims * slices`
       * `Proposals.RSlice` - `2 * slices`
   * `min_ncall` - The minimum number of iterations before trying to fit the first bound
   * `min_eff` - The maximum efficiency before trying to fit the first bound
@@ -239,6 +240,7 @@ The available implementations are
   * [`Proposals.Uniform`](@ref) - samples uniformly within the bounding volume
   * [`Proposals.RWalk`](@ref) - random walks to a new point given an existing one
   * [`Proposals.RStagger`](@ref) - random staggering away to a new point given an existing one
+  * [`Proposals.Slice`](@ref) - slicing away to a new point given an existing one
   * [`Proposals.RSlice`](@ref) - random slicing away to a new point given an existing one
 
 
@@ -281,6 +283,21 @@ Propose a new live point by random staggering away from an existing live point. 
 
   * `ratio` is the target acceptance ratio
   * `walks` is the minimum number of steps to take
+  * `scale` is the proposal distribution scale, which will update *between* proposals.
+
+
+
+---
+
+```
+Proposals.Slice(;slices=5, scale=1)
+```
+
+Propose a new live point by a series of random slices away from an existing live point. This is a standard *Gibbs-like* implementation where a single multivariate slice is a combination of `slices` univariate slices through each axis.
+
+## Parameters
+
+  * `slices` is the minimum number of slices
   * `scale` is the proposal distribution scale, which will update *between* proposals.
 
 
