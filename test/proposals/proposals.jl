@@ -2,6 +2,7 @@ const PROPOSALS = [
     Proposals.Uniform(),
     Proposals.RWalk(),
     Proposals.RStagger(),
+    Proposals.Slice(),
     Proposals.RSlice()
 ]
 
@@ -63,6 +64,15 @@ end
 
     # works with tuples, too
     @test Proposals.unitcheck((0.3, 0.6, 0.8))
+end
+
+@testset "Slice" begin
+    prop = Proposals.Slice()
+    @test prop.slices == 5
+    @test prop.scale == 1
+
+    @test_throws AssertionError Proposals.Slice(slices=-2)
+    @test_throws AssertionError Proposals.Slice(scale=-3)
 end
 
 @testset "RSlice" begin

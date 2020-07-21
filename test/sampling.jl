@@ -28,7 +28,7 @@ end
 # end
 
 @testset "Gaussian - $bound, $P" for bound in [Bounds.NoBounds, Bounds.Ellipsoid, Bounds.MultiEllipsoid],
-                        P in [Proposals.Uniform, Proposals.RWalk, Proposals.RStagger, Proposals.RSlice]
+                        P in [Proposals.Uniform, Proposals.RWalk, Proposals.RStagger, Proposals.Slice, Proposals.RSlice]
     σ = 0.1
     μ1 = ones(2)
     μ2 = -ones(2)

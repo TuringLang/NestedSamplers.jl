@@ -7,6 +7,7 @@ The available implementations are
 * [`Proposals.Uniform`](@ref) - samples uniformly within the bounding volume
 * [`Proposals.RWalk`](@ref) - random walks to a new point given an existing one
 * [`Proposals.RStagger`](@ref) - random staggering away to a new point given an existing one
+* [`Proposals.Slice`](@ref) - slicing away to a new point given an existing one
 * [`Proposals.RSlice`](@ref) - random slicing away to a new point given an existing one
 """
 module Proposals
@@ -38,6 +39,7 @@ abstract type AbstractProposal end
 
 # Helper for checking unit-space bounds
 unitcheck(us) = all(u -> 0 < u < 1, us)
+
 """
     Proposals.Uniform()
 
@@ -247,6 +249,62 @@ function (prop::RStagger)(rng::AbstractRNG,
             
     return u, v, logl, ncall
 end
+      
+"""
+    Proposals.Slice(;slices=5, scale=1)
+
+Propose a new live point by a series of random slices away from an existing live point.
+This is a standard _Gibbs-like_ implementation where a single multivariate slice is a combination of `slices` univariate slices through each axis.
+
+## Parameters
+- `slices` is the minimum number of slices
+- `scale` is the proposal distribution scale, which will update _between_ proposals.
+"""
+@with_kw mutable struct Slice <: AbstractProposal
+    slices = 5
+    scale = 1.0
+    
+    @assert slices ≥ 1 "Number of slices must be greater than or equal to 1"
+    @assert scale ≥ 0 "Proposal scale must be non-negative"
+end
+
+function (prop::Slice)(rng::AbstractRNG,
+                       point::AbstractVector,
+                       logl_star,
+                       bounds::AbstractBoundingSpace,
+                       loglike,
+                       prior_transform;
+                       kwargs...)
+    # setup
+    n = length(point)
+    nc = nexpand = ncontract = 0
+    local u, v, logl 
+    
+    # modifying axes and computing lengths
+    axes = Bounds.axes(bounds)
+    axes = prop.scale .* axes'
+    # slice sampling loop
+    for it in 1:prop.slices
+        
+        # shuffle axis update order
+        idxs = shuffle!(rng, collect(Base.axes(axes, 1)))
+        
+        # slice sample along a random direction
+        for idx in idxs
+            
+            # select axis
+            axis = axes[idx, :]
+            
+            u, v, logl, nc, nexpand, ncontract = sample_slice(rng, axis, point, logl_star, loglike, 
+                                                              prior_transform, nc, nexpand, ncontract)
+        end # end of slice sample along a random direction             
+    end # end of slice sampling loop    
+    
+    # update slice proposal scale based on the relative size of the slices compared to the initial guess
+    prop.scale = prop.scale * nexpand / (2.0 * ncontract)
+         
+    return u, v, logl, nc
+end   # end of function Slice  
 
 """
     Proposals.RSlice(;slices=5, scale=1)
@@ -288,7 +346,7 @@ function (prop::RSlice)(rng::AbstractRNG,
                                                           prior_transform, nc, nexpand, ncontract)
     end # end of random slice sampling loop
     
-    # update random slice proposal scale based on the relative size of the slices compared to the initial guess... ## incomplete (check formula for this step)
+    # update random slice proposal scale based on the relative size of the slices compared to the initial guess
     prop.scale = prop.scale * nexpand / (2.0 * ncontract)
     
     return u, v, logl, nc
