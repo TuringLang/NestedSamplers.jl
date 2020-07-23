@@ -10,6 +10,8 @@ using NestedSamplers: default_update_interval
     @test default_update_interval(Proposals.Slice(slices=10), 25) == 225
     @test default_update_interval(Proposals.RSlice(), 30) == 10  
     @test default_update_interval(Proposals.RSlice(slices=10), 25) == 20
+    @test default_update_interval(Proposals.HSlice(), 30) == 125
+    @test default_update_interval(Proposals.HSlice(slices=10), 25) == 250
 end
 
 spl = Nested(3, 100)
@@ -36,4 +38,8 @@ spl = Nested(10, 1000)
 
 spl = Nested(30, 1500)
 @test spl.proposal isa Proposals.Slice
+@test spl.update_interval == 202500
+
+spl = Nested(30, 1500)
+@test spl.proposal isa Proposals.HSlice
 @test spl.update_interval == 202500
