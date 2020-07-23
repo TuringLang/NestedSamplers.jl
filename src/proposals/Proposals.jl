@@ -17,6 +17,7 @@ using Random
 using LinearAlgebra
 using Parameters
 using Distributions: Uniform
+using StatsBase
 
 export AbstractProposal
 
@@ -431,7 +432,7 @@ function sample_slice(rng, axis, u, logl_star, loglike, prior_transform, nc, nex
 end
 
 """
-    Proposals.HSlice(;slices=5, scale=1.0, grad = nothing, max_move = nothing, compute_jac = false)
+    Proposals.HSlice(;slices=5, scale=1.0, grad = nothing, max_move = nothing, fmove = 0.9 compute_jac = false)
 Propose a new live point by "Hamiltonian" Slice Sampling using a series of random trajectories away from an existing live point.
 Each trajectory is based on the provided axes and samples are determined by moving forwards/ backwards in time until the trajectory hits an edge
 and approximately reflecting off the boundaries.
@@ -439,15 +440,17 @@ After a series of reflections is established, a new live point is proposed by sl
 ## Parameters
 - `slices` is the minimum number of slices
 - `scale` is the proposal distribution scale, which will update _between_ proposals
-- `grad` is the gradient of the log-likelihood
-- `max_move` is the limit for `ncall`
-- `compute_jac` a true/false statement for whether the Jacobian is needed.
+- `grad` is the gradient of the log-likelihood with respect to the unit cube
+- `max_move` is the limit for `ncall`, which is the maximum number of timesteps allowed per proposal forwards and backwards in time
+- `fmove` is the target fraction of samples that are proposed along a trajectory (i.e. not reflecting)
+- `compute_jac` a true/false statement for whether to compute and apply the Jacobian `dv/du` from the target space `v` to the unit cube `u` when evaluating the `grad`.
 """
 @with_kw mutable struct HSlice <: AbstractProposal
     slices = 5
     scale = 1.0
     grad = nothing
     max_move = 100
+    fmove = 0.9
     compute_jac = false
 
     @assert slices ≥ 1 "Number of slices must be greater than or equal to 1"
@@ -467,7 +470,7 @@ function (prop::HSlice)(rng::AbstractRNG,
     n = length(point)
     jitter = 0.25 # 25% jitter
     nc = nmove = nreflect = ncontract = 0
-    local   # incomplete
+    local drhat, nodes_l, nodes_m, nodes_r, u_l, u_r, v_l, v_r, u_out, u_in, vel, jac, reverse, reflect, ncall
 
     # Hamiltonian slice sampling loop
     for it in 1:prop.slices
@@ -499,7 +502,7 @@ function (prop::HSlice)(rng::AbstractRNG,
         u_r = point
         ncall = 0
 
-        while ncall <= max_move
+        while ncall <= prop.max_move
 
             # iterate until the edge of the distribution is bracketed
             append!(nodes_l, u_r)
@@ -556,10 +559,10 @@ function (prop::HSlice)(rng::AbstractRNG,
             # define the rest of chord
             if length(nodes_l) == length(nodes_r) + 1
                 try
-                    u_in = u_in[rand(1:length(u_in))]    # pick point randomly
-                ## incomplete
+                    u_in = u_in[rand(1:end)]    # pick point randomly ## or use u_in = u_in[rand(1:length(u_in))]
+                catch   ## is it an exception?
                     u_in = point
-                    ## incomplete
+                    ## no pass statement here?
                 end
                 append!(nodes_m, u_in)
                 append!(nodes_r, u_out)
@@ -611,9 +614,9 @@ function (prop::HSlice)(rng::AbstractRNG,
                 end
             else
                 # if the gradient is provided, evaluate it
-                h = grad(v_r)   ## check this step, include formula for grad
+                h = prop.grad(v_r)   ## check this step, include formula for grad
 
-                if compute_jac
+                if prop.compute_jac
                     jac = []
 
                     # evaluate and apply Jacobian dv/du if gradient is defined as d(lnL)/dv instead of d(lnL)/du
@@ -646,7 +649,7 @@ function (prop::HSlice)(rng::AbstractRNG,
                         append!(jac, ((v_r_r - v_r_l) / 2e-10))
                     end
 
-                    jac = jac  ## ??
+                    jac = jac  ## ?? Line 1010 in dy
                     h = dot(jac, h)    # apply Jacobian
                 end
                 nc += 1
@@ -678,7 +681,7 @@ function (prop::HSlice)(rng::AbstractRNG,
         u_l = point
         ncall = 0
 
-        while ncall <= max_move
+        while ncall <= prop.max_move
 
             # iterate until the edge of the distribution is bracketed
             # a doubling approach is used to try and locate the bounds faster
@@ -735,10 +738,10 @@ function (prop::HSlice)(rng::AbstractRNG,
             # define the rest of chord
             if length(nodes_r) == length(nodes_l) + 1
                 try
-                    u_in = u_in[rand(1:length(u_in))]    # pick point randomly
-                ## incomplete
+                    u_in = u_in[rand(1:end)]    # pick point randomly  ## or use u_in = u_in[rand(1:length(u_in))]
+                catch   ## is it an exception?
                     u_in = point
-                    ## incomplete
+                    ## no pass statement here?
                 end
                 append!(nodes_m, u_in)
                 append!(nodes_l, u_out)
@@ -753,7 +756,7 @@ function (prop::HSlice)(rng::AbstractRNG,
             u_l = u_out
             logl_l = logl_out
 
-            if grad == nothing
+            if prop.grad == nothing
 
                 # if the gradient is not provided, attempt to approximate it numerically using 2nd-order methods
                 h = zeros(n)
@@ -790,143 +793,139 @@ function (prop::HSlice)(rng::AbstractRNG,
                     # compute dlnl/du
                     h[i] = (logl_l_r - logl_l_l) / 2e-10
                 end
-            end
-        else
-            # if gradient is provided, evaluate it
-            h = grad(v_l)
-            if compute_jac
-                jac = []
+            else
+                # if gradient is provided, evaluate it
+                h = prop.grad(v_l)   ## ? write the formula for grad
+                if prop.compute_jac
+                    jac = []
 
-                # evaluate and apply Jacobian dv/du if gradient is defined as d(lnL)/dv instead of d(lnL)/du
-                for i in 1:n
-                    u_l_l = u_l
-                    u_l_r = u_l
+                    # evaluate and apply Jacobian dv/du if gradient is defined as d(lnL)/dv instead of d(lnL)/du
+                    for i in 1:n
+                        u_l_l = u_l
+                        u_l_r = u_l
 
-                    # right side
-                    u_l_r[i] += 1e-10
-                    if unitcheck(u_l_r)
-                        v_l_r = prior_transform(u_l_r)
-                    else
-                        reverse = true    # cannot compute Jacobian
-                        v_l_r = v_l    # assume no movement
+                        # right side
+                        u_l_r[i] += 1e-10
+                        if unitcheck(u_l_r)
+                            v_l_r = prior_transform(u_l_r)
+                        else
+                            reverse = true    # cannot compute Jacobian
+                            v_l_r = v_l    # assume no movement
+                        end
+
+                        # left side
+                        u_l_l[i] -= 1e-10
+                        if unitcheck(u_l_l)
+                            v_l_l = prior_transform(u_l_l)
+                        else
+                            reverse = true    # cannot compute Jacobian
+                            v_l_r = v_l    # assume no movement
+                        end
+
+                        if reverse
+                            break    # give up because have to turn around
+                        end
+
+                        append!(jac, ((v_l_r - v_l_l) / 2e-10))
                     end
-
-                    # left side
-                    u_l_l[i] -= 1e-10
-                    if unitcheck(u_l_l)
-                        v_l_l = prior_transform(u_l_l)
-                    else
-                        reverse = true    # cannot compute Jacobian
-                        v_l_r = v_l    # assume no movement
-                    end
-
-                    if reverse
-                        break    # give up because have to turn around
-                    end
-
-                    append!(jac, ((v_l_r - v_l_l) / 2e-10))
+                    jac = jac  ## ?? Line 1148 in dy
+                    h = dot(jac, h)    # apply Jacobian
                 end
-                jac = jac  ## ??
-                h = dot(jac, h)    # apply Jacobian
+                nc += 1
+            end
+            # compute specular reflection off boundary
+            vel_ref = vel - 2 * h * dot(vel, h) / norm(h)^2
+            dotprod = dot(vel_ref, vel)
+            dotprod /= norm(vel_ref) * norm(vel)
+
+            # check angle of reflection
+            if dotprod < -0.99
+                # the reflection angle is sufficiently small that it might as well be a reflection
+                reverse = true
+                break
+            else
+                # if the reflection angle is sufficiently large, proceed as normal to the new position
+                vel = vel_ref
+                u_out = nothing
+                reflect = true
+                nreflect += 1
+            end
+        end
+
+        # initialize lengths of cords
+        if length(nodes_l) > 1
+
+            # remove initial fallback chord
+            popfirst!(nodes_l)
+            popfirst!(nodes_m)
+            popfirst!(nodes_r)
+        end
+
+        nodes_l, nodes_m, nodes_r = (nodes_l, nodes_m, nodes_r)  ## check this assignment
+        Nchords = length(nodes_l)
+        axlen = zeros(Float64, Nchords)
+
+        for i, (nl, nm, nr) in enumerate(zip(nodes_l, nodes_m, nodes_r)) ## check if this is iterating correctly!
+            axlen[i] = norm(nr - nl)
+        end
+
+        # slice sample from all chords simultaneously, this is equivalent to slice sampling in *time* along trajectory
+        axlen_init = axlen
+
+        while true
+
+            # safety check
+            if any(axlen < 1e-5 * axlen_init)
+                error("Hamiltonian slice sampling appears to be stuck!")
+            end
+
+            # select chord
+            axprob = axlen / sum(axlen)
+            idx = sample(1:Nchords, ProbabilityWeights(axprob))
+
+            # define chord
+            u_l = nodes_l[idx]
+            u_m = nodes_m[idx]
+            u_r = nodes_r[idx]
+            u_hat = u_r - u_l
+            rprop = rand(rng)
+            u_prop = @. u_l + rprop * u_hat    # scale from left
+            if unitcheck(u_prop)
+                v_prop = prior_transform(u_prop)
+                logl_prop = loglike(v_prop)
+            else
+                logl_prop = -Inf
             end
             nc += 1
-        end
+            ncontract += 1
 
-        # compute specular reflection off boundary
-        vel_ref = vel - 2 * h * dot(vel, h) / norm(h)^2
-        dotprod = dot(vel_ref, vel)
-        dotprod /= norm(vel_ref) * norm(vel)
-
-        # check angle of reflection
-        if dotprod < -0.99
-            # the reflection angle is sufficiently small that it might as well be a reflection
-            reverse = true
-            break
-        else
-            # if the reflection angle is sufficiently large, proceed as normal to the new position
-            vel = vel_ref
-            u_out = nothing
-            reflect = true
-            nreflect += 1
-        end
-    end
-
-    # initialize lengths of cords
-    if length(nodes_l) > 1
-
-        # remove initial fallback chord
-        popfirst!(nodes_l)
-        popfirst!(nodes_m)
-        popfirst!(nodes_r)
-    end
-
-    ## incomplete LINE 1175 of dynesty
-    Nchords = length(nodes_l)
-    axlen = zeros(Float64, Nchords)
-
-    for i  ## incomplete line 1179 of dynesty
-        axlen[i] = norm(nr - nl)
-    end
-
-    # slice sample from all chords simultaneously, this is equivalent to slice sampling in *time* along trajectory
-    axlen_init = axlen
-
-    while true
-
-        # safety check
-        if ## incomplete
-
-        end
-
-        # select chord
-        axprob = ## incomplete
-        idx = ## incomplete
-
-        # define chord
-        u_l = nodes_l[idx]
-        u_m = nodes_m[idx]
-        u_r = nodes_r[idx]
-        u_hat = u_r - u_l
-        rprop = rand(rng)
-        u_prop = @. u_l + rprop * u_hat    # scale from left
-        if unitcheck(u_prop)
-            v_prop = prior_transform(u_prop)
-            logl_prop = loglike(v_prop)
-        else
-            logl_prop = -Inf
-        end
-        nc += 1
-        ncontract += 1
-
-        # if succeed, move to the new position
-        if logl_prop >= logl_star
-            u = u_prop
-            break
-        end
-
-        # if fail, check if the new point is to the left/right of the point interior to the bounds (`u_m`) and update the bounds accordingly
-        else
-            s = dot(u_prop - u_m, u_hat)    # check sign (+/-)
-            if s < 0    # left
-                nodes_l[idx] = u_prop
-                axlen[idx] *= 1 - rprop
-            elseif s > 0    # right
-                nodes_r[idx] = u_prop
-                axlen[idx] *= rprop
-            else
-                ## incomplete
+            # if succeed, move to the new position
+            if logl_prop >= logl_star
+                u = u_prop
+                break
             end
-        ## check all the loops, & end statements
-        ## also check where the placement of the update statement
-        ## also check placememt of return statement
+
+            # if fail, check if the new point is to the left/right of the point interior to the bounds (`u_m`) and update the bounds accordingly
+            else
+                s = dot(u_prop - u_m, u_hat)    # check sign (+/-)
+                if s < 0    # left
+                    nodes_l[idx] = u_prop
+                    axlen[idx] *= 1 - rprop
+                elseif s > 0    # right
+                    nodes_r[idx] = u_prop
+                    axlen[idx] *= rprop
+                else
+                    error("Slice sampler has failed to find a valid point.")
+                end
+            end
+        end
     end
 
     # update the Hamiltonian slice proposal scale based on the relative amount of time spent moving vs reflecting
-    ## ncontract ... check this formula step
-    ## check all formulas here, also check where to write prop.xyz and where not to write
+    ## ?? ncontract: why is it set to 0, in line 229 of nessam
     fmove = (1.0 * nmove) / (nmove + nreflect + ncontract + 2)
-    norm = ## incomplete
-    prop.scale *= ## incomplete
+    norm = max(prop.fmove, 1.0 - prop.fmove)
+    prop.scale *= exp((fmove - prop.fmove) / norm)
 
     return u_prop, v_prop, logl_prop, nc
 end    # end of function HSlice
