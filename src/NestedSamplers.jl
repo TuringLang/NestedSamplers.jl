@@ -18,7 +18,7 @@ import AbstractMCMC: AbstractSampler,
                         sample_end!,
                         bundle_samples,
                         mcmcsample
-using Distributions: quantile, UnivariateDistribution
+using Distributions: quantile, UnivariateDistribution, Uniform
 using MCMCChains: Chains
 import StatsBase
 using StatsFuns: logaddexp,
