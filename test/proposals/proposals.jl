@@ -91,6 +91,7 @@ end
     @test prop.scale == 1
     @test prop.grad == nothing
     @test prop.max_move == 100
+    @test prop.fmove == 0.9
     @test prop.compute_jac == false
 
     @test_throws AssertionError Proposals.HSlice(slices=-2)
