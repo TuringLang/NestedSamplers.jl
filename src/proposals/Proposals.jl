@@ -487,8 +487,8 @@ function (prop::HSlice)(rng::AbstractRNG,
 
         # creating starting window
         vel = axis    # current velocity
-        u_l = @. point - Uniform(1.0 - jitter, 1.0 + jitter) * vel
-        u_r = @. point + Uniform(1.0 - jitter, 1.0 + jitter) * vel
+        u_l = @. point - rand(rng, Uniform(1.0 - jitter, 1.0 + jitter)) * vel
+        u_r = @. point + rand(rng, Uniform(1.0 - jitter, 1.0 + jitter)) * vel
         append!(nodes_l, u_l)
         append!(nodes_m, point)
         append!(nodes_r, u_r)
@@ -509,7 +509,7 @@ function (prop::HSlice)(rng::AbstractRNG,
             while true
 
                 # step forward
-                u_r += Uniform(1.0 - jitter, 1.0 + jitter) * vel
+                u_r += rand(rng, Uniform(1.0 - jitter, 1.0 + jitter)) * vel
 
                 # evaluate point
                 if unitcheck(u_r)
@@ -689,7 +689,7 @@ function (prop::HSlice)(rng::AbstractRNG,
             while true
 
                 # step forward
-                u_l += Uniform(1.0 - jitter, 1.0 + jitter) * vel
+                u_l += rand(rng, Uniform(1.0 - jitter, 1.0 + jitter)) * vel
 
                 # evaluate point
                 if unitcheck(u_l)
