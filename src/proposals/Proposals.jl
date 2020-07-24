@@ -559,7 +559,7 @@ function (prop::HSlice)(rng::AbstractRNG,
             # define the rest of chord
             if length(nodes_l) == length(nodes_r) + 1
                 try
-                    u_in = u_in[rand(1:end)]    # pick point randomly ## or use u_in = u_in[rand(1:length(u_in))]
+                    u_in = u_in[rand(1:length(u_in))]    # pick point randomly ## or use u_in = u_in[rand(1:end)]?
                 catch   ## is it an exception?
                     u_in = point
                     ## no pass statement here?
@@ -738,7 +738,7 @@ function (prop::HSlice)(rng::AbstractRNG,
             # define the rest of chord
             if length(nodes_r) == length(nodes_l) + 1
                 try
-                    u_in = u_in[rand(1:end)]    # pick point randomly  ## or use u_in = u_in[rand(1:length(u_in))]
+                    u_in = u_in[rand(1:length(u_in))]  # pick point randomly  ## or use u_in = u_in[rand(1:end)] ?
                 catch   ## is it an exception?
                     u_in = point
                     ## no pass statement here?
