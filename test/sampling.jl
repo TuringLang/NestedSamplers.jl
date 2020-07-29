@@ -3,6 +3,7 @@ using AbstractMCMC
 using MCMCChains: Chains
 using StatsFuns
 using StatsBase
+using LinearAlgebra
 
 @testset "Bundles" begin
     logl(x::AbstractVector) =  exp(-x[1]^2 / 2) / √(2π)
