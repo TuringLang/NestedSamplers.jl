@@ -486,7 +486,7 @@ function (prop::HSlice)(rng::AbstractRNG,
 
         # transform and scale based on past tuning
         axes = Bounds.axes(bounds)
-        axis = dot(axes, drhat) * prop.scale * 0.01
+        axis = (prop.scale * 0.01) .* (axes * drhat)
 
         # creating starting window
         vel = axis    # current velocity
