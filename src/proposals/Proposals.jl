@@ -490,8 +490,8 @@ function (prop::HSlice)(rng::AbstractRNG,
 
         # creating starting window
         vel = axis    # current velocity
-        u_l = @. point - rand(rng, Uniform(1.0 - jitter, 1.0 + jitter)) * vel
-        u_r = @. point + rand(rng, Uniform(1.0 - jitter, 1.0 + jitter)) * vel
+        u_l = @. point - rand(rng, Uniform(1.0 - jitter, 1.0 + jitter), n) * vel
+        u_r = @. point + rand(rng, Uniform(1.0 - jitter, 1.0 + jitter), n) * vel
         append!(nodes_l, u_l)
         append!(nodes_m, point)
         append!(nodes_r, u_r)
@@ -512,7 +512,7 @@ function (prop::HSlice)(rng::AbstractRNG,
             while true
 
                 # step forward
-                u_r += rand(rng, Uniform(1.0 - jitter, 1.0 + jitter)) * vel
+                u_r .+= rand(rng, Uniform(1.0 - jitter, 1.0 + jitter), n) * vel
 
                 # evaluate point
                 if unitcheck(u_r)
@@ -656,7 +656,7 @@ function (prop::HSlice)(rng::AbstractRNG,
             end
 
             # compute specular reflection off boundary
-            vel_ref = vel - 2 * h * dot(vel, h) / norm(h)^2
+            vel_ref = @. vel - 2 * h * dot(vel, h) / norm(h)^2    
             dotprod = dot(vel_ref, vel)
             dotprod /= norm(vel_ref) * norm(vel)
 
@@ -692,7 +692,7 @@ function (prop::HSlice)(rng::AbstractRNG,
             while true
 
                 # step forward
-                u_l += rand(rng, Uniform(1.0 - jitter, 1.0 + jitter)) * vel
+                u_l .+= rand(rng, Uniform(1.0 - jitter, 1.0 + jitter), n) * vel
 
                 # evaluate point
                 if unitcheck(u_l)
@@ -834,7 +834,7 @@ function (prop::HSlice)(rng::AbstractRNG,
                 nc += 1
             end
             # compute specular reflection off boundary
-            vel_ref = vel - 2 * h * dot(vel, h) / norm(h)^2
+            vel_ref = @. vel - 2 * h * dot(vel, h) / norm(h)^2
             dotprod = dot(vel_ref, vel)
             dotprod /= norm(vel_ref) * norm(vel)
 
