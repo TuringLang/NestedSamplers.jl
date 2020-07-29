@@ -861,11 +861,11 @@ function (prop::HSlice)(rng::AbstractRNG,
             popfirst!(nodes_r)
         end
 
-        nodes_l, nodes_m, nodes_r = (nodes_l, nodes_m, nodes_r)  ## check this assignment
+        nodes_l, nodes_m, nodes_r = (nodes_l, nodes_m, nodes_r)
         Nchords = length(nodes_l)
         axlen = zeros(Float64, Nchords)
 
-        for i, (nl, nm, nr) in enumerate(zip(nodes_l, nodes_m, nodes_r)) ## check if this is iterating correctly!
+        for (i, (nl, nm, nr)) in enumerate(zip(nodes_l, nodes_m, nodes_r))
             axlen[i] = norm(nr - nl)
         end
 
@@ -903,8 +903,6 @@ function (prop::HSlice)(rng::AbstractRNG,
             if logl_prop >= logl_star
                 u = u_prop
                 break
-            end
-
             # if fail, check if the new point is to the left/right of the point interior to the bounds (`u_m`) and update the bounds accordingly
             else
                 s = dot(u_prop - u_m, u_hat)    # check sign (+/-)
