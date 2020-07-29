@@ -922,8 +922,7 @@ function (prop::HSlice)(rng::AbstractRNG,
     # update the Hamiltonian slice proposal scale based on the relative amount of time spent moving vs reflecting
     ## ?? ncontract: why is it set to 0, in line 229 of nessam
     fmove = (1.0 * nmove) / (nmove + nreflect + ncontract + 2)
-    norm = max(prop.fmove, 1.0 - prop.fmove)
-    prop.scale *= exp((fmove - prop.fmove) / norm)
+    prop.scale *= exp((fmove - prop.fmove) / (max(prop.fmove, 1.0 - prop.fmove)))
 
     return u_prop, v_prop, logl_prop, nc
 end    # end of function HSlice
