@@ -470,7 +470,7 @@ function (prop::HSlice)(rng::AbstractRNG,
     n = length(point)
     jitter = 0.25 # 25% jitter
     nc = nmove = nreflect = ncontract = 0
-    local drhat, nodes_l, nodes_m, nodes_r, u_l, u_r, v_l, v_r, u_out, u_in, vel, jac, reverse, reflect, ncall
+    local nodes_l, nodes_m, nodes_r, u_l, u_r, v_l, v_r, u_out, u_in, vel, jac, reverse, reflect, ncall
 
     # Hamiltonian slice sampling loop
     for it in 1:prop.slices
