@@ -16,7 +16,7 @@ using ..Bounds
 using Random
 using LinearAlgebra
 using Parameters
-using Distributions: Uniform
+using Distributions
 using StatsBase
 
 export AbstractProposal
