@@ -1,6 +1,8 @@
 """
     NestedSamplers.Proposals
+
 This module contains the different algorithms for proposing new points within a bounding volume in unit space.
+
 The available implementations are
 * [`Proposals.Uniform`](@ref) - samples uniformly within the bounding volume
 * [`Proposals.RWalk`](@ref) - random walks to a new point given an existing one
@@ -23,8 +25,11 @@ export AbstractProposal
 
 """
     NestedSamplers.AbstractProposal
+
 The abstract type for live point proposal algorithms.
+
 # Interface
+
 Each `AbstractProposal` must have this function,
 ```julia
 (::AbstractProposal)(::AbstractRNG, point, loglstar, bounds, loglikelihood, prior_transform)
@@ -40,6 +45,7 @@ unitcheck(us) = all(u -> 0 < u < 1, us)
 
 """
     Proposals.Uniform()
+
 Propose a new live point by uniformly sampling within the bounding volume.
 """
 struct Uniform <: AbstractProposal end
@@ -66,7 +72,9 @@ Base.show(io::IO, p::Uniform) = print(io, "NestedSamplers.Proposals.Uniform")
 
 """
     Proposals.RWalk(;ratio=0.5, walks=25, scale=1)
+
 Propose a new live point by random walking away from an existing live point.
+
 ## Parameters
 - `ratio` is the target acceptance ratio
 - `walks` is the minimum number of steps to take
@@ -154,10 +162,12 @@ end
 
 """
     Proposals.RStagger(;ratio=0.5, walks=25, scale=1)
+
 Propose a new live point by random staggering away from an existing live point.
 This differs from the random walk proposal in that the step size here is exponentially adjusted
 to reach a target acceptance rate _during_ each proposal, in addition to _between_
 proposals.
+
 ## Parameters
 - `ratio` is the target acceptance ratio
 - `walks` is the minimum number of steps to take
@@ -245,8 +255,10 @@ end
 
 """
     Proposals.Slice(;slices=5, scale=1.0)
+
 Propose a new live point by a series of random slices away from an existing live point.
 This is a standard _Gibbs-like_ implementation where a single multivariate slice is a combination of `slices` univariate slices through each axis.
+
 ## Parameters
 - `slices` is the minimum number of slices
 - `scale` is the proposal distribution scale, which will update _between_ proposals.
@@ -299,8 +311,10 @@ end   # end of function Slice
 
 """
     Proposals.RSlice(;slices=5, scale=1.0)
+
 Propose a new live point by a series of random slices away from an existing live point.
 This is a standard _random_ implementation where each slice is along a random direction based on the provided axes.
+
 ## Parameters
 - `slices` is the minimum number of slices
 - `scale` is the proposal distribution scale, which will update _between_ proposals.
@@ -433,10 +447,12 @@ end
 
 """
     Proposals.HSlice(;slices=5, scale=1.0, grad = nothing, max_move = nothing, fmove = 0.9 compute_jac = false)
+
 Propose a new live point by "Hamiltonian" Slice Sampling using a series of random trajectories away from an existing live point.
 Each trajectory is based on the provided axes and samples are determined by moving forwards/ backwards in time until the trajectory hits an edge
 and approximately reflecting off the boundaries.
 After a series of reflections is established, a new live point is proposed by slice sampling across the entire path.
+
 ## Parameters
 - `slices` is the minimum number of slices
 - `scale` is the proposal distribution scale, which will update _between_ proposals
