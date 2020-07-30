@@ -32,7 +32,7 @@ export Bounds,
        dlogz_convergence,
        decline_convergence
 
-
+include("particle.jl")
 include("model.jl")         # The default model for nested sampling
 include("staticsampler.jl") # The static nested sampler
 include("convergence.jl")   # The convergence callback methods
