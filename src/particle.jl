@@ -16,12 +16,12 @@ The following functions for retrieving the statistical weights of a vector of pa
 * `StatsBase.Weights` 
 * `StatsBase.weights`
 """
-struct Particle{T<:Union{<:Number,Missing}}
+struct Particle{T<:Union{Number,Missing},F<:Union{AbstractFloat,Missing}}
     sample::T
-    weight::T
+    weight::F
     iteration::Union{Int,Nothing}
 end
-Particle(sample, weight, iteration=nothing) = Particle(promote(sample, weight)..., iteration)
+Particle(sample, weight=missing, iteration=nothing) = Particle(sample, weight, iteration)
 Particle() = Particle(missing, missing, nothing)
 
 """
@@ -40,12 +40,7 @@ weights(particles) = map(p -> p.weight, particles)
 
 # StatsBase weights
 for func in (:ProbabilityWeights, :pweights, :Weights, :weights)
-    @eval quote
-        """
-            StatsBase.$func(particles)
-        
-        Return the sampling weight for each particle's sample in the collection.
-        """
+    @eval begin
         $func(particles, args...) = $func(weights(collect(particles)), args...)
     end
 end
