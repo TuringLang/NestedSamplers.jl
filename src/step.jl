@@ -1,5 +1,54 @@
 # Interface Implementations
 
+function AbstractMCMC.step(rng::AbstractRNG,
+    model,
+    sampler::Nested;
+    kwargs...)
+
+    ## Sample Init
+    debug && @info "Initializing sampler"
+    local us, vs, logl
+    ntries = 0
+    while true
+        us = rand(rng, s.ndims, s.nactive)
+        vs = mapslices(model.prior_transform, us, dims=1)
+        logl = mapslices(model.loglike, vs, dims=1)
+        any(isfinite, logl) && break
+        ntries += 1
+        ntries > 100 && error("After 100 attempts, could not initialize any live points with finite loglikelihood. Please check your prior transform and loglikelihood method.")
+    end
+    # force -Inf to be a finite but small number to keep estimators from breaking
+    @. logl[logl == -Inf] = -1e300
+
+    # samples in unit space
+    s.active_us .= us
+    s.active_points .= vs
+    s.active_logl .= logl[1, :]
+
+    ## Step!
+    # Find least likely point
+    logL, idx = findmin(s.active_logl)
+    draw = s.active_points[:, idx]
+    log_wt = s.log_vol + logL
+
+    # update sampler
+    logz = logaddexp(s.logz, log_wt)
+    s.h = (exp(log_wt - logz) * logL +
+            exp(s.logz - logz) * (s.h + s.logz) - logz)
+    s.logz = logz
+
+    return NestedTransition(draw, logL, log_wt)
+
+end
+
+function AbstractMCMC.step(rng::AbstractRNG,
+    model,
+    sampler::Nested,
+    state;
+    kwargs...)
+end
+
+
 function sample_init!(rng::AbstractRNG,
     model::NestedModel,
     s::Nested{T,B},
