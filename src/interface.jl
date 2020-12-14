@@ -1,34 +1,5 @@
 # Interface Implementations
 
-function sample_init!(rng::AbstractRNG,
-    model::NestedModel,
-    s::Nested{T,B},
-    ::Integer;
-    debug::Bool = false,
-    kwargs...) where {T,B}
-
-    debug && @info "Initializing sampler"
-    local us, vs, logl
-    ntries = 0
-    while true
-        us = rand(rng, s.ndims, s.nactive)
-        vs = mapslices(model.prior_transform, us, dims=1)
-        logl = mapslices(model.loglike, vs, dims=1)
-        any(isfinite, logl) && break
-        ntries += 1
-        ntries > 100 && error("After 100 attempts, could not initialize any live points with finite loglikelihood. Please check your prior transform and loglikelihood method.")
-    end
-    # force -Inf to be a finite but small number to keep estimators from breaking
-    @. logl[logl == -Inf] = -1e300
-
-    # samples in unit space
-    s.active_us .= us
-    s.active_points .= vs
-    s.active_logl .= logl[1, :]
-
-    return nothing
-end
-
 function step!(::AbstractRNG,
     ::AbstractModel,
     s::Nested,
@@ -82,7 +53,7 @@ function step!(rng::AbstractRNG,
         s.active_bound = Bounds.scale!(Bounds.fit(B, s.active_us, pointvol = pointvol), s.enlarge)
         s.since_update = 0
     end
-    
+
     # Get a live point to use for evolving with proposal
     if s.has_bounds
         point, bound = rand_live(rng, s.active_bound, s.active_us)
@@ -213,4 +184,199 @@ function StatsBase.sample(
     kwargs...
 )
     StatsBase.sample(Random.GLOBAL_RNG, model, sampler; kwargs...)
+end
+
+# TODO
+
+
+function transition()
+    has_bounds::Bool
+    active_us::Matrix{T}
+    active_points::Matrix{T}
+    active_logl::Vector{T}
+    active_bound::B
+    logz::Float64
+    h::Float64
+    log_vol::Float64
+    ndecl::Int
+    ncall::Int
+    since_update::Int
+
+    false,
+    zeros(ndims, nactive),
+    zeros(ndims, nactive),
+    zeros(nactive),
+    B,
+    -1e300,
+    0.0,
+    log_vol,
+    0,
+    0,
+    0
+end
+
+function AbstractMCMC.step(rng, model, sampler::Nested; kwargs...)
+    # Initialize particles
+    # us are in unit space, vs are in prior space
+    us, vs, logl = init_particles(rng, model, sampler)
+
+    # Initialize values for nested sampling loop.
+    h = 0  # information, initially *0.*
+    logz = -1e300  # ln(evidence), initially *0.*
+    logavar = 0  # Var[ln(evidence)], initially *0.*
+    logvol = 0  # initially contains the whole prior (volume=1.)
+    loglstar = -1e300  # initial ln(likelihood)
+    delta_logz = 1e300  # ln(ratio) of total/current evidence
+
+    # Check if we should initialize a different bounding distribution
+    # instead of using the unit cube.
+    since_update = 0
+    has_bounds = false
+
+    # expected ln(vol) shrinkage
+    logvol  -= sampler.dlnvol
+
+    # Find live point with worst loglikelihood
+    logl_dead, idx_dead = findmin(logl)
+    draw = @view vs[idx_dead, :]
+    logwt = logl_dead
+    # Set our new weight using quadratic estimates (trapezoid rule).
+    logdvol = log((1 - exp(logvol)) / 2) # ln(dvol)
+    logwt = logl_dead + logdvol  # ln(wt)
+
+    ###
+    # TODO save this
+    X⁺ = max(0, logvol)
+    logdvol = X⁺ + log((exp(-X⁺) - exp(logvol - X⁺)) / 2)
+    ###
+
+    # Update evidence `logz` and information `h`.
+    logz_new = logwt
+    lzterm = exp(logl_dead - logz_new) * logl_dead
+    h_new = (exp(logdvol) * lzterm +
+             exp(logz - logz_new) * (h + logz) -
+             logz_new)
+    dh = h_new - h
+    h = h_new
+    logz = logz_new
+    logzvar += 2 * dh * dlnvol
+    loglstar = logl_dead
+
+    sample = (u=@view(active_us[:, idx_dead]), v=draw, logwt=logwt, logl=logl_dead)
+    state = (us=us, vs=vs, logl=logl, logl_dead=logl_dead, logwt=logwt,
+             logz=logz, logzvar=logzvar, logvol=logvol,
+             since_update=since_update, has_bounds=has_bounds, active_bound=nothing)
+
+    return sample, state
+end
+
+function AbstractMCMC.step(rng, model, sampler, state; 
+        dlogz=0.5, maxiter=Inf, maxcall=Inf, maxlogl=Inf, kwargs...)
+
+    ## Step 1. Check stopping criterion
+    # a) iterations exceeds maxiter
+    done_sampling = state.it > maxiter
+    # b) number of loglike calls has been exceeded
+    done_sampling |= state.ncall > maxcall
+    # c) remaining fractional log-evidence below threshold
+    logz_remain = maximum(state.active_logl) + state.logvol
+    delta_logz = logaddexp(state.logz, logz_remain) - state.logz
+    done_sampling |= delta_logz < dlogz
+    # d) last dead point loglikelihood exceeds threshold
+    done_sampling |= state.logl_dead > maxlogl
+
+    ## Step 2. Update bounds
+    pointvol = exp(state.logvol) / sampler.nactive
+    # check if ready for first update
+    if !state.has_bounds && state.ncall > sampler.min_ncall && state.it / state.ncall < sampler.min_eff
+        @debug "First update: it=$(state.it), ncall=$(state.ncall), eff=$(state.it / state.ncall)"
+        active_bound = Bounds.scale!(Bounds.fit(B, state.us, pointvol = pointvol), sampler.enlarge)
+        since_update = 0
+        has_bounds = true
+    # if accepted first update, is it time to update again?
+    elseif iszero(state.since_update % state.update_interval)
+        @debug "Updating bounds: it=$(state.it), ncall=$(state.ncall), eff=$(state.it / state.ncall)"
+        active_bound = Bounds.scale!(Bounds.fit(B, state.us, pointvol = pointvol), sampler.enlarge)
+        since_update = 0
+        has_bounds = true
+    else
+        active_bound = state.active_bound
+        since_update = state.since_update + 1
+        has_bounds = state.has_bounds
+    end
+
+    ## Step 3. Replace least-likely active point
+    # Find least likely point
+    logl_dead, idx_dead = findmin(state.logl)
+    u_dead = @view state.us[idx_dead, :]
+    v_dead = @view state.vs[idx_dead, :]
+
+    # update weight using trapezoidal rule
+    logdvol = begin
+        # weighted logaddexp
+        X = state.logvol + sampler.dlnvol
+        X⁺ = max(X, state.logvol)
+        X⁺ + log((exp(X - X⁺) - exp(state.logvol - X⁺)) / 2)
+    end
+    logwt = logaddexp(logl_dead, state.logl_dead) + logdvol
+
+    # sample a new live point using bounds and proposal
+    if has_bounds
+        point, bound = rand_live(rng, state.active_bound, state.us)
+        u, v, logl, nc = s.proposal(rng, v_dead, logl_dead, bound, model.loglike, model.prior_transform)
+    else
+        point = rand(rng, T, s.ndims)
+        bound = Bounds.NoBounds(T, s.ndims)
+        proposal = Proposals.Uniform()
+        u, v, logl, nc = proposal(rng, v_dead, logl_dead, bound, model.loglike, model.prior_transform)
+    end
+    state.us[:, idx_dead] .= u
+    state.vs[:, idx_dead] .= v
+    state.logl[:, idx_dead] .= logl
+
+    ncall = state.ncall + nc
+    since_update += nc
+
+    # update evidence and information
+    logz = logaddexp(state.logz, state.logwt)
+    h = (exp(state.logwt - logz) * state.logl_dead +
+           exp(state.logz - logz) * (state.h + state.logz) - logz)
+    dh = h - state.h
+    logzvar = state.logzvar + 2 * dh * sampler.dlnvol
+
+    ## Part 4. prepare returns
+    sample = (u=u_dead, v=v_dead, logwt=logwt, logl=logl_dead)
+    state = (us=state.us, vs=state.vs, logl=state.logl, logl_dead=logl_dead, logwt=logwt,
+             logz=logz, logzvar=logzvar, logvol=logvol,
+             since_update=since_update, has_bounds=has_bounds, active_bound=active_bound)
+
+    return sample, state
+end
+
+## Helpers
+
+init_particles(rng, nactive, ndims, prior, loglike) =
+    init_particles(rng, Float64, nactive, ndims, prior, loglike)
+
+init_particles(rng, model, sampler) =
+    init_particles(rng, sampler.nactive, sampler.ndims, model.prior_transform, model.loglike)
+
+# loop and fill arrays, checking validity of points
+# will retry 100 times before erroring
+function init_particles(rng, T, nactive, ndims, prior, loglike)
+    local us, vs, logl
+    ntries = 0
+    while true
+        us = rand(rng, T, nactive, ndims)
+        vs = mapslices(prior, us, dims=2)
+        logl = mapslices(loglike, vs, dims=2)
+        any(isfinite, logl) && break
+        ntries += 1
+        ntries > 100 && error("After 100 attempts, could not initialize any live points with finite loglikelihood. Please check your prior transform and loglikelihood methods.")
+    end
+
+    # force -Inf to be a finite but small number to keep estimators from breaking
+    @. logl[logl == -Inf] = -1e300
+
+    return us, vs, logl
 end
