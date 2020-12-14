@@ -27,10 +27,23 @@ function step(rng, model, sampler::Nested; kwargs...)
 
     ncall = since_update = nc
 
+    prev_h = 0.  # information, initially *0.*
+    prev_logz = -1.e300  # ln(evidence), initially *0.*
+    prev_logzvar = 0.  # var[ln(evidence)], initially *0.*
+    prev_logvol = 0.  # initially contains the whole prior (volume=1.)
+    prev_logl = -1.e300  # initial ln(likelihood)
+
     # update evidence and information
-    logz = logwt
-    h = logz
-    logzvar = 2 * h * sampler.dlnvol
+    logz = logaddexp(prev_logz, logwt)
+    h = (exp(logwt - logz) * prev_logl +
+         exp(prev_logz - logz) * (prev_h + prev_logz) - logz)
+    dh = h - prev_h
+    logzvar = prev_logzvar + 2 * dh * sampler.dlnvol
+
+    # # update evidence and information
+    # logz = logwt
+    # h = logz
+    # logzvar = 2 * h * sampler.dlnvol
 
     sample = (u=u_dead, v=v_dead, logwt=logwt, logl=logl_dead)
     state = (it=1, ncall=ncall, us=us, vs=vs, logl=logl, logl_dead=logl_dead, logwt=logwt,
@@ -109,7 +122,7 @@ function step(rng, model, sampler, state; kwargs...)
     return sample, state
 end
 
-function bundle_samples(samples, model, sampler, state, chain_type; add_live=true, kwargs...)
+function bundle_samples(samples, model, sampler::Nested, state, chain_type; add_live=true, kwargs...)
     if add_live
         samples, state = add_live_points(samples, model, sampler, state)
     end
@@ -117,13 +130,13 @@ function bundle_samples(samples, model, sampler, state, chain_type; add_live=tru
 end
 
 function bundle_samples(samples,
-        model,
+        ::AbstractModel,
         sampler::Nested,
         state,
-        ::Type{CT};
+        ::Type{Chains};
         param_names = missing,
         check_wsum = true,
-        kwargs...) where {CT <: Chains}
+        kwargs...)
 
     vals = mapreduce(t->hcat(t.v..., t.logwt), vcat, samples)
     # update weights based on evidence
@@ -132,7 +145,7 @@ function bundle_samples(samples,
     @. vals[:, end, 1] /= wsum
 
     if check_wsum
-        err = !iszero(state.h) ? 3 * sqrt(state.h / sampler.nactive) : 1e-3
+        err = !iszero(state.logzvar) ? 3 * sqrt(state.logzvar) : 1e-3
         isapprox(wsum, 1, atol = err) || @warn "Weights sum to $wsum instead of 1; possible bug"
     end
 
@@ -142,7 +155,7 @@ function bundle_samples(samples,
     end
     push!(param_names, "weights")
 
-    return Chains(vals, param_names, Dict(:internals => ["weights"]), evidence = state.logz)
+    return Chains(vals, param_names, Dict(:internals => ["weights"]), evidence = state.logz), state
 end
 
 function bundle_samples(samples,
@@ -164,7 +177,7 @@ function bundle_samples(samples,
         isapprox(wsum, 1, atol = err) || @warn "Weights sum to $wsum instead of 1; possible bug"
     end
 
-    return vals
+    return vals, state
 end
 
 ## Helpers

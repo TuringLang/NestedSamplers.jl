@@ -4,29 +4,16 @@ StatsBase.sample(rng::AbstractRNG, model, sampler::Nested; kwargs...) =
     mcmcsample(rng, model, sampler; kwargs...)
 
 StatsBase.sample(model, sampler::Nested; kwargs...) =
-    StatsBase.sample(Random.GLOBAL_RNG, model, sampler; kwargs...)
-
-function isdone(state; dlogz=0.5, maxiter=Inf, maxcall=Inf, maxlogl=Inf, kwargs...)
-    # 1) iterations exceeds maxiter
-    done_sampling = state.it > maxiter
-    # 2) number of loglike calls has been exceeded
-    done_sampling |= state.ncall > maxcall
-    # 3) remaining fractional log-evidence below threshold
-    logz_remain = maximum(state.logl) + state.logvol
-    delta_logz = logaddexp(state.logz, logz_remain) - state.logz
-    done_sampling |= delta_logz < dlogz
-    # 4) last dead point loglikelihood exceeds threshold
-    done_sampling |= state.logl_dead > maxlogl
-    # 5) number of effective samples
-    # TODO
-    return done_sampling
-end
-
+    StatsBase.sample(GLOBAL_RNG, model, sampler; kwargs...)
 
 function mcmcsample(
     rng,
     model,
     sampler::Nested;
+    dlogz=0.5,
+    maxiter=Inf,
+    maxcall=Inf,
+    maxlogl=Inf,
     progress=true,
     progressname="Nested Sampling",
     discard_initial=0,
@@ -51,7 +38,26 @@ function mcmcsample(
         # Step through the sampler until stopping.
         i = 2
 
-        while !isdone(state; kwargs...)
+        id = @progressid
+
+        while true
+            ## check convergence
+            # 1) iterations exceeds maxiter
+            done_sampling = state.it > maxiter
+            # 2) number of loglike calls has been exceeded
+            done_sampling |= state.ncall > maxcall
+            # 3) remaining fractional log-evidence below threshold
+            logz_remain = maximum(state.logl) + state.logvol
+            delta_logz = logaddexp(state.logz, logz_remain) - state.logz
+            done_sampling |= delta_logz < dlogz
+            # 4) last dead point loglikelihood exceeds threshold
+            done_sampling |= state.logl_dead > maxlogl
+            # 5) number of effective samples
+            # TODO
+
+            @logprogress NaN _id=id iter=state.it ncall=state.ncall dlogz=delta_logz logl=state.logl_dead
+            done_sampling && break
+
             # Discard thinned samples.
             for _ in 1:(thinning - 1)
                 # Obtain the next sample and state.
@@ -65,6 +71,9 @@ function mcmcsample(
             # Increment iteration counter.
             i += 1
         end
+        logz_remain = maximum(state.logl) + state.logvol
+        delta_logz = logaddexp(state.logz, logz_remain) - state.logz
+        @logprogress "done" _id=id iter=state.it ncall=state.ncall dlogz=delta_logz logl=state.logl_dead
     end
 
     # Wrap the samples up.

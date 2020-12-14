@@ -46,7 +46,7 @@ The original nested sampling algorithm is roughly equivalent to using `Bounds.El
 """
 function Nested(ndims,
     nactive;
-    bounds = Bounds.Ellipsoid,
+    bounds = Bounds.MultiEllipsoid,
     proposal = :auto,
     enlarge = 1.25,
     min_ncall=2nactive,

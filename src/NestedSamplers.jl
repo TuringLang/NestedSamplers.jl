@@ -22,6 +22,7 @@ import AbstractMCMC: step,
                      mcmcsample
 using Distributions: quantile, UnivariateDistribution
 using MCMCChains: Chains
+using ProgressLogging
 import StatsBase
 using StatsFuns: logaddexp,
                  log1mexp

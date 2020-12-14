@@ -7,7 +7,6 @@ using IterTools
 
 rng = StableRNG(8425)
 
-@testset "Particle" begin include("particle.jl") end
 @testset "Bounds" begin include("bounds/bounds.jl") end
 @testset "Proposals" begin include("proposals/proposals.jl") end
 @testset "Sampler" begin include("sampler.jl") end

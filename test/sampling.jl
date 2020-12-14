@@ -9,8 +9,8 @@ using StatsBase
     priors = [Uniform(-1, 1)]
     model = NestedModel(logl, priors)
     spl = Nested(1, 500)
-    chain = sample(rng, model, spl; dlogz = 0.2, param_names = ["x"], chain_type = Chains, progress=false)
-    samples = sample(rng, model, spl; dlogz = 0.2, chain_type = Array, progress=false)
+    sample(rng, model, spl; dlogz = 0.2, param_names = ["x"], chain_type = Chains, progress=false)
+    sample(rng, model, spl; dlogz = 0.2, chain_type = Array, progress=false)
 end
 
 # @testset "Flat" begin
@@ -49,8 +49,8 @@ end
 
     
     spl = Nested(2, 1000, bounds = bound, proposal = P())
-    chain = sample(rng, model, spl, dlogz=0.1, chain_type = Array, progress=false)
-    @test spl.logz ≈ analytic_logz atol = 6sqrt(spl.h / spl.nactive) # within 6σ
+    chain, state = sample(rng, model, spl, dlogz=0.1, chain_type = Array, progress=false)
+    @test state.logz ≈ analytic_logz atol = 6sqrt(state.logzvar) # within 6σ
     @test sort!(findpeaks(chain[:, 1, 1])[1:2]) ≈ [-1, 1] rtol = 3e-2
     @test sort!(findpeaks(chain[:, 2, 1])[1:2]) ≈ [-1, 1] rtol = 3e-2
 end
