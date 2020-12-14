@@ -11,13 +11,13 @@ using LinearAlgebra
 using Random
 using Random: AbstractRNG, GLOBAL_RNG
 
-import AbstractMCMC: AbstractSampler,
-                        AbstractModel,
-                        step!,
-                        sample_init!,
-                        sample_end!,
-                        bundle_samples,
-                        mcmcsample
+import AbstractMCMC: @ifwithprogresslogger,
+                     AbstractSampler,
+                     AbstractModel,
+                     step,
+                     bundle_samples,
+                     mcmcsample,
+                     save!!
 using Distributions: quantile, UnivariateDistribution
 using MCMCChains: Chains
 import StatsBase
@@ -32,10 +32,9 @@ export Bounds,
        dlogz_convergence,
        decline_convergence
 
-include("particle.jl")
 include("model.jl")         # The default model for nested sampling
 include("staticsampler.jl") # The static nested sampler
-include("convergence.jl")   # The convergence callback methods
-include("interface.jl")     # The interface to AbstractMCMC
+include("step.jl")          # The stepping mechanics (extends AbstractMCMC)
+include("sample.jl")        # Custom sampling (extends AbstractMCMC)
 
 end
