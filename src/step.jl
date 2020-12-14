@@ -1,29 +1,29 @@
 
 
-function AbstractMCMC.step(rng, model, sampler::Nested; kwargs...)
+function step(rng, model, sampler::Nested; kwargs...)
     # Initialize particles
     # us are in unit space, vs are in prior space
     us, vs, logl = init_particles(rng, model, sampler)
 
     # Find least likely point
-    logl_dead, idx_dead = findmin(state.logl)
-    u_dead = @view state.us[idx_dead, :]
-    v_dead = @view state.vs[idx_dead, :]
+    logl_dead, idx_dead = findmin(logl)
+    u_dead = @view us[:, idx_dead]
+    v_dead = @view vs[:, idx_dead]
 
     # update weight using trapezoidal rule
     logvol = -sampler.dlnvol
     logdvol = log((1 - exp(logvol)) / 2)
     logwt = logl_dead + logdvol
 
-    # sample a new live point using bounds and proposal
-    point = rand(rng, T, s.ndims)
-    bound = Bounds.NoBounds(T, s.ndims)
+    # sample a new live point without bounds
+    point = rand(rng, eltype(us), sampler.ndims)
+    bound = Bounds.fit(Bounds.NoBounds, us)
     proposal = Proposals.Uniform()
-    u, v, logl, nc = proposal(rng, v_dead, logl_dead, bound, model.loglike, model.prior_transform)
+    u, v, ll, nc = proposal(rng, v_dead, logl_dead, bound, model.loglike, model.prior_transform)
 
-    us[idx_dead] .= u
-    vs[idx_dead] .= v
-    logl[idx_dead] = logl
+    us[:, idx_dead] .= u
+    vs[:, idx_dead] .= v
+    logl[idx_dead] = ll
 
     ncall = since_update = nc
 
@@ -33,26 +33,26 @@ function AbstractMCMC.step(rng, model, sampler::Nested; kwargs...)
     logzvar = 2 * h * sampler.dlnvol
 
     sample = (u=u_dead, v=v_dead, logwt=logwt, logl=logl_dead)
-    state = (it=1, us=us, vs=vs, logl=logl, logl_dead=logl_dead, logwt=logwt,
-             logz=logz, logzvar=logzvar, logvol=logvol,
+    state = (it=1, ncall=ncall, us=us, vs=vs, logl=logl, logl_dead=logl_dead, logwt=logwt,
+             logz=logz, logzvar=logzvar, h=h, logvol=logvol,
              since_update=since_update, has_bounds=false, active_bound=nothing)
 
     return sample, state
 end
 
-function AbstractMCMC.step(rng, model, sampler, state; kwargs...)
+function step(rng, model, sampler, state; kwargs...)
     ## Update bounds
     pointvol = exp(state.logvol) / sampler.nactive
     # check if ready for first update
     if !state.has_bounds && state.ncall > sampler.min_ncall && state.it / state.ncall < sampler.min_eff
         @debug "First update: it=$(state.it), ncall=$(state.ncall), eff=$(state.it / state.ncall)"
-        active_bound = Bounds.scale!(Bounds.fit(B, state.us, pointvol = pointvol), sampler.enlarge)
+        active_bound = Bounds.scale!(Bounds.fit(sampler.bounds, state.us, pointvol = pointvol), sampler.enlarge)
         since_update = 0
         has_bounds = true
     # if accepted first update, is it time to update again?
-    elseif iszero(state.since_update % state.update_interval)
+    elseif iszero(state.since_update % sampler.update_interval)
         @debug "Updating bounds: it=$(state.it), ncall=$(state.ncall), eff=$(state.it / state.ncall)"
-        active_bound = Bounds.scale!(Bounds.fit(B, state.us, pointvol = pointvol), sampler.enlarge)
+        active_bound = Bounds.scale!(Bounds.fit(sampler.bounds, state.us, pointvol = pointvol), sampler.enlarge)
         since_update = 0
         has_bounds = true
     else
@@ -64,8 +64,8 @@ function AbstractMCMC.step(rng, model, sampler, state; kwargs...)
     ## Replace least-likely active point
     # Find least likely point
     logl_dead, idx_dead = findmin(state.logl)
-    u_dead = @view state.us[idx_dead, :]
-    v_dead = @view state.vs[idx_dead, :]
+    u_dead = @view state.us[:, idx_dead]
+    v_dead = @view state.vs[:, idx_dead]
 
     # update weight using trapezoidal rule
     logvol = state.logvol - sampler.dlnvol
@@ -78,16 +78,16 @@ function AbstractMCMC.step(rng, model, sampler, state; kwargs...)
 
     # sample a new live point using bounds and proposal
     if has_bounds
-        point, bound = rand_live(rng, state.active_bound, state.us)
-        u, v, logl, nc = s.proposal(rng, v_dead, logl_dead, bound, model.loglike, model.prior_transform)
+        point, bound = rand_live(rng, active_bound, state.us)
+        u, v, logl, nc = sampler.proposal(rng, point, logl_dead, bound, model.loglike, model.prior_transform)
     else
-        point = rand(rng, T, s.ndims)
-        bound = Bounds.NoBounds(T, s.ndims)
+        point = rand(rng, eltype(state.us), sampler.ndims)
+        bound = Bounds.fit(Bounds.NoBounds, state.us)
         proposal = Proposals.Uniform()
-        u, v, logl, nc = proposal(rng, v_dead, logl_dead, bound, model.loglike, model.prior_transform)
+        u, v, logl, nc = proposal(rng, point, logl_dead, bound, model.loglike, model.prior_transform)
     end
-    state.us[idx_dead, :] .= u
-    state.vs[idx_dead, :] .= v
+    state.us[:, idx_dead] .= u
+    state.vs[:, idx_dead] .= v
     state.logl[idx_dead] = logl
 
     ncall = state.ncall + nc
@@ -96,14 +96,14 @@ function AbstractMCMC.step(rng, model, sampler, state; kwargs...)
     # update evidence and information
     logz = logaddexp(state.logz, state.logwt)
     h = (exp(state.logwt - logz) * state.logl_dead +
-           exp(state.logz - logz) * (state.h + state.logz) - logz)
+         exp(state.logz - logz) * (state.h + state.logz) - logz)
     dh = h - state.h
     logzvar = state.logzvar + 2 * dh * sampler.dlnvol
 
     ## prepare returns
     sample = (u=u_dead, v=v_dead, logwt=logwt, logl=logl_dead)
-    state = (it=state.it + 1, us=state.us, vs=state.vs, logl=state.logl, logl_dead=logl_dead, logwt=logwt,
-             logz=logz, logzvar=logzvar, logvol=logvol,
+    state = (it=state.it + 1, ncall=ncall, us=state.us, vs=state.vs, logl=state.logl, logl_dead=logl_dead, logwt=logwt,
+             logz=logz, logzvar=logzvar, h=h, logvol=logvol,
              since_update=since_update, has_bounds=has_bounds, active_bound=active_bound)
 
     return sample, state
@@ -169,24 +169,24 @@ end
 
 ## Helpers
 
-init_particles(rng, nactive, ndims, prior, loglike) =
-    init_particles(rng, Float64, nactive, ndims, prior, loglike)
+init_particles(rng, ndims, nactive, prior, loglike) =
+    init_particles(rng, Float64, ndims, nactive, prior, loglike)
 
 init_particles(rng, model, sampler) =
-    init_particles(rng, sampler.nactive, sampler.ndims, model.prior_transform, model.loglike)
+    init_particles(rng, sampler.ndims, sampler.nactive, model.prior_transform, model.loglike)
 
 # loop and fill arrays, checking validity of points
 # will retry 100 times before erroring
-function init_particles(rng, T, nactive, ndims, prior, loglike)
-    us = rand(rng, T, nactive, ndims)
-    vs = mapslices(prior, us, dims=2)
-    logl = mapslices(loglike, vs, dims=2)
+function init_particles(rng, T, ndims, nactive, prior, loglike)
+    us = rand(rng, T, ndims, nactive)
+    vs = mapslices(prior, us, dims=1)
+    logl = dropdims(mapslices(loglike, vs, dims=1), dims=1)
     ntries = 1
     while true
         any(isfinite, logl) && break
-        us .= rand(rng, T, nactive, ndims)
-        vs .= mapslices(prior, us, dims=2)
-        logl .= mapslices(loglike, vs, dims=2)
+        us .= rand(rng, T, ndims, nactive)
+        vs .= mapslices(prior, us, dims=1)
+        logl .= mapslices(loglike, vs, dims=1)
         ntries += 1
         ntries > 100 && error("After 100 attempts, could not initialize any live points with finite loglikelihood. Please check your prior transform and loglikelihood methods.")
     end
@@ -214,8 +214,8 @@ function add_live_points(samples, model, sampler, state)
 
     @inbounds for (i, idx) in enumerate(sorted_idxs)
         # get new point
-        u = @view state.us[idx, :]
-        v = @view state.vs[idx, :]
+        u = @view state.us[:, idx]
+        v = @view state.vs[:, idx]
         ll = state.logl[idx]
 
         logvol = log(1 - i / (sampler.nactive + 1))

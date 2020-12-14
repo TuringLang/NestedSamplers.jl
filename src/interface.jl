@@ -1,10 +1,10 @@
 # Interface Implementations for running full sampling loops
 
 StatsBase.sample(rng::AbstractRNG, model, sampler::Nested; kwargs...) =
-    AbstractMCMC.mcmcsample(rng, model, sampler; kwargs...)
+    mcmcsample(rng, model, sampler; kwargs...)
 
 StatsBase.sample(model, sampler::Nested; kwargs...) =
-    sample(Random.GLOBAL_RNG, model, sampler; kwargs...)
+    StatsBase.sample(Random.GLOBAL_RNG, model, sampler; kwargs...)
 
 function isdone(state; dlogz=0.5, maxiter=Inf, maxcall=Inf, maxlogl=Inf, kwargs...)
     # 1) iterations exceeds maxiter
@@ -12,7 +12,7 @@ function isdone(state; dlogz=0.5, maxiter=Inf, maxcall=Inf, maxlogl=Inf, kwargs.
     # 2) number of loglike calls has been exceeded
     done_sampling |= state.ncall > maxcall
     # 3) remaining fractional log-evidence below threshold
-    logz_remain = maximum(state.active_logl) + state.logvol
+    logz_remain = maximum(state.logl) + state.logvol
     delta_logz = logaddexp(state.logz, logz_remain) - state.logz
     done_sampling |= delta_logz < dlogz
     # 4) last dead point loglikelihood exceeds threshold
@@ -23,10 +23,15 @@ function isdone(state; dlogz=0.5, maxiter=Inf, maxcall=Inf, maxlogl=Inf, kwargs.
 end
 
 
-function AbstractMCMC.mcmcsample(
+function mcmcsample(
     rng,
     model,
     sampler::Nested;
+    progress=true,
+    progressname="Nested Sampling",
+    discard_initial=0,
+    thinning=1,
+    chain_type=Any,
     kwargs...
 )
     @ifwithprogresslogger progress name=progressname begin
@@ -38,9 +43,6 @@ function AbstractMCMC.mcmcsample(
             # Obtain the next sample and state.
             sample, state = step(rng, model, sampler, state; kwargs...)
         end
-
-        # Run callback.
-        callback === nothing || callback(rng, model, sampler, sample, 1)
 
         # Save the sample.
         samples = AbstractMCMC.samples(sample, model, sampler; kwargs...)

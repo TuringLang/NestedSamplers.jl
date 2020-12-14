@@ -1,8 +1,9 @@
 # Sampler and model implementations
 
-mutable struct Nested{B <: AbstractBoundingSpace,P <: AbstractProposal} <: AbstractSampler
+struct Nested{B,P <: AbstractProposal} <: AbstractSampler
     ndims::Int
     nactive::Int
+    bounds::B
     enlarge::Float64
     update_interval::Int
     min_ncall::Int
@@ -69,14 +70,15 @@ function Nested(ndims,
     update_interval = round(Int, update_interval_frac * nactive)
     # expected volume shrinkage
     dlnvol = log((nactive + 1) / nactive)
-    return Nested{bounds,typeof(proposal)}(ndims,
+    return Nested(ndims,
         nactive,
+        bounds,
         enlarge,
         update_interval,
         min_ncall,
         min_eff,
         proposal,
-        dlnovl)
+        dlnvol)
 end
 
 default_update_interval(p::Proposals.Uniform, ndims) = 1.5
@@ -85,22 +87,15 @@ default_update_interval(p::Proposals.RStagger, ndims) = 0.15 * p.walks
 default_update_interval(p::Proposals.Slice, ndims) = 0.9 * ndims * p.slices
 default_update_interval(p::Proposals.RSlice, ndims) = 2.0 * p.slices
 
+# struct NestedTransition{T}
+#     draw::Vector{T}  # the sample
+#     logL::Float64    # log likelihood
+#     log_wt::Float64  # log weight of this draw
+# end
 
-function Base.show(io::IO, n::Nested)
-    println(io, "Nested(ndims=$(n.ndims), nactive=$(n.nactive), enlarge=$(n.enlarge), update_interval=$(n.update_interval))")
-    println(io, "  bounds=$(n.active_bound)")
-    println(io, "  proposal=$(n.proposal)")
-end
-
-struct NestedTransition{T}
-    draw::Vector{T}  # the sample
-    logL::Float64    # log likelihood
-    log_wt::Float64  # log weight of this draw
-end
-
-function Base.show(io::IO, t::T) where {T <: NestedTransition}
-    println(io, "$T")
-    println(io, "  $(t.draw)")
-    println(io, "  log-likelihood=$(t.logL)")
-    print(io,   "  log-weight=$(t.log_wt)")
-end
+# function Base.show(io::IO, t::T) where {T <: NestedTransition}
+#     println(io, "$T")
+#     println(io, "  $(t.draw)")
+#     println(io, "  log-likelihood=$(t.logL)")
+#     print(io,   "  log-weight=$(t.log_wt)")
+# end
