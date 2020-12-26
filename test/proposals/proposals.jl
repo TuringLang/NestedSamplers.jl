@@ -3,7 +3,8 @@ const PROPOSALS = [
     Proposals.RWalk(),
     Proposals.RStagger(),
     Proposals.Slice(),
-    Proposals.RSlice()
+    Proposals.RSlice(),
+    Proposals.HSlice()
 ]
 
 const BOUNDS = [
@@ -82,4 +83,17 @@ end
 
     @test_throws AssertionError Proposals.RSlice(slices=-2)
     @test_throws AssertionError Proposals.RSlice(scale=-3)
+end
+
+@testset "HSlice" begin
+    prop = Proposals.HSlice()
+    @test prop.slices == 5
+    @test prop.scale == 1
+    @test prop.grad == nothing
+    @test prop.max_move == 100
+    @test prop.fmove == 0.9
+    @test prop.compute_jac == false
+
+    @test_throws AssertionError Proposals.HSlice(slices=-2)
+    @test_throws AssertionError Proposals.HSlice(scale=-3)
 end
