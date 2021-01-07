@@ -36,6 +36,6 @@ export Bounds,
 include("model.jl")         # The default model for nested sampling
 include("staticsampler.jl") # The static nested sampler
 include("step.jl")          # The stepping mechanics (extends AbstractMCMC)
-include("interface.jl")        # Custom sampling (extends AbstractMCMC)
+include("sample.jl")        # Custom sampling (extends AbstractMCMC)
 
 end

@@ -158,27 +158,29 @@ function bundle_samples(samples,
     return Chains(vals, param_names, Dict(:internals => ["weights"]), evidence = state.logz), state
 end
 
-function bundle_samples(samples,
-        ::AbstractModel,
-        sampler::Nested,
-        state,
-        ::Type{A};
-        check_wsum = true,
-        kwargs...) where {A<:AbstractArray}
+bundle_samples(samples, ::AbstractMCMC.AbstractModel, ::Nested, ::Any, ::Type) = samples
 
-    vals = mapreduce(t->hcat(t.v..., t.logwt), vcat, samples)
-    # update weights based on evidence
-    @. vals[:, end] = exp(vals[:, end] - state.logz)
-    wsum = sum(vals[:, end])
-    @. vals[:, end] /= wsum
+# function bundle_samples(samples,
+#         ::AbstractModel,
+#         sampler::Nested,
+#         state,
+#         ::Type{A};
+#         check_wsum = true,
+#         kwargs...) where {A<:AbstractArray}
 
-    if check_wsum
-        err = !iszero(state.h) ? 3 * sqrt(state.h / sampler.nactive) : 1e-3
-        isapprox(wsum, 1, atol = err) || @warn "Weights sum to $wsum instead of 1; possible bug"
-    end
+#     vals = mapreduce(t->hcat(t.v..., t.logwt), vcat, samples)
+#     # update weights based on evidence
+#     @. vals[:, end] = exp(vals[:, end] - state.logz)
+#     wsum = sum(vals[:, end])
+#     @. vals[:, end] /= wsum
 
-    return vals, state
-end
+#     if check_wsum
+#         err = !iszero(state.h) ? 3 * sqrt(state.h / sampler.nactive) : 1e-3
+#         isapprox(wsum, 1, atol = err) || @warn "Weights sum to $wsum instead of 1; possible bug"
+#     end
+
+#     return vals, state
+# end
 
 ## Helpers
 

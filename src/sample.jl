@@ -38,8 +38,6 @@ function mcmcsample(
         # Step through the sampler until stopping.
         i = 2
 
-        id = @progressid
-
         while true
             ## check convergence
             # 1) iterations exceeds maxiter
@@ -55,7 +53,7 @@ function mcmcsample(
             # 5) number of effective samples
             # TODO
 
-            @logprogress NaN _id=id iter=state.it ncall=state.ncall dlogz=delta_logz logl=state.logl_dead
+            @logprogress NaN iter=state.it ncall=state.ncall dlogz=delta_logz logl=state.logl_dead
             done_sampling && break
 
             # Discard thinned samples.
@@ -73,9 +71,9 @@ function mcmcsample(
         end
         logz_remain = maximum(state.logl) + state.logvol
         delta_logz = logaddexp(state.logz, logz_remain) - state.logz
-        @logprogress "done" _id=id iter=state.it ncall=state.ncall dlogz=delta_logz logl=state.logl_dead
+        @logprogress "done" iter=state.it ncall=state.ncall dlogz=delta_logz logl=state.logl_dead
     end
 
     # Wrap the samples up.
-    return bundle_samples(samples, model, sampler, state, chain_type; kwargs...)
+    return bundle_samples(samples, model, sampler, state, chain_type; kwargs...), state
 end
