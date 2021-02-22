@@ -1,5 +1,4 @@
 
-
 function step(rng, model, sampler::Nested; kwargs...)
     # Initialize particles
     # us are in unit space, vs are in prior space
@@ -27,23 +26,10 @@ function step(rng, model, sampler::Nested; kwargs...)
 
     ncall = since_update = nc
 
-    prev_h = 0.  # information, initially *0.*
-    prev_logz = -1.e300  # ln(evidence), initially *0.*
-    prev_logzvar = 0.  # var[ln(evidence)], initially *0.*
-    prev_logvol = 0.  # initially contains the whole prior (volume=1.)
-    prev_logl = -1.e300  # initial ln(likelihood)
-
     # update evidence and information
-    logz = logaddexp(prev_logz, logwt)
-    h = (exp(logwt - logz) * prev_logl +
-         exp(prev_logz - logz) * (prev_h + prev_logz) - logz)
-    dh = h - prev_h
-    logzvar = prev_logzvar + 2 * dh * sampler.dlnvol
-
-    # # update evidence and information
-    # logz = logwt
-    # h = logz
-    # logzvar = 2 * h * sampler.dlnvol
+    logz = logwt
+    h = logz
+    logzvar = 2 * h * sampler.dlnvol
 
     sample = (u=u_dead, v=v_dead, logwt=logwt, logl=logl_dead)
     state = (it=1, ncall=ncall, us=us, vs=vs, logl=logl, logl_dead=logl_dead, logwt=logwt,
@@ -87,6 +73,8 @@ function step(rng, model, sampler, state; kwargs...)
         X⁺ = max(state.logvol, logvol)
         X⁺ + log((exp(state.logvol - X⁺) - exp(logvol - X⁺)) / 2)
     end
+    # @show logdvol
+    # @show a=[logvol + sampler.dlnvol, logvol] b=[0.5, -0.5]
     logwt = logaddexp(logl_dead, state.logl_dead) + logdvol
 
     # sample a new live point using bounds and proposal
@@ -175,7 +163,7 @@ bundle_samples(samples, ::AbstractMCMC.AbstractModel, ::Nested, ::Any, ::Type) =
 #     @. vals[:, end] /= wsum
 
 #     if check_wsum
-#         err = !iszero(state.h) ? 3 * sqrt(state.h / sampler.nactive) : 1e-3
+#         err = !iszero(state.logzvar) ? 3 * sqrt(state.logzvar) : 1e-3
 #         isapprox(wsum, 1, atol = err) || @warn "Weights sum to $wsum instead of 1; possible bug"
 #     end
 

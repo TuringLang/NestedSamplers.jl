@@ -53,7 +53,7 @@ function mcmcsample(
             # 5) number of effective samples
             # TODO
 
-            @logprogress NaN iter=state.it ncall=state.ncall dlogz=delta_logz logl=state.logl_dead
+            # @info "sampling" iter=state.it ncall=state.ncall dlogz=delta_logz logl=state.logl_dead
             done_sampling && break
 
             # Discard thinned samples.
@@ -71,7 +71,7 @@ function mcmcsample(
         end
         logz_remain = maximum(state.logl) + state.logvol
         delta_logz = logaddexp(state.logz, logz_remain) - state.logz
-        @logprogress "done" iter=state.it ncall=state.ncall dlogz=delta_logz logl=state.logl_dead
+        @info "done" iter=state.it ncall=state.ncall dlogz=delta_logz logl=state.logl_dead
     end
 
     # Wrap the samples up.
