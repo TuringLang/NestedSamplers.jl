@@ -73,8 +73,6 @@ function step(rng, model, sampler, state; kwargs...)
         X⁺ = max(state.logvol, logvol)
         X⁺ + log((exp(state.logvol - X⁺) - exp(logvol - X⁺)) / 2)
     end
-    # @show logdvol
-    # @show a=[logvol + sampler.dlnvol, logvol] b=[0.5, -0.5]
     logwt = logaddexp(logl_dead, state.logl_dead) + logdvol
 
     # sample a new live point using bounds and proposal
