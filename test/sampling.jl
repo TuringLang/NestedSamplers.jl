@@ -43,13 +43,14 @@ end
 
     prior(X) = 10 .* X .- 5
     model = NestedModel(logl, prior)
-    
+
     analytic_logz = log(4π * σ^2 / 100)
 
-    
+
     spl = Nested(2, 1000, bounds = bound, proposal = P())
     chain, state = sample(rng, model, spl, dlogz=0.1, chain_type = Array, progress=false)
+
     @test state.logz ≈ analytic_logz atol = 5sqrt(state.logzvar) # within 5σ
-    # @test sort!(findpeaks(chain[:, 1, 1])[1:2]) ≈ [-1, 1] rtol = 3e-2
-    # @test sort!(findpeaks(chain[:, 2, 1])[1:2]) ≈ [-1, 1] rtol = 3e-2
+    @test sort!(findpeaks(chain[:, 1, 1])[1:2]) ≈ [-1, 1] rtol = 3e-2
+    @test sort!(findpeaks(chain[:, 2, 1])[1:2]) ≈ [-1, 1] rtol = 3e-2
 end

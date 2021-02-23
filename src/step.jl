@@ -146,27 +146,28 @@ end
 
 bundle_samples(samples, ::AbstractMCMC.AbstractModel, ::Nested, ::Any, ::Type) = samples
 
-# function bundle_samples(samples,
-#         ::AbstractModel,
-#         sampler::Nested,
-#         state,
-#         ::Type{A};
-#         check_wsum = true,
-#         kwargs...) where {A<:AbstractArray}
+function bundle_samples(samples,
+        ::AbstractModel,
+        sampler::Nested,
+        state,
+        ::Type{A};
+        check_wsum = true,
+        kwargs...) where {A<:AbstractArray}
 
-#     vals = mapreduce(t->hcat(t.v..., t.logwt), vcat, samples)
-#     # update weights based on evidence
-#     @. vals[:, end] = exp(vals[:, end] - state.logz)
-#     wsum = sum(vals[:, end])
-#     @. vals[:, end] /= wsum
+    wsum = sum(samples) do samp
+        # update weights based on evidence
+        logwt = exp(samp.logwt - state.logz)
+    end
 
-#     if check_wsum
-#         err = !iszero(state.logzvar) ? 3 * sqrt(state.logzvar) : 1e-3
-#         isapprox(wsum, 1, atol = err) || @warn "Weights sum to $wsum instead of 1; possible bug"
-#     end
+    if check_wsum
+        err = !iszero(state.logzvar) ? 3 * sqrt(state.logzvar) : 1e-3
+        isapprox(wsum, 1, atol = err) || @warn "Weights sum to $wsum instead of 1; possible bug"
+    end
 
-#     return vals, state
-# end
+    vals = mapreduce(t->hcat(t.v..., t.logwt/wsum), vcat, samples)
+
+    return vals
+end
 
 ## Helpers
 
