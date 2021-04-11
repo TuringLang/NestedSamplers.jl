@@ -10,9 +10,8 @@ function step(rng, model, sampler::Nested; kwargs...)
     v_dead = @view vs[:, idx_dead]
 
     # update weight using trapezoidal rule
-    logvol = -sampler.dlnvol
-    logdvol = log((1 - exp(logvol)) / 2)
-    logwt = logl_dead + logdvol
+    logvol = log1mexp(-1 / sampler.nactive)
+    logwt = logl_dead + logvol
 
     # sample a new live point without bounds
     point = rand(rng, eltype(us), sampler.ndims)
@@ -28,12 +27,12 @@ function step(rng, model, sampler::Nested; kwargs...)
 
     # update evidence and information
     logz = logwt
-    h = logz
-    logzvar = 2 * h * sampler.dlnvol
+    h = logl_dead - logz
+    logzerr = sqrt(h / sampler.nactive)
 
     sample = (u = u_dead, v = v_dead, logwt = logwt, logl = logl_dead)
-    state = (it = 1, ncall = ncall, us = us, vs = vs, logl = logl, logl_dead = logl_dead, logwt = logwt,
-             logz = logz, logzvar = logzvar, h = h, logvol = logvol,
+    state = (it = 1, ncall = ncall, us = us, vs = vs, logl = logl, logl_dead = logl_dead,
+             logz = logz, logzerr = logzerr, h = h, logvol = logvol,
              since_update = since_update, has_bounds = false, active_bound = nothing)
 
     return sample, state
@@ -66,15 +65,6 @@ function step(rng, model, sampler, state; kwargs...)
     u_dead = @view state.us[:, idx_dead]
     v_dead = @view state.vs[:, idx_dead]
 
-    # update weight using trapezoidal rule
-    logvol = state.logvol - sampler.dlnvol
-    logdvol = begin
-        # weighted logaddexp
-        X⁺ = max(state.logvol, logvol)
-        X⁺ + log((exp(state.logvol - X⁺) - exp(logvol - X⁺)) / 2)
-    end
-    logwt = logaddexp(logl_dead, state.logl_dead) + logdvol
-
     # sample a new live point using bounds and proposal
     if has_bounds
         point, bound = rand_live(rng, active_bound, state.us)
@@ -85,6 +75,7 @@ function step(rng, model, sampler, state; kwargs...)
         proposal = Proposals.Uniform()
         u, v, logl, nc = proposal(rng, point, logl_dead, bound, model.loglike, model.prior_transform)
     end
+
     state.us[:, idx_dead] .= u
     state.vs[:, idx_dead] .= v
     state.logl[idx_dead] = logl
@@ -92,17 +83,20 @@ function step(rng, model, sampler, state; kwargs...)
     ncall = state.ncall + nc
     since_update += nc
 
+    # update weight
+    logvol = state.logvol - 1 / sampler.nactive
+    logwt = state.logvol + logl_dead
+
     # update evidence and information
-    logz = logaddexp(state.logz, state.logwt)
-    h = (exp(state.logwt - logz) * state.logl_dead +
+    logz = logaddexp(state.logz, logwt)
+    h = (exp(logwt - logz) * logl_dead +
          exp(state.logz - logz) * (state.h + state.logz) - logz)
-    dh = h - state.h
-    logzvar = state.logzvar + 2 * dh * sampler.dlnvol
+    logzerr = sqrt(h / sampler.nactive)
 
     ## prepare returns
     sample = (u = u_dead, v = v_dead, logwt = logwt, logl = logl_dead)
-    state = (it = state.it + 1, ncall = ncall, us = state.us, vs = state.vs, logl = state.logl, logl_dead = logl_dead, logwt = logwt,
-             logz = logz, logzvar = logzvar, h = h, logvol = logvol,
+    state = (it = state.it + 1, ncall = ncall, us = state.us, vs = state.vs, logl = state.logl, logl_dead = logl_dead,
+             logz = logz, logzerr = logzerr, h = h, logvol = logvol,
              since_update = since_update, has_bounds = has_bounds, active_bound = active_bound)
 
     return sample, state
@@ -128,7 +122,7 @@ function bundle_samples(samples,
     @. vals[:, end, 1] /= wsum
 
     if check_wsum
-        err = !iszero(state.logzvar) ? 3 * sqrt(state.logzvar) : 1e-3
+        err = !iszero(state.logzerr) ? 3 * state.logzerr : 1e-3
         isapprox(wsum, 1, atol=err) || @warn "Weights sum to $wsum instead of 1; possible bug"
     end
 
@@ -149,7 +143,7 @@ function bundle_samples(samples,
         add_live=true,
         check_wsum=true,
         kwargs...)
-    
+
     if add_live
         samples, state = add_live_points(samples, model, sampler, state)
     end
@@ -157,7 +151,7 @@ function bundle_samples(samples,
     wsum = sum(s -> exp(s.logwt - state.logz), samples)
 
     if check_wsum
-        err = !iszero(state.logzvar) ? 3 * sqrt(state.logzvar) : 1e-3
+        err = !iszero(state.logzerr) ? 3 * state.logzerr : 1e-3
         isapprox(wsum, 1, atol=err) || @warn "Weights sum to $wsum instead of 1; possible bug"
     end
 
@@ -184,7 +178,7 @@ function bundle_samples(samples,
     wsum = sum(s -> exp(s.logwt - state.logz), samples)
 
     if check_wsum
-        err = !iszero(state.logzvar) ? 3 * sqrt(state.logzvar) : 1e-3
+        err = !iszero(state.logzerr) ? 3 * state.logzerr : 1e-3
         isapprox(wsum, 1, atol=err) || @warn "Weights sum to $wsum instead of 1; possible bug"
     end
 
@@ -235,56 +229,37 @@ end
 
 # add remaining live points to `samples`
 function add_live_points(samples, model, sampler, state)
-    N = length(samples)
+    logvol = -state.it / sampler.nactive - log(sampler.nactive)
 
-    prev_logvol = state.logvol
     prev_logz = state.logz
-    prev_logzvar = state.logzvar
     prev_h = state.h
-    prev_ll = state.logl_dead
 
-    sorted_idxs = sortperm(state.logl)
+    local logl, logz, h, logzerr 
 
-    dlnvol = -N / sampler.nactive
-
-    local logwt
-
-    @inbounds for (i, idx) in enumerate(sorted_idxs)
+    @inbounds for (i, idx) in enumerate(eachindex(state.logl))
         # get new point
         u = @view state.us[:, idx]
         v = @view state.vs[:, idx]
-        ll = state.logl[idx]
+        logl = state.logl[idx]
 
-        logvol = prev_logvol + log(1 - i / (sampler.nactive + 1))
-        logdvol = begin
-            # weighted logaddexp
-            X⁺ = max(prev_logvol, logvol)
-            X⁺ + log((exp(prev_logvol - X⁺) - exp(logvol - X⁺))) - log(2)
-        end
-        logwt = logaddexp(ll, prev_ll) + logdvol
-        
         # update sampler
+        logwt = logvol + logl
         logz = logaddexp(prev_logz, logwt)
-        lzterm = (exp(prev_ll - logz) * prev_ll +
-                  exp(ll - logz) * ll)
-        h = (exp(logdvol) * lzterm +
+        h = (exp(logwt - logz) * logl +
              exp(prev_logz - logz) * (prev_h + prev_logz) - logz)
-        dh = h - prev_h
-        logzvar = prev_logzvar + 2 * dh * dlnvol
+        logzerr = sqrt(h / sampler.nactive)
 
         prev_logz = logz
-        prev_logzvar = logzvar
         prev_h = h
-        prev_ll = ll
 
-        sample = (u = u, v = v, logwt = logwt, logl = ll)
-        save!!(samples, sample, N + i, model, sampler)
-
+        sample = (u = u, v = v, logwt = logwt, logl = logl)
+        save!!(samples, sample, length(samples) + i, model, sampler)
+       
         i += 1
     end
 
-    state = (it = N + sampler.nactive, us = state.us, vs = state.vs, logl = state.logl, logl_dead = prev_ll, logwt = logwt,
-            logz = prev_logz, logzvar = prev_logzvar, logvol = prev_logvol,
+    state = (it = state.it + sampler.nactive, us = state.us, vs = state.vs, logl = logl,
+            logz = logz, logzerr = logzerr, logvol = logvol,
             since_update = state.since_update, has_bounds = state.has_bounds, active_bound = state.active_bound)
     return samples, state
 end
