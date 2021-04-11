@@ -9,7 +9,6 @@ struct Nested{B,P <: AbstractProposal} <: AbstractSampler
     min_ncall::Int
     min_eff::Float64
     proposal::P
-    dlnvol::Float64
 end
 
 """
@@ -68,8 +67,6 @@ function Nested(ndims,
 
     update_interval_frac = get(kwargs, :update_interval, default_update_interval(proposal, ndims))
     update_interval = round(Int, update_interval_frac * nactive)
-    # expected volume shrinkage
-    dlnvol = log((nactive + 1) / nactive)
     return Nested(ndims,
         nactive,
         bounds,
@@ -77,8 +74,7 @@ function Nested(ndims,
         update_interval,
         min_ncall,
         min_eff,
-        proposal,
-        dlnvol)
+        proposal)
 end
 
 default_update_interval(p::Proposals.Uniform, ndims) = 1.5
@@ -86,16 +82,3 @@ default_update_interval(p::Proposals.RWalk, ndims) = 0.15 * p.walks
 default_update_interval(p::Proposals.RStagger, ndims) = 0.15 * p.walks
 default_update_interval(p::Proposals.Slice, ndims) = 0.9 * ndims * p.slices
 default_update_interval(p::Proposals.RSlice, ndims) = 2.0 * p.slices
-
-# struct NestedTransition{T}
-#     draw::Vector{T}  # the sample
-#     logL::Float64    # log likelihood
-#     log_wt::Float64  # log weight of this draw
-# end
-
-# function Base.show(io::IO, t::T) where {T <: NestedTransition}
-#     println(io, "$T")
-#     println(io, "  $(t.draw)")
-#     println(io, "  log-likelihood=$(t.logL)")
-#     print(io,   "  log-weight=$(t.log_wt)")
-# end

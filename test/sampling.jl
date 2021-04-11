@@ -9,16 +9,24 @@ using StatsBase
     priors = [Uniform(-1, 1)]
     model = NestedModel(logl, priors)
     spl = Nested(1, 500)
-    chains, _ = sample(rng, model, spl; dlogz = 0.2, param_names = ["x"], chain_type = Chains, progress=false)
-    val_arr, _ = sample(rng, model, spl; dlogz = 0.2, chain_type = Array, progress=false)
-    tuple_vec, _ = sample(rng, model, spl; dlogz=0.2, param_names = [:x], chain_type=Vector)
+    chains, _ = sample(rng, model, spl; dlogz=0.2, param_names=["x"], chain_type=Chains)
+    val_arr, _ = sample(rng, model, spl; dlogz=0.2, chain_type=Array)
 
-    @test size(chains, 2) == size(val_arr, 2) == length(tuple_vec[1])
+    @test size(chains, 2) == size(val_arr, 2)
 
+    # test with add_live = false
+    chains2, _ = sample(rng, model, spl; add_live=false, dlogz=0.2, param_names=["x"], chain_type=Chains)
+    val_arr2, _ = sample(rng, model, spl; add_live=false, dlogz=0.2, chain_type=Array)
+    
+    @test size(chains2, 2) == size(val_arr2, 2)
+    @test size(chains2, 1) < size(chains, 1) && size(val_arr2, 1) < size(val_arr, 1)
 
+    # test check_wsum kwarg
+    chains3, _ = sample(rng, model, spl; dlogz=0.2, param_names=["x"], chain_type=Chains)
+    val_arr3, _ = sample(rng, model, spl; dlogz=0.2, chain_type=Array)
+
+    @test size(chains3, 2) == size(val_arr3, 2)
 end
-
-
 
 const test_bounds = [Bounds.NoBounds, Bounds.Ellipsoid, Bounds.MultiEllipsoid]
 const test_props = [Proposals.Uniform(), Proposals.RWalk(ratio=0.9), Proposals.RStagger(ratio=0.9, walks=50), Proposals.Slice(slices=10), Proposals.RSlice()]
@@ -55,14 +63,17 @@ const test_props = [Proposals.Uniform(), Proposals.RWalk(ratio=0.9), Proposals.R
     analytic_logz = log(4π * σ^2 / 100)
 
 
-    spl = Nested(2, 1000, bounds = bound, proposal = proposal)
-    chain, state = sample(rng, model, spl, chain_type = Chains, progress=false)
+    spl = Nested(2, 1000, bounds=bound, proposal=proposal)
+    chain, state = sample(rng, model, spl)
 
     diff = state.logz - analytic_logz
-    if diff > 3state.logzerr
-        @warn "logz estimate is poor" bound proposal error=diff tolerance=3state.logzerr
+    atol = bound <: Bounds.NoBounds ? 5state.logzerr : 3state.logzerr
+    if diff > atol
+        @warn "logz estimate is poor" bound proposal error = diff tolerance = atol
     end
-    @test state.logz ≈ analytic_logz atol=3state.logzerr # within 3σ
+
+
+    @test state.logz ≈ analytic_logz atol = atol # within 3σ
     @test sort!(findpeaks(chain[:, 1, 1])[1:2]) ≈ [-1, 1] atol = 2σ
     @test sort!(findpeaks(chain[:, 2, 1])[1:2]) ≈ [-1, 1] atol = 2σ
 end

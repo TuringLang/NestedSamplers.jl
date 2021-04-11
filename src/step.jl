@@ -160,42 +160,6 @@ function bundle_samples(samples,
     return vals, state
 end
 
-
-function bundle_samples(samples,
-    model::AbstractModel,
-    sampler::Nested,
-    state,
-    ::Type{Vector};
-    param_names=missing,
-    add_live=true,
-    check_wsum=true,
-    kwargs...)
-
-    if add_live
-        samples, state = add_live_points(samples, model, sampler, state)
-    end
-
-    wsum = sum(s -> exp(s.logwt - state.logz), samples)
-
-    if check_wsum
-        err = !iszero(state.logzerr) ? 3 * state.logzerr : 1e-3
-        isapprox(wsum, 1, atol=err) || @warn "Weights sum to $wsum instead of 1; possible bug"
-    end
-
-    # Parameter names
-    if param_names === missing
-        param_names = [Symbol("Parameter $i") for i in 1:sampler.ndims]
-    end
-    push!(param_names, :weights)
-
-    vals = map(samples) do sample
-        data = (sample.v..., sample.logwt / wsum)
-        NamedTuple(zip(param_names, data))
-    end
-
-    return vals, state
-end
-
 ## Helpers
 
 init_particles(rng, ndims, nactive, prior, loglike) =
