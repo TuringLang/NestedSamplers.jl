@@ -50,7 +50,7 @@ end
 end
 
 const test_bounds = [Bounds.NoBounds, Bounds.Ellipsoid, Bounds.MultiEllipsoid]
-const test_props = [Proposals.Uniform(), Proposals.RWalk(ratio=0.9), Proposals.RStagger(ratio=0.9, walks=50), Proposals.Slice(slices=10), Proposals.RSlice()]
+const test_props = [Proposals.Uniform(), Proposals.RWalk(ratio=0.9), Proposals.RStagger(ratio=0.9, walks=75), Proposals.Slice(slices=10), Proposals.RSlice()]
 
 # @testset "Flat - $(nameof(bound)), $(nameof(typeof(proposal)))" for bound in test_bounds, proposal in test_props
 #     logl(::AbstractVector{T}) where T = zero(T)
