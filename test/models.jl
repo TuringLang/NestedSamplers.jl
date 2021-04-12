@@ -34,13 +34,6 @@ const test_props = [Proposals.Uniform(), Proposals.RWalk(ratio=0.9, walks=75), P
         sampler = Nested(2, 1000; bounds=bound, proposal=proposal)
 
         chain, state = sample(rng, model, sampler; dlogz=0.01)
-        chain_res = sample(chain, Weights(vec(chain[:weights])), length(chain))
-
-        # test posteriors
-        tol = 3 * 0.1 # 3-sigma
-        ymodes = sort!(findpeaks(chain_res[:, 2, 1])[1:2])
-        @test ymodes[1] ≈ -2 atol = tol
-        @test ymodes[2] ≈ 2 atol = tol
 
         # logz
         @test state.logz ≈ logz atol = 5state.logzerr

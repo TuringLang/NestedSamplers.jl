@@ -25,7 +25,7 @@ function GaussianShells()
 end
 
 function logshell(X, μ, radius=2, width=0.1)
-    d = sqrt(sum((X .- μ).^2))
+    d = norm(X - μ)
     norm = -log(sqrt(2 * π * width^2))
     return norm - (d - radius)^2 / (2 * width^2)
 end
