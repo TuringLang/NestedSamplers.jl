@@ -50,7 +50,7 @@ end
 end
 
 const test_bounds = [Bounds.NoBounds, Bounds.Ellipsoid, Bounds.MultiEllipsoid]
-const test_props = [Proposals.Uniform(), Proposals.RWalk(ratio=0.9), Proposals.RStagger(ratio=0.9, walks=75), Proposals.Slice(slices=10), Proposals.RSlice()]
+const test_props = [Proposals.Uniform(), Proposals.RWalk(ratio=0.9), Proposals.RStagger(ratio=0.9, walks=50), Proposals.Slice(slices=10), Proposals.RSlice()]
 
 # @testset "Flat - $(nameof(bound)), $(nameof(typeof(proposal)))" for bound in test_bounds, proposal in test_props
 #     logl(::AbstractVector{T}) where T = zero(T)
@@ -85,10 +85,10 @@ const test_props = [Proposals.Uniform(), Proposals.RWalk(ratio=0.9), Proposals.R
 
 
     spl = Nested(2, 1000, bounds=bound, proposal=proposal)
-    chain, state = sample(rng, model, spl)
+    chain, state = sample(rng, model, spl; dlogz=0.2)
 
     diff = state.logz - analytic_logz
-    atol = bound <: Bounds.NoBounds ? 5state.logzerr : 3state.logzerr
+    atol = 5state.logzerr
     if diff > atol
         @warn "logz estimate is poor" bound proposal error = diff tolerance = atol
     end
