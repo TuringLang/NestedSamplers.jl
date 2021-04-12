@@ -21,8 +21,8 @@ Random.seed!(8452)
 ```@example correlated
 using NestedSamplers
 
-# set up a 5-dimensional Gaussian
-D = 5
+# set up a 4-dimensional Gaussian
+D = 4
 model, logz = Models.CorrelatedGaussian(D)
 nothing; # hide
 ```
@@ -32,11 +32,11 @@ let's take a look at a couple of parameters to see what the likelihood surface l
 ```@example correlated
 using StatsPlots
 
-θ1 = range(-1, 1, length=100)
-θ2 = range(-1, 1, length=100)
-f = [model.loglike([t1, t2, 0, 0, 0]) for t2 in θ2, t1 in θ1]
-contourf(
-    θ1, θ2, f,
+θ1 = range(-1, 1, length=1000)
+θ2 = range(-1, 1, length=1000)
+logf = [model.loglike([t1, t2, 0, 0]) for t2 in θ2, t1 in θ1]
+heatmap(
+    θ1, θ2, exp.(logf),
     aspect_ratio=1,
     xlims=extrema(θ1),
     ylims=extrema(θ2),

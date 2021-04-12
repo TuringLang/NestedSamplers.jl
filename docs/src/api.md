@@ -42,5 +42,6 @@ Proposals.RSlice
 
 ```@docs
 Models
+Models.GaussianShells
 Models.CorrelatedGaussian
 ```

@@ -3,7 +3,7 @@ const test_props = [Proposals.Uniform(), Proposals.RWalk(ratio=0.9), Proposals.R
 
 
 @testset "$(nameof(bound)), $(nameof(typeof(proposal)))" for bound in test_bounds, proposal in test_props
-    @testset "Correlated Gaussian Conjugate Prior - ndims=$D" for D in [2, 5, 10]
+    @testset "Correlated Gaussian Conjugate Prior - ndims=$D" for D in [2, 4, 8]
         model, logz = Models.CorrelatedGaussian(D)
 
         sampler = Nested(D, 50 * (D + 1); bounds=bound, proposal=proposal)

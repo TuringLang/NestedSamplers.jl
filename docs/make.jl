@@ -13,7 +13,8 @@ makedocs(
     pages = [
         "Home" => "index.md",
         "Examples" => [
-            "Correlated Gaussian" => "examples/correlated_gaussian.md"
+            "Gaussian Shells" => "examples/shells.md",
+            "Correlated Gaussian" => "examples/correlated.md"
         ],
         "API/Reference" => "api.md"
     ],
