@@ -1,6 +1,4 @@
 """
-    Models
-
 This module contains various statistical models in the form of [`NestedModel`](@ref)s. These models can be used for examples and for testing.
 
 * [`Models.CorrelatedGaussian`](@ref)
@@ -18,19 +16,19 @@ using LinearAlgebra
 Creates a highly-correlated Gaussian with the given dimensionality.
 
 ```math
-\mathbf\theta \sim \script{N}\left(\mathbf{0}, \mathbf{I}\right)
+\mathbf\theta \sim \mathcal{N}\left(\mathbf{0}, \mathbf{I}\right)
 ```
 ```math
-\Sigma_{ij} = \begin{cases} 1 &\mbox{if } i=j \\ 0.95 &\mbox{if } i\neq j \end{cases}
+\Sigma_{ij} = \begin{cases} 1 &\quad i=j \\ 0.95 &\quad i\neq j \end{cases}
 ```
 ```math
-\script{L}(\mathbf\theta) = \script{N}\left(2\mathbf{1}, \mathbf\Sigma \right)
+\mathcal{L}(\mathbf\theta) = \mathcal{N}\left(\mathbf\theta | 2\mathbf{1}, \mathbf\Sigma \right)
 ```
 
 the analytical evidence of the model is
 
 ```math
-Z = \script{N}\left(2\mathbf{1} | \mathbf{0}, \mathbf\Sigma + \mathbf{I} \right)
+Z = \mathcal{N}\left(2\mathbf{1} | \mathbf{0}, \mathbf\Sigma + \mathbf{I} \right)
 ```
 
 ## Examples
