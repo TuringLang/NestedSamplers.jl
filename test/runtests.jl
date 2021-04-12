@@ -57,6 +57,4 @@ function findpeaks(samples::AbstractVector)
     return k.x[peak_idx[sorted_idx]]
 end
 
-
-
 @testset "Sampling" begin include("sampling.jl") end

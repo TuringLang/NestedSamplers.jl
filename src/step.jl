@@ -80,6 +80,7 @@ function step(rng, model, sampler, state; kwargs...)
     state.vs[:, idx_dead] .= v
     state.logl[idx_dead] = logl
 
+    it = state.it + 1
     ncall = state.ncall + nc
     since_update += nc
 
@@ -95,7 +96,7 @@ function step(rng, model, sampler, state; kwargs...)
 
     ## prepare returns
     sample = (u = u_dead, v = v_dead, logwt = logwt, logl = logl_dead)
-    state = (it = state.it + 1, ncall = ncall, us = state.us, vs = state.vs, logl = state.logl, logl_dead = logl_dead,
+    state = (it = it, ncall = ncall, us = state.us, vs = state.vs, logl = state.logl, logl_dead = logl_dead,
              logz = logz, logzerr = logzerr, h = h, logvol = logvol,
              since_update = since_update, has_bounds = has_bounds, active_bound = active_bound)
 

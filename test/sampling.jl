@@ -28,6 +28,27 @@ using StatsBase
     @test size(chains3, 2) == size(val_arr3, 2)
 end
 
+@testset "Stopping criterion" begin
+    logl(x::AbstractVector) =  exp(-x[1]^2 / 2) / √(2π)
+    priors = [Uniform(-1, 1)]
+    model = NestedModel(logl, priors)
+    spl = Nested(1, 500)
+    
+    chains, state = sample(rng, model, spl; add_live=false, dlogz=1.0)
+    logz_remain = maximum(state.logl) + state.logvol
+    delta_logz = logaddexp(state.logz, logz_remain) - state.logz
+    @test delta_logz < 1.0
+
+    chains, state = sample(rng, model, spl; add_live=false, maxiter=3)
+    @test state.it < 3
+
+    chains, state = sample(rng, model, spl; add_live=false, maxcall=10)
+    @test state.ncall < 10
+
+    chains, state = sample(rng, model, spl; add_live=false, maxlogl=0.2)
+    @test state.logl[1] > 0.2
+end
+
 const test_bounds = [Bounds.NoBounds, Bounds.Ellipsoid, Bounds.MultiEllipsoid]
 const test_props = [Proposals.Uniform(), Proposals.RWalk(ratio=0.9), Proposals.RStagger(ratio=0.9, walks=50), Proposals.Slice(slices=10), Proposals.RSlice()]
 
