@@ -12,8 +12,7 @@ using Random
 using Random: AbstractRNG, GLOBAL_RNG
 
 using AbstractMCMC
-using AbstractMCMC: @ifwithprogresslogger,
-                    AbstractSampler,
+using AbstractMCMC: AbstractSampler,
                     AbstractModel,
                     samples,
                     save!!

@@ -4,10 +4,10 @@
 
 using Printf
 
-StatsBase.sample(rng::AbstractRNG, model, sampler::Nested; kwargs...) =
+StatsBase.sample(rng::AbstractRNG, model::AbstractModel, sampler::Nested; kwargs...) =
     mcmcsample(rng, model, sampler, nested_isdone; progressname="Nested Sampling", chain_type=Chains, kwargs...)
 
-StatsBase.sample(model, sampler::Nested; kwargs...) =
+StatsBase.sample(model::AbstractModel, sampler::Nested; kwargs...) =
     StatsBase.sample(GLOBAL_RNG, model, sampler; kwargs...)
 
 function nested_isdone(rng, model, smapler, samples, state, i; progress=true, maxiter=Inf, maxcall=Inf, dlogz=0.5, maxlogl=Inf, kwargs...)
