@@ -7,7 +7,7 @@ function integrate_on_grid(f, ranges, density)
         step = (r[2] - r[1]) / density
         rmin = r[1] + step / 2
         rmax = r[2] - step / 2
-        push!(rs, range(rmin, rmax, length = density))
+        push!(rs, range(rmin, rmax, length=density))
     end
 
     logsum = -1e300
@@ -42,6 +42,6 @@ function findpeaks(samples::AbstractVector)
     start = runs[1][1] == 1 ? 1 : 2
     # find the peak indices at the local minima
     peak_idx = cumsum(runs[2])[start:2:end]
-    sorted_idx = sortperm(k.density[peak_idx], rev = true)
+    sorted_idx = sortperm(k.density[peak_idx], rev=true)
     return k.x[peak_idx[sorted_idx]]
 end

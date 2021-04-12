@@ -29,6 +29,7 @@ function step(rng, model, sampler::Nested; kwargs...)
     logz = logwt
     h = logl_dead - logz
     logzerr = sqrt(h / sampler.nactive)
+    logvol -= 1 / sampler.nactive
 
     sample = (u = u_dead, v = v_dead, logwt = logwt, logl = logl_dead)
     state = (it = 1, ncall = ncall, us = us, vs = vs, logl = logl, logl_dead = logl_dead,
@@ -85,7 +86,6 @@ function step(rng, model, sampler, state; kwargs...)
     since_update += nc
 
     # update weight
-    logvol = state.logvol - 1 / sampler.nactive
     logwt = state.logvol + logl_dead
 
     # update evidence and information
@@ -93,6 +93,7 @@ function step(rng, model, sampler, state; kwargs...)
     h = (exp(logwt - logz) * logl_dead +
          exp(state.logz - logz) * (state.h + state.logz) - logz)
     logzerr = sqrt(h / sampler.nactive)
+    logvol = state.logvol - 1 / sampler.nactive
 
     ## prepare returns
     sample = (u = u_dead, v = v_dead, logwt = logwt, logl = logl_dead)
@@ -219,8 +220,6 @@ function add_live_points(samples, model, sampler, state)
 
         sample = (u = u, v = v, logwt = logwt, logl = logl)
         save!!(samples, sample, length(samples) + i, model, sampler)
-       
-        i += 1
     end
 
     state = (it = state.it + sampler.nactive, us = state.us, vs = state.vs, logl = logl,
