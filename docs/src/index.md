@@ -101,6 +101,7 @@ analytic_logz = log(4π * σ^2 / 100)
 ```
 
 ## Contributing
+
 **Primary Author:** Miles Lucas ([@mileslucas](https://github.com/mileslucas))
 
 Contributions are always welcome! Take a look at the [issues](https://github.com/turinglang/nestedsamplers.jl/issues) for ideas of open problems! To discuss ideas or plan contributions, open a [discussion](https://github.com/TuringLang/NestedSamplers.jl/discussions).
