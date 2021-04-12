@@ -32,14 +32,14 @@ let's take a look at a couple of parameters to see what the likelihood surface l
 ```@example correlated
 using StatsPlots
 
-θ1 = range(-3, 3, length=100)
-θ2 = range(-3, 3, length=100)
+θ1 = range(-1, 1, length=100)
+θ2 = range(-1, 1, length=100)
 f = [model.loglike([t1, t2, 0, 0, 0]) for t2 in θ2, t1 in θ1]
 contourf(
     θ1, θ2, f,
     aspect_ratio=1,
-    xlims=(-3, 3),
-    ylims=(-3, 3),
+    xlims=extrema(θ1),
+    ylims=extrema(θ2),
     xlabel="θ1",
     ylabel="θ2"
 )
@@ -52,7 +52,7 @@ using MCMCChains
 using StatsBase
 # using single Ellipsoid for bounds
 # using Gibbs-style slicing for proposing new points
-sampler = Nested(D, 50D; 
+sampler = Nested(D, 50 * (D + 1); 
     bounds=Bounds.Ellipsoid,
     proposal=Proposals.Slice()
 )
