@@ -4,6 +4,8 @@ using MCMCChains: Chains
 using StatsFuns
 using StatsBase
 
+AbstractMCMC.setprogress!(get(ENV, "CI", "false") == "false")
+
 @testset "Bundles" begin
     logl(x::AbstractVector) =  exp(-x[1]^2 / 2) / √(2π)
     priors = [Uniform(-1, 1)]
