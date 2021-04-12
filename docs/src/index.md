@@ -42,7 +42,7 @@ using LinearAlgebra
 using NestedSamplers
 using StatsFuns: logaddexp
 
-# multivariate Gaussian
+# Gaussian mixture model
 σ = 0.1
 μ1 = ones(2)
 μ2 = -ones(2)
