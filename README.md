@@ -55,6 +55,14 @@ once the sampler is set up, we can leverage all of the [AbstractMCMC](https://gi
 chain, state = sample(model, sampler; dlogz=0.2)
 ```
 
+finally, you can resample taking into account the statistical weights, again using StatsBase.
+
+```julia
+chain_resampled = sample(chain, Weights(vec(chain["weights"])), length(chain))
+```
+
+These are chains from [MCMCChains](https://github.com/turinglang/mcmcchains.jl), which offer a lot of flexibility in exploring posteriors, combining data, and offering lots of convenient conversions (like to `DataFrame`s).
+
 ## Contributing
 
 **Primary Author:** Miles Lucas ([@mileslucas](https://github.com/mileslucas))
