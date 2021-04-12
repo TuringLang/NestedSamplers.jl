@@ -9,6 +9,7 @@
 NestedModel
 Nested
 ```
+
 ### Convergence
 
  There are a few convergence criteria available, by default the `dlogz` criterion will be used.
@@ -35,4 +36,11 @@ Proposals.RWalk
 Proposals.RStagger
 Proposals.Slice
 Proposals.RSlice
+```
+
+## Models
+
+```@docs
+Models
+Models.CorrelatedGaussian
 ```
