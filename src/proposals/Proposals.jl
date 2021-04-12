@@ -428,7 +428,7 @@ function sample_slice(rng, axis, u, logl_star, loglike, prior_transform, nc, nex
             return u_prop, v_prop, logl_prop, nc, nexpand, ncontract
         # if fail, then check if the new point is to the left/right of the original point along the proposal axis and update the bounds accordingly
         else
-            s = dot(u_prop - u, u_hat)       # check sign (+/-)
+            s = dot(u_prop - u, u_hat) # check sign (+/-)
             if s < 0   # left
                 u_l = u_prop
             elseif s > 0  # right

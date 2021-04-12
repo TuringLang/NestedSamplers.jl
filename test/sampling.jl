@@ -9,26 +9,62 @@ using StatsBase
     priors = [Uniform(-1, 1)]
     model = NestedModel(logl, priors)
     spl = Nested(1, 500)
-    chain = sample(rng, model, spl; dlogz = 0.2, param_names = ["x"], chain_type = Chains, progress=false)
-    samples = sample(rng, model, spl; dlogz = 0.2, chain_type = Array, progress=false)
+    chains, _ = sample(rng, model, spl; dlogz=0.2, param_names=["x"], chain_type=Chains)
+    val_arr, _ = sample(rng, model, spl; dlogz=0.2, chain_type=Array)
+
+    @test size(chains, 2) == size(val_arr, 2)
+
+    # test with add_live = false
+    chains2, _ = sample(rng, model, spl; add_live=false, dlogz=0.2, param_names=["x"], chain_type=Chains)
+    val_arr2, _ = sample(rng, model, spl; add_live=false, dlogz=0.2, chain_type=Array)
+    
+    @test size(chains2, 2) == size(val_arr2, 2)
+    @test size(chains2, 1) < size(chains, 1) && size(val_arr2, 1) < size(val_arr, 1)
+
+    # test check_wsum kwarg
+    chains3, _ = sample(rng, model, spl; dlogz=0.2, param_names=["x"], chain_type=Chains)
+    val_arr3, _ = sample(rng, model, spl; dlogz=0.2, chain_type=Array)
+
+    @test size(chains3, 2) == size(val_arr3, 2)
 end
 
-# @testset "Flat" begin
-#     logl(x::AbstractVector{T}) where T = zero(T)
+@testset "Stopping criterion" begin
+    logl(x::AbstractVector) =  exp(-x[1]^2 / 2) / √(2π)
+    priors = [Uniform(-1, 1)]
+    model = NestedModel(logl, priors)
+    spl = Nested(1, 500)
+    
+    chains, state = sample(rng, model, spl; add_live=false, dlogz=1.0)
+    logz_remain = maximum(state.logl) + state.logvol
+    delta_logz = logaddexp(state.logz, logz_remain) - state.logz
+    @test delta_logz < 1.0
+
+    chains, state = sample(rng, model, spl; add_live=false, maxiter=3)
+    @test state.it < 3
+
+    chains, state = sample(rng, model, spl; add_live=false, maxcall=10)
+    @test state.ncall < 10
+
+    chains, state = sample(rng, model, spl; add_live=false, maxlogl=0.2)
+    @test state.logl[1] > 0.2
+end
+
+const test_bounds = [Bounds.NoBounds, Bounds.Ellipsoid, Bounds.MultiEllipsoid]
+const test_props = [Proposals.Uniform(), Proposals.RWalk(ratio=0.9), Proposals.RStagger(ratio=0.9, walks=50), Proposals.Slice(slices=10), Proposals.RSlice()]
+
+# @testset "Flat - $(nameof(bound)), $(nameof(typeof(proposal)))" for bound in test_bounds, proposal in test_props
+#     logl(::AbstractVector{T}) where T = zero(T)
 #     priors = [Uniform(0, 1)]
 #     model = NestedModel(logl, priors)
 
-#     for method in [:single, :multi]
-#         spl = Nested(4, method = method)
-#         chain = sample(model, spl, dlogz = 0.2, chain_type = Array)
+#     spl = Nested(1, 4, bound=bound, proposal=proposal)
+#     chain, state = sample(model, spl, dlogz = 0.2)
 
-#         @test spl.logz ≈ 0 atol = 1e-9 # TODO
-#         @test spl.h ≈ 0 atol = 1e-9 # TODO
-#     end
+#     @test state.logz ≈ 0 atol = 1e-9 # TODO
+#     @test state.h ≈ 0 atol = 1e-9 # TODO
 # end
 
-@testset "Gaussian - $bound, $P" for bound in [Bounds.NoBounds, Bounds.Ellipsoid, Bounds.MultiEllipsoid],
-                        P in [Proposals.Uniform, Proposals.RWalk, Proposals.RStagger, Proposals.Slice, Proposals.RSlice]
+@testset "Gaussian - $(nameof(bound)), $(nameof(typeof(proposal)))" for bound in test_bounds, proposal in test_props
     σ = 0.1
     μ1 = ones(2)
     μ2 = -ones(2)
@@ -44,13 +80,21 @@ end
 
     prior(X) = 10 .* X .- 5
     model = NestedModel(logl, prior)
-    
+
     analytic_logz = log(4π * σ^2 / 100)
 
-    
-    spl = Nested(2, 1000, bounds = bound, proposal = P())
-    chain = sample(rng, model, spl, dlogz=0.1, chain_type = Array, progress=false)
-    @test spl.logz ≈ analytic_logz atol = 6sqrt(spl.h / spl.nactive) # within 6σ
-    @test sort!(findpeaks(chain[:, 1, 1])[1:2]) ≈ [-1, 1] rtol = 3e-2
-    @test sort!(findpeaks(chain[:, 2, 1])[1:2]) ≈ [-1, 1] rtol = 3e-2
+
+    spl = Nested(2, 1000, bounds=bound, proposal=proposal)
+    chain, state = sample(rng, model, spl)
+
+    diff = state.logz - analytic_logz
+    atol = bound <: Bounds.NoBounds ? 5state.logzerr : 3state.logzerr
+    if diff > atol
+        @warn "logz estimate is poor" bound proposal error = diff tolerance = atol
+    end
+
+
+    @test state.logz ≈ analytic_logz atol = atol # within 3σ
+    @test sort!(findpeaks(chain[:, 1, 1])[1:2]) ≈ [-1, 1] atol = 2σ
+    @test sort!(findpeaks(chain[:, 2, 1])[1:2]) ≈ [-1, 1] atol = 2σ
 end

@@ -1,24 +1,14 @@
 # Sampler and model implementations
 
-mutable struct Nested{T,B <: AbstractBoundingSpace{T},P <: AbstractProposal} <: AbstractSampler
+struct Nested{B,P <: AbstractProposal} <: AbstractSampler
     ndims::Int
     nactive::Int
+    bounds::B
     enlarge::Float64
     update_interval::Int
     min_ncall::Int
     min_eff::Float64
-    has_bounds::Bool
-    active_us::Matrix{T}
-    active_points::Matrix{T}
-    active_logl::Vector{T}
-    active_bound::B
     proposal::P
-    logz::Float64
-    h::Float64
-    log_vol::Float64
-    ndecl::Int
-    ncall::Int
-    since_update::Int
 end
 
 """
@@ -55,7 +45,7 @@ The original nested sampling algorithm is roughly equivalent to using `Bounds.El
 """
 function Nested(ndims,
     nactive;
-    bounds = Bounds.Ellipsoid,
+    bounds = Bounds.MultiEllipsoid,
     proposal = :auto,
     enlarge = 1.25,
     min_ncall=2nactive,
@@ -77,29 +67,14 @@ function Nested(ndims,
 
     update_interval_frac = get(kwargs, :update_interval, default_update_interval(proposal, ndims))
     update_interval = round(Int, update_interval_frac * nactive)
-    B = bounds(ndims)
-    # Initial point will have volume 1 - exp(-1/npoints)
-    log_vol = log1mexp(-1 / nactive)
-    #= Note: initializing logz as -Inf causes ugly failures in the h calculations
-    by setting to a very small value (even smaller than log(eps(Float64))) we avoid this issue =#
     return Nested(ndims,
         nactive,
+        bounds,
         enlarge,
         update_interval,
         min_ncall,
         min_eff,
-        false,
-        zeros(ndims, nactive),
-        zeros(ndims, nactive),
-        zeros(nactive),
-        B,
-        proposal,
-        -1e300,
-        0.0,
-        log_vol,
-        0,
-        0,
-        0)
+        proposal)
 end
 
 default_update_interval(p::Proposals.Uniform, ndims) = 1.5
@@ -107,26 +82,3 @@ default_update_interval(p::Proposals.RWalk, ndims) = 0.15 * p.walks
 default_update_interval(p::Proposals.RStagger, ndims) = 0.15 * p.walks
 default_update_interval(p::Proposals.Slice, ndims) = 0.9 * ndims * p.slices
 default_update_interval(p::Proposals.RSlice, ndims) = 2.0 * p.slices
-
-
-function Base.show(io::IO, n::Nested)
-    println(io, "Nested(ndims=$(n.ndims), nactive=$(n.nactive), enlarge=$(n.enlarge), update_interval=$(n.update_interval))")
-    println(io, "  bounds=$(n.active_bound)")
-    println(io, "  proposal=$(n.proposal)")
-    println(io, "  logz=$(n.logz)")
-    println(io, "  log_vol=$(n.log_vol)")
-    print(io,   "  H=$(n.h)")
-end
-
-struct NestedTransition{T}
-    draw::Vector{T}  # the sample
-    logL::Float64    # log likelihood
-    log_wt::Float64  # log weight of this draw
-end
-
-function Base.show(io::IO, t::T) where {T <: NestedTransition}
-    println(io, "$T")
-    println(io, "  $(t.draw)")
-    println(io, "  log-likelihood=$(t.logL)")
-    print(io,   "  log-weight=$(t.log_wt)")
-end

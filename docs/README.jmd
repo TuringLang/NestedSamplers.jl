@@ -1,5 +1,5 @@
 ---
-options:
+weave_options:
     out_path: ../README.md
     fig_path: docs/figures
     doctype: github
@@ -31,53 +31,73 @@ The samplers are built using the [AbstractMCMC](https://github.com/turinglang/ab
 
 ```julia; echo=false
 using Random
+using AbstractMCMC
+AbstractMCMC.setprogress!(false)
 Random.seed!(8452);
 ```
 
 ```julia
-using NestedSamplers
 using Distributions
+using LinearAlgebra
+using NestedSamplers
+using StatsFuns: logaddexp
 
-# eggbox likelihood function
-tmax = 3π
+# multivariate Gaussian
+σ = 0.1
+μ1 = ones(2)
+μ2 = -ones(2)
+inv_σ = diagm(0 => fill(1 / σ^2, 2))
+
 function logl(x)
-    t = @. 2 * tmax * x - tmax
-    return 2 + cos(t[1]/2) * cos(t[2]/2)^5
+    dx1 = x .- μ1
+    dx2 = x .- μ2
+    f1 = -dx1' * (inv_σ * dx1) / 2
+    f2 = -dx2' * (inv_σ * dx2) / 2
+    return logaddexp(f1, f2)
 end
 priors = [
-    Uniform(0, 1),
-    Uniform(0, 1)
+    Uniform(-5, 5),
+    Uniform(-5, 5)
 ]
 # or equivalently
-prior_transform(X) = X
+prior_transform(X) = 10 .* X .- 5
 # create the model
 model = NestedModel(logl, priors); # or model = NestedModel(logl, prior_transform)
 ```
 
-now, we set up our sampling using [StatsBase](https://github.com/JuliaStats/StatsBase.jl)
+now, we set up our sampling using [StatsBase](https://github.com/JuliaStats/StatsBase.jl).
+
+**Important:  the state of the sampler is returned in addition to the chain by `sample`.**
 
 ```julia
 using StatsBase: sample, Weights
-using MCMCChains: Chains
 
 # create our sampler
-# 2 parameters, 100 active points, multi-ellipsoid. See docstring
-spl = Nested(2, 100, bounds=Bounds.MultiEllipsoid)
-# by default, uses dlogz_convergence. Set the keyword args here
+# 2 parameters, 1000 active points, multi-ellipsoid. See docstring
+spl = Nested(2, 1000)
+# by default, uses dlogz for convergence. Set the keyword args here
 # currently Chains and Array are support chain_types
-chain = sample(model, spl;
-               dlogz=0.2,
-               param_names=["x", "y"],
-               chain_type=Chains)
+chain, state = sample(model, spl; dlogz=0.2, param_names=["x", "y"])
+# optionally resample the chain using the weights
+chain_res = sample(chain, Weights(vec(chain["weights"])), length(chain));
 ```
+
+let's take a look at the resampled posteriors
 
 ```julia
 using StatsPlots
-density(chain)
+density(chain_res)
 # analytical posterior maxima
-vline!([1/2 - π/tmax, 1/2, 1/2 + π/tmax], c=:black, ls=:dash, subplot=1)
-vline!([1/2 - π/tmax, 1/2, 1/2 + π/tmax], c=:black, ls=:dash, subplot=2)
+vline!([-1, 1], c=:black, ls=:dash, subplot=1)
+vline!([-1, 1], c=:black, ls=:dash, subplot=2)
 ```
+and compare our estimate of the Bayesian (log-)evidence to the analytical value
+```julia
+analytic_logz = log(4π * σ^2 / 100)
+# within 2-sigma
+@assert isapprox(analytic_logz, state.logz, atol=2state.logzerr)
+```
+
 
 ## API/Reference
 
@@ -136,14 +156,12 @@ vline!([1/2 - π/tmax, 1/2, 1/2 + π/tmax], c=:black, ls=:dash, subplot=2)
 ```
 ---
 ### Convergence
-```julia; echo=false
-@doc dlogz_convergence
-```
----
-```julia; echo=false
-@doc decline_convergence
-```
 
+ There are a few convergence criteria available, by default the `dlogz` criterion will be used.
+* `dlogz=0.5` sample until the *fraction of the remaining evidence* is below the given value ([more info](https://dynesty.readthedocs.io/en/latest/overview.html#stopping-criteria)).
+* `maxiter=Inf` stop after the given number of iterations
+* `maxcall=Inf` stop after the given number of  log-likelihood function calls
+* `maxlogl=Inf` stop after reaching the target log-likelihood
 ## Contributing
 **Primary Author:** Miles Lucas ([@mileslucas](https://github.com/mileslucas))
 

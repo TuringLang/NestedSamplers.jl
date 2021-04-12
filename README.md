@@ -1,3 +1,4 @@
+
 # NestedSamplers.jl
 
 [![Build Status](https://github.com/turinglang/NestedSamplers.jl/workflows/CI/badge.svg?branch=master)](https://github.com/turinglang/NestedSamplers.jl/actions)
@@ -15,11 +16,9 @@ This package was heavily influenced by [`nestle`](https://github.com/kbarbary/ne
 
 To use the nested samplers first install this library
 
-````julia
-
+```julia
 julia> ]add NestedSamplers
-````
-
+```
 
 
 
@@ -28,86 +27,79 @@ julia> ]add NestedSamplers
 The samplers are built using the [AbstractMCMC](https://github.com/turinglang/abstractmcmc.jl) interface. To use it, we need to create a `NestedModel`.
 
 
-````julia
-using NestedSamplers
+```julia
 using Distributions
+using LinearAlgebra
+using NestedSamplers
+using StatsFuns: logaddexp
 
-# eggbox likelihood function
-tmax = 3π
+# multivariate Gaussian
+σ = 0.1
+μ1 = ones(2)
+μ2 = -ones(2)
+inv_σ = diagm(0 => fill(1 / σ^2, 2))
+
 function logl(x)
-    t = @. 2 * tmax * x - tmax
-    return 2 + cos(t[1]/2) * cos(t[2]/2)^5
+    dx1 = x .- μ1
+    dx2 = x .- μ2
+    f1 = -dx1' * (inv_σ * dx1) / 2
+    f2 = -dx2' * (inv_σ * dx2) / 2
+    return logaddexp(f1, f2)
 end
 priors = [
-    Uniform(0, 1),
-    Uniform(0, 1)
+    Uniform(-5, 5),
+    Uniform(-5, 5)
 ]
 # or equivalently
-prior_transform(X) = X
+prior_transform(X) = 10 .* X .- 5
 # create the model
 model = NestedModel(logl, priors); # or model = NestedModel(logl, prior_transform)
-````
+```
 
 
 
 
+now, we set up our sampling using [StatsBase](https://github.com/JuliaStats/StatsBase.jl).
 
-now, we set up our sampling using [StatsBase](https://github.com/JuliaStats/StatsBase.jl)
+**Important:  the state of the sampler is returned in addition to the chain by `sample`.**
 
-````julia
+```julia
 using StatsBase: sample, Weights
-using MCMCChains: Chains
 
 # create our sampler
-# 2 parameters, 100 active points, multi-ellipsoid. See docstring
-spl = Nested(2, 100, bounds=Bounds.MultiEllipsoid)
-# by default, uses dlogz_convergence. Set the keyword args here
+# 2 parameters, 1000 active points, multi-ellipsoid. See docstring
+spl = Nested(2, 1000)
+# by default, uses dlogz for convergence. Set the keyword args here
 # currently Chains and Array are support chain_types
-chain = sample(model, spl;
-               dlogz=0.2,
-               param_names=["x", "y"],
-               chain_type=Chains)
-````
-
-
-````
-Object of type Chains, with data of type 355×3×1 Array{Float64,3}
-
-Log evidence      = 2.1263825977537327
-Iterations        = 1:355
-Thinning interval = 1
-Chains            = 1
-Samples per chain = 355
-internals         = weights
-parameters        = x, y
-
-2-element Array{MCMCChains.ChainDataFrame,1}
-
-Summary Statistics
-  parameters    mean     std  naive_se    mcse       ess   r_hat
-  ──────────  ──────  ──────  ────────  ──────  ────────  ──────
-           x  0.4698  0.2975    0.0158  0.0075  360.7143  1.0063
-           y  0.4959  0.3004    0.0159  0.0095  278.1535  0.9996
-
-Quantiles
-  parameters    2.5%   25.0%   50.0%   75.0%   97.5%
-  ──────────  ──────  ──────  ──────  ──────  ──────
-           x  0.0329  0.1975  0.4486  0.7500  0.9656
-           y  0.0494  0.1976  0.4831  0.8145  0.9608
-````
+chain, state = sample(model, spl; dlogz=0.2, param_names=["x", "y"])
+# optionally resample the chain using the weights
+chain_res = sample(chain, Weights(vec(chain["weights"])), length(chain));
+```
 
 
 
-````julia
+
+let's take a look at the resampled posteriors
+
+```julia
 using StatsPlots
-density(chain)
+density(chain_res)
 # analytical posterior maxima
-vline!([1/2 - π/tmax, 1/2, 1/2 + π/tmax], c=:black, ls=:dash, subplot=1)
-vline!([1/2 - π/tmax, 1/2, 1/2 + π/tmax], c=:black, ls=:dash, subplot=2)
-````
-
+vline!([-1, 1], c=:black, ls=:dash, subplot=1)
+vline!([-1, 1], c=:black, ls=:dash, subplot=2)
+```
 
 ![](docs/figures/README_5_1.png)
+
+
+and compare our estimate of the Bayesian (log-)evidence to the analytical value
+```julia
+analytic_logz = log(4π * σ^2 / 100)
+# within 2-sigma
+@assert isapprox(analytic_logz, state.logz, atol=2state.logzerr)
+```
+
+
 
 
 
@@ -320,27 +312,11 @@ Propose a new live point by a series of random slices away from an existing live
 ---
 ### Convergence
 
-```
-dlogz_convergence(args...; dlogz=0.5, kwargs...)
-```
-
-Stopping criterion: estimated fraction evidence remaining below threshold.
-
-The estimated fraction evidence remaining is given by the `maximum(active_loglike) - it/nactive` where `it` is the current iteration.
-
-
-
----
-
-```
-decline_convergence(args...; decline_factor=6, kwargs...)
-```
-
-Stopping criterion: Number of consecutive declining log-evidence is greater than `iteration / decline_factor` or greater than `2nactive`
-
-
-
-
+ There are a few convergence criteria available, by default the `dlogz` criterion will be used.
+* `dlogz=0.5` sample until the *fraction of the remaining evidence* is below the given value ([more info](https://dynesty.readthedocs.io/en/latest/overview.html#stopping-criteria)).
+* `maxiter=Inf` stop after the given number of iterations
+* `maxcall=Inf` stop after the given number of  log-likelihood function calls
+* `maxlogl=Inf` stop after reaching the target log-likelihood
 ## Contributing
 **Primary Author:** Miles Lucas ([@mileslucas](https://github.com/mileslucas))
 
