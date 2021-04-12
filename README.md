@@ -29,7 +29,6 @@ For in-depth usage, see the [online documentation](https://turinglang.github.io/
 ```julia
 using NestedSamplers
 using Distributions
-using StatsBase
 
 logl(X) = exp(-(X - [1, -1]) / 2)
 prior(X) = 4 .* (X .- 0.5)
@@ -52,13 +51,21 @@ once the sampler is set up, we can leverage all of the [AbstractMCMC](https://gi
 **Note:** both the samples *and* the sampler state will be returned by `sample`
 
 ```julia
+using StatsBase
 chain, state = sample(model, sampler; dlogz=0.2)
 ```
 
-finally, you can resample taking into account the statistical weights, again using StatsBase.
+you can resample taking into account the statistical weights, again using StatsBase
 
 ```julia
 chain_resampled = sample(chain, Weights(vec(chain["weights"])), length(chain))
+```
+
+and finally, we can see the estimate of the Bayesian evidence
+
+```julia
+using Measurements
+state.logz ± state.logzerr
 ```
 
 These are chains from [MCMCChains](https://github.com/turinglang/mcmcchains.jl), which offer a lot of flexibility in exploring posteriors, combining data, and offering lots of convenient conversions (like to `DataFrame`s).
