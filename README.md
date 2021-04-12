@@ -61,14 +61,15 @@ you can resample taking into account the statistical weights, again using StatsB
 chain_resampled = sample(chain, Weights(vec(chain["weights"])), length(chain))
 ```
 
-and finally, we can see the estimate of the Bayesian evidence
+These are chains from [MCMCChains](https://github.com/turinglang/mcmcchains.jl), which offer a lot of flexibility in exploring posteriors, combining data, and offering lots of convenient conversions (like to `DataFrame`s).
+
+Finally, we can see the estimate of the Bayesian evidence
 
 ```julia
 using Measurements
 state.logz ± state.logzerr
 ```
 
-These are chains from [MCMCChains](https://github.com/turinglang/mcmcchains.jl), which offer a lot of flexibility in exploring posteriors, combining data, and offering lots of convenient conversions (like to `DataFrame`s).
 
 ## Contributing
 
