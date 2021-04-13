@@ -12,6 +12,10 @@ makedocs(
     sitename = "NestedSamplers.jl",
     pages = [
         "Home" => "index.md",
+        "Examples" => [
+            "Gaussian Shells" => "examples/shells.md",
+            "Correlated Gaussian" => "examples/correlated.md"
+        ],
         "API/Reference" => "api.md"
     ],
     format = Documenter.HTML(prettyurls = get(ENV, "CI", nothing) == "true"),

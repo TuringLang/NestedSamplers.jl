@@ -6,7 +6,6 @@ using .Bounds
 include("proposals/Proposals.jl")
 using .Proposals
 
-
 using LinearAlgebra
 using Random
 using Random: AbstractRNG, GLOBAL_RNG
@@ -29,6 +28,7 @@ using StatsFuns: logaddexp,
 
 export Bounds,
        Proposals,
+       Models,
        NestedModel,
        Nested
 
@@ -36,5 +36,8 @@ include("model.jl")         # The default model for nested sampling
 include("staticsampler.jl") # The static nested sampler
 include("step.jl")          # The stepping mechanics (extends AbstractMCMC)
 include("sample.jl")        # Custom sampling (extends AbstractMCMC)
+
+include("models/Models.jl")
+using .Models
 
 end
