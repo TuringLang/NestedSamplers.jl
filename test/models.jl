@@ -34,7 +34,7 @@ const test_props = [Proposals.Uniform(), Proposals.RWalk(ratio=0.9, walks=100), 
 
         sampler = Nested(2, 1000; bounds=bound, proposal=proposal)
 
-        chain, state = sample(rng, model, sampler)
+        chain, state = sample(rng, model, sampler; dlogz=0.01)
 
         # logz
         @test state.logz ≈ logz atol = 3state.logzerr
@@ -61,7 +61,7 @@ const test_props = [Proposals.Uniform(), Proposals.RWalk(ratio=0.9, walks=100), 
 
 
         spl = Nested(2, 1000, bounds=bound, proposal=proposal)
-        chain, state = sample(rng, model, spl; dlogz=0.1)
+        chain, state = sample(rng, model, spl; dlogz=0.01)
         chain_res = sample(chain, Weights(vec(chain[:weights])), length(chain))
 
         diff = state.logz - analytic_logz
