@@ -18,6 +18,7 @@ spl = Nested(3, 100)
 @test spl.update_interval == 150
 @test spl.enlarge == 1.25
 @test spl.min_ncall == 200
+@test spl.dlv ≈ log(101/100)
 
 
 spl = Nested(10, 1000)

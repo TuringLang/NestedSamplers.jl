@@ -10,13 +10,13 @@ StatsBase.sample(rng::AbstractRNG, model::AbstractModel, sampler::Nested; kwargs
 StatsBase.sample(model::AbstractModel, sampler::Nested; kwargs...) =
     StatsBase.sample(GLOBAL_RNG, model, sampler; kwargs...)
 
-function nested_isdone(rng, model, smapler, samples, state, i; progress=true, maxiter=Inf, maxcall=Inf, dlogz=0.5, maxlogl=Inf, kwargs...)
+function nested_isdone(rng, model, sampler, samples, state, i; progress=true, maxiter=Inf, maxcall=Inf, dlogz=0.5, maxlogl=Inf, kwargs...)
     # 1) iterations exceeds maxiter
     done_sampling = state.it > maxiter
     # 2) number of loglike calls has been exceeded
     done_sampling |= state.ncall > maxcall
     # 3) remaining fractional log-evidence below threshold
-    logz_remain = maximum(state.logl) + state.logvol
+    logz_remain = maximum(state.logl) - i / sampler.nactive
     delta_logz = logaddexp(state.logz, logz_remain) - state.logz
     done_sampling |= delta_logz < dlogz
     # 4) last dead point loglikelihood exceeds threshold
