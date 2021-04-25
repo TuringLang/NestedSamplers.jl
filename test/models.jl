@@ -37,7 +37,7 @@ const test_props = [Proposals.Uniform(), Proposals.RWalk(ratio=0.9, walks=50), P
         chain, state = sample(rng, model, sampler; dlogz=0.01)
 
         # logz
-        @test state.logz ≈ logz atol = 3state.logzerr
+        @test state.logz ≈ logz atol = 5state.logzerr
     end
 
     @testset "Gaussian Mixture Model" begin
