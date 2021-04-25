@@ -1,5 +1,5 @@
 const test_bounds = [Bounds.Ellipsoid, Bounds.MultiEllipsoid]
-const test_props = [Proposals.Uniform(), Proposals.RWalk(ratio=0.9, walks=100), Proposals.RStagger(ratio=0.9, walks=100, scale=0.5), Proposals.Slice(slices=10), Proposals.RSlice()]
+const test_props = [Proposals.Uniform(), Proposals.RWalk(ratio=0.9, walks=50), Proposals.RStagger(ratio=0.9, walks=75), Proposals.Slice(slices=10), Proposals.RSlice()]
 
 
 @testset "$(nameof(bound)), $(nameof(typeof(proposal)))" for bound in test_bounds, proposal in test_props
@@ -25,7 +25,7 @@ const test_props = [Proposals.Uniform(), Proposals.RWalk(ratio=0.9, walks=100), 
         @test all(@.(abs(means - expected) < tols))
 
         # logz
-        tol = D == 8 ? 5state.logzerr : 3state.logzerr
+        tol = 5state.logzerr
         @test state.logz ≈ logz atol = tol
     end
 
@@ -65,7 +65,7 @@ const test_props = [Proposals.Uniform(), Proposals.RWalk(ratio=0.9, walks=100), 
         chain_res = sample(chain, Weights(vec(chain[:weights])), length(chain))
 
         diff = state.logz - analytic_logz
-        atol = 3state.logzerr
+        atol = 5state.logzerr
         if diff > atol
             @warn "logz estimate is poor" bound proposal error = diff tolerance = atol
         end
