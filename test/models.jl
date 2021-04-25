@@ -1,5 +1,5 @@
 const test_bounds = [Bounds.Ellipsoid, Bounds.MultiEllipsoid]
-const test_props = [Proposals.Uniform(), Proposals.RWalk(ratio=0.9, walks=75), Proposals.RStagger(ratio=0.9, walks=75, scale=0.5), Proposals.Slice(slices=10), Proposals.RSlice()]
+const test_props = [Proposals.Uniform(), Proposals.RWalk(ratio=0.9, walks=100), Proposals.RStagger(ratio=0.9, walks=100, scale=0.5), Proposals.Slice(slices=10), Proposals.RSlice()]
 
 
 @testset "$(nameof(bound)), $(nameof(typeof(proposal)))" for bound in test_bounds, proposal in test_props
