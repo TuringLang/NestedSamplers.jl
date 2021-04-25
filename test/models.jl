@@ -3,11 +3,7 @@ const test_props = [Proposals.Uniform(), Proposals.RWalk(ratio=0.9, walks=50), P
 
 
 @testset "$(nameof(bound)), $(nameof(typeof(proposal)))" for bound in test_bounds, proposal in test_props
-    @testset "Correlated Gaussian Conjugate Prior - ndims=$D" for D in [2, 4, 8]
-        if D == 8 && (proposal isa Proposals.RWalk || proposal isa Proposals.RStagger)
-            # TODO evidence estimates are terrible for D=8
-            continue
-        end
+    @testset "Correlated Gaussian Conjugate Prior - ndims=$D" for D in [2, 4]
         model, logz = Models.CorrelatedGaussian(D)
         # match JAXNS paper setup, generally
         sampler = Nested(D, 50D; bounds=bound, proposal=proposal)
