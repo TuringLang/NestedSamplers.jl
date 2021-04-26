@@ -32,14 +32,14 @@ end
     chains, state = sample(rng, model, spl; add_live=false, dlogz=1.0)
     logz_remain = maximum(state.logl) + state.logvol
     delta_logz = logaddexp(state.logz, logz_remain) - state.logz
-    @test delta_logz < 1.0
+    @test delta_logz ≤ 1.0
 
     chains, state = sample(rng, model, spl; add_live=false, maxiter=3)
-    @test state.it < 3
+    @test state.it == 3
 
     chains, state = sample(rng, model, spl; add_live=false, maxcall=10)
-    @test state.ncall < 10
+    @test state.ncall == 10
 
     chains, state = sample(rng, model, spl; add_live=false, maxlogl=0.2)
-    @test state.logl[1] > 0.2
+    @test state.logl[1] ≥ 0.2
 end

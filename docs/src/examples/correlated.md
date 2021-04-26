@@ -52,7 +52,7 @@ using MCMCChains
 using StatsBase
 # using single Ellipsoid for bounds
 # using Gibbs-style slicing for proposing new points
-sampler = Nested(D, 50 * (D + 1); 
+sampler = Nested(D, 50D; 
     bounds=Bounds.Ellipsoid,
     proposal=Proposals.Slice()
 )

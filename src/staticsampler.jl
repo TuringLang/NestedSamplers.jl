@@ -1,6 +1,6 @@
 # Sampler and model implementations
 
-struct Nested{B,P <: AbstractProposal} <: AbstractSampler
+struct Nested{B, P <: AbstractProposal} <: AbstractSampler
     ndims::Int
     nactive::Int
     bounds::B
@@ -9,6 +9,7 @@ struct Nested{B,P <: AbstractProposal} <: AbstractSampler
     min_ncall::Int
     min_eff::Float64
     proposal::P
+    dlv::Float64
 end
 
 """
@@ -65,6 +66,8 @@ function Nested(ndims,
         end
     end
 
+    dlv = log(nactive + 1) - log(nactive)
+
     update_interval_frac = get(kwargs, :update_interval, default_update_interval(proposal, ndims))
     update_interval = round(Int, update_interval_frac * nactive)
     return Nested(ndims,
@@ -74,7 +77,8 @@ function Nested(ndims,
         update_interval,
         min_ncall,
         min_eff,
-        proposal)
+        proposal,
+        dlv)
 end
 
 default_update_interval(p::Proposals.Uniform, ndims) = 1.5

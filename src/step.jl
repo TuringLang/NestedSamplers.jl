@@ -6,8 +6,8 @@ function step(rng, model, sampler::Nested; kwargs...)
 
     # Find least likely point
     logl_dead, idx_dead = findmin(logl)
-    u_dead = @view us[:, idx_dead]
-    v_dead = @view vs[:, idx_dead]
+    u_dead = us[:, idx_dead]
+    v_dead = vs[:, idx_dead]
 
     # update weight using trapezoidal rule
     logvol = log1mexp(-1 / sampler.nactive)
@@ -63,8 +63,8 @@ function step(rng, model, sampler, state; kwargs...)
     ## Replace least-likely active point
     # Find least likely point
     logl_dead, idx_dead = findmin(state.logl)
-    u_dead = @view state.us[:, idx_dead]
-    v_dead = @view state.vs[:, idx_dead]
+    u_dead = state.us[:, idx_dead]
+    v_dead = state.vs[:, idx_dead]
 
     # sample a new live point using bounds and proposal
     if has_bounds
@@ -117,13 +117,10 @@ function bundle_samples(samples,
     if add_live
         samples, state = add_live_points(samples, model, sampler, state)
     end
-    vals = mapreduce(t -> hcat(t.v..., t.logwt), vcat, samples)
-    # update weights based on evidence
-    @. vals[:, end, 1] = exp(vals[:, end, 1] - state.logz)
-    wsum = sum(vals[:, end, 1])
-    @. vals[:, end, 1] /= wsum
+    vals = mapreduce(t -> hcat(t.v..., exp(t.logwt - state.logz)), vcat, samples)
 
     if check_wsum
+        wsum = sum(vals[:, end, 1])
         err = !iszero(state.logzerr) ? 3 * state.logzerr : 1e-3
         isapprox(wsum, 1, atol=err) || @warn "Weights sum to $wsum instead of 1; possible bug"
     end
@@ -150,14 +147,14 @@ function bundle_samples(samples,
         samples, state = add_live_points(samples, model, sampler, state)
     end
 
-    wsum = sum(s -> exp(s.logwt - state.logz), samples)
+    vals = mapreduce(t -> hcat(t.v..., exp(t.logwt - state.logz)), vcat, samples)
 
     if check_wsum
+        wsum = sum(vals[:, end])
         err = !iszero(state.logzerr) ? 3 * state.logzerr : 1e-3
         isapprox(wsum, 1, atol=err) || @warn "Weights sum to $wsum instead of 1; possible bug"
     end
 
-    vals = mapreduce(t -> hcat(t.v..., t.logwt / wsum), vcat, samples)
 
     return vals, state
 end
@@ -201,11 +198,12 @@ function add_live_points(samples, model, sampler, state)
     prev_h = state.h
 
     local logl, logz, h, logzerr 
+    N = length(samples)
 
     @inbounds for (i, idx) in enumerate(eachindex(state.logl))
         # get new point
-        u = @view state.us[:, idx]
-        v = @view state.vs[:, idx]
+        u = state.us[:, idx]
+        v = state.vs[:, idx]
         logl = state.logl[idx]
 
         # update sampler
@@ -219,7 +217,7 @@ function add_live_points(samples, model, sampler, state)
         prev_h = h
 
         sample = (u = u, v = v, logwt = logwt, logl = logl)
-        save!!(samples, sample, length(samples) + i, model, sampler)
+        save!!(samples, sample, N + i, model, sampler)
     end
 
     state = (it = state.it + sampler.nactive, us = state.us, vs = state.vs, logl = logl,
