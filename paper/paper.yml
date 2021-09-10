@@ -1,21 +1,28 @@
-title: "My JuliaCon proceeding"
+title: "Algorithmic Variants of Nested Sampling"
 keywords:
-  - Julia
-  - Optimization
-  - Game theory
-  - Compiler
+  - Bayesian computation 
+  - Bayesian evidence
+  - Nested sampling
+  - Proposal algorithms
 authors:
-  - name: 1st author
-    orcid: 0000-0003-1361-440X
+  - name: Saranjeet Kaur Bhogal
+    orcid: 0000-0002-7038-1457
     affiliation: 1
-  - name: 2nd author
-    affiliation: 1, 2
-  - name: 3rd author
+  - name: Miles Lucas
     affiliation: 2
+  - name: Hong Ge
+    affiliation: 3
+ - name: Cameron Pfiffer
+    affiliation: 4
+    
 affiliations:
-  - name: University
+  - name: Department of Statistics, Savitribai Phule Pune University, Pune
     index: 1
-  - name: National Lab
+  - name: Institute for Astronomy, University of Hawai'i
     index: 2
-date: 24 April 2019
+  - name: University of Cambridge
+    index: 3
+  - name: University of Oregon
+    index: 4
+date: 5 August 2021
 bibliography: ref.bib
