@@ -1,0 +1,65 @@
+
+% JuliaCon proceedings template
+\documentclass{juliacon}
+\setcounter{page}{1}
+
+\begin{document}
+
+\input{header}
+
+\title{Algorithmic Variants of Nested Sampling}
+\author{
+   \large Saranjeet Kaur Bhogal \\[-3pt]
+   \normalsize Department of Statistics, Savitribai Phule Pune University, Pune  \\[-3pt]
+    \normalsize kaur.saranjeet3@gmail.com \\[-3pt]
+  \and
+   \large Miles Lucas \\[-3pt]
+   \normalsize Institute for Astronomy, University of Hawai'i  \\[-3pt]
+\and
+   \large Hong Ge \\[-3pt]
+   \normalsize University of Cambridge  \\[-3pt]
+\and
+   \large Cameron Pfiffer \\[-3pt]
+   \normalsize University of Oregon  \\[-3pt]
+}
+\maketitle
+
+\keywords{Bayesian Computation, Bayesian Evidence, Nested Sampling, Proposal Algorithms}
+
+\begin{abstract}
+
+Nesting sampling is a methodology for computing the evidence (which is an integration of the likelihood over the prior density), and the posteriors simultaneously. Implementation in Julia of three algorithmic variants of nested sampling: Random Staggering, Slicing, and Random Slicing, are discussed in this work. Much of this work was inspired by the Python package, dynesty, and its modular approach to nested sampling which Julia’s multiple dispatch made even more effective.
+
+\end{abstract}
+
+\section{Introduction}
+
+Nested sampling\cite{skilling2006nested} is an algorithm that allows the user to generate samples from the posterior distributions and also to estimate the model evidence. The Julia package NestedSamplers.jl is inspired from the Python package dynesty and its modular approach to nested sampling. Julia's multiple dispatch approach makes this implementation even more effective.\vskip 6pt
+This paper discusses three proposal algorithms that were written in this NestedSamplers.jl package. The three proposal algorithms are the random staggering proposal algorithm, the slicing proposal algorithm, and the random slicing proposal algorithm. Although these algorithms can be used for any dimensionality, their performance will be best when they are selected according to the rules on the number of parameters. The code for these three proposal algorithms were built as part of Google Summer of code 2020 with the Turing team of the Julia Language Organization. 
+
+\section{The Random Staggering Proposal Algorithm}
+
+Using the random staggering proposal algorithm would be effective when the number of parameters to fit are in the range 10 to 20, both inclusive. Random staggering can be used as an alternative to the random walk proposal. However, it differs from the random walk proposal in that the step size here is exponentially adjusted to reach a target acceptance rate during each proposal, in addition to between proposals. In this algorithm, a new live point is proposed by random staggering away from an existing live point.
+
+\section{The Slicing Proposal Algorithm}
+
+When the number of parameters to fit are greater than 20, the slice proposal algorithm can be used. This is a standard Gibbs-like implementation where a single multivariate slice is a combination of univariate slices through each axis. In this algorithm, a new live point is proposed by a series of slices away from an existing live point. 
+
+\section{The Random Slicing Proposal Algorithm}
+
+Random slicing can be used as an alternative to the slicing algorithm. The Polychord nested sampling algorithm is roughly equivalent to this algorithm. This is a standard random implementation where each slice is along a random direction based on the provided axes. Here, a new live point is proposed by a series of random slices away from an existing live point. 
+
+\section{Further work}
+
+As further work, more advanced proposal alternatives will be provided in the NestedSamplers.jl package, for instance the Hamiltonian slicing proposal algorithm. More advanced bounds alternatives will be provided too in addition to the single and multiple ellipsoids bounds, at present. Documents which illustrate the use of this sampler in various scenarios will also be created in the future.
+
+\section*{Acknowledgements}
+The code for this work was written with funding support from Google Summer of Code 2020. The work was developed with the Turing team of the Julia Language Organization.
+
+
+
+\input{bib.tex}
+
+\end{document}
+
+% Inspired by the International Journal of Computer Applications template

@@ -1,0 +1,28 @@
+title: "Algorithmic Variants of Nested Sampling"
+keywords:
+  - Bayesian computation 
+  - Bayesian evidence
+  - Nested sampling
+  - Proposal algorithms
+authors:
+  - name: Saranjeet Kaur Bhogal
+    orcid: 0000-0002-7038-1457
+    affiliation: 1
+  - name: Miles Lucas
+    affiliation: 2
+  - name: Hong Ge
+    affiliation: 3
+ - name: Cameron Pfiffer
+    affiliation: 4
+    
+affiliations:
+  - name: Department of Statistics, Savitribai Phule Pune University, Pune
+    index: 1
+  - name: Institute for Astronomy, University of Hawai'i
+    index: 2
+  - name: University of Cambridge
+    index: 3
+  - name: University of Oregon
+    index: 4
+date: 5 August 2021
+bibliography: ref.bib
