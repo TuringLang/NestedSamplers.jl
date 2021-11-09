@@ -69,6 +69,12 @@ function step(rng, model, sampler, state; kwargs...)
     # sample a new live point using bounds and proposal
     if has_bounds
         point, bound = rand_live(rng, active_bound, state.us)
+        if isnothing(bound)
+            # live point not inside active bounds: refit them
+            active_bound = Bounds.scale!(Bounds.fit(sampler.bounds, state.us, pointvol=pointvol), sampler.enlarge)
+            since_update = 0
+            point, bound = rand_live(rng, active_bound, point[:, :])
+        end
         u, v, logl, nc = sampler.proposal(rng, point, logl_dead, bound, model.loglike, model.prior_transform)
     else
         point = rand(rng, eltype(state.us), sampler.ndims)
