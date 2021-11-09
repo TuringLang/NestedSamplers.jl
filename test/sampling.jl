@@ -23,6 +23,15 @@
     @test size(chains3, 2) == size(val_arr3, 2)
 end
 
+@testset "Zero likelihood" begin
+    logl(x::AbstractVector) = x[1] > 0 ? exp(-x[1]^2 / 2) / √(2π) : -Inf
+    priors = [Uniform(-1, 1)]
+    model = NestedModel(logl, priors)
+    spl = Nested(1, 500)
+    chains, _ = sample(rng, model, spl; param_names=["x"])
+    @test all(>(0), chains[:x][chains[:weights] .> 1e-10])
+end
+
 @testset "Stopping criterion" begin
     logl(x::AbstractVector) =  exp(-x[1]^2 / 2) / √(2π)
     priors = [Uniform(-1, 1)]
