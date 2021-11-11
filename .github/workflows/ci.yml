@@ -60,4 +60,4 @@ jobs:
           version: '1'
       - uses: julia-actions/julia-buildpkg@v1
       - run: julia -e 'using Pkg; Pkg.add("Aqua")'
-      - run: julia --project=@. -e 'using Aqua, NestedSamplers; Aqua.test_all(NestedSamplers)'
+      - run: julia --project=@. -e 'using Aqua, NestedSamplers; Aqua.test_all(NestedSamplers, ambiguities=false)'
