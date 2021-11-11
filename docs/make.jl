@@ -28,4 +28,4 @@ makedocs(
     ]
 )
 
-deploydocs(repo = "github.com/TuringLang/NestedSamplers.jl.git", push_preview=true)
+deploydocs(repo = "github.com/TuringLang/NestedSamplers.jl.git", push_preview=true, devbranch="main")
