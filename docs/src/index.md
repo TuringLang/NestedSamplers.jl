@@ -7,7 +7,7 @@ CurrentModule = NestedSamplers
 [![GitHub](https://img.shields.io/badge/Code-GitHub-black.svg)](https://github.com/TuringLang/NestedSamplers.jl)
 [![Build Status](https://github.com/turinglang/NestedSamplers.jl/workflows/CI/badge.svg?branch=main)](https://github.com/turinglang/NestedSamplers.jl/actions)
 [![PkgEval](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/N/NestedSamplers.svg)](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/report.html)
-[![Coverage](https://codecov.io/gh/turinglang/NestedSamplers.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/turinglang/NestedSamplers.jl)
+[![Coverage](https://codecov.io/gh/turinglang/NestedSamplers.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/turinglang/NestedSamplers.jl)
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3950594.svg)](https://doi.org/10.5281/zenodo.3950594)
 
