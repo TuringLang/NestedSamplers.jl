@@ -6,6 +6,11 @@ on:
   pull_request:
     branches:
     - main
+concurrency:
+  # Skip intermediate builds: always.
+  # Cancel intermediate builds: only if it is a pull request build.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ startsWith(github.ref, 'refs/pull/') }}
 jobs:
   test:
     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
@@ -45,3 +50,14 @@ jobs:
       - uses: codecov/codecov-action@v1
         with:
           file: lcov.info
+  aqua:
+    name: Aqua tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: julia-actions/setup-julia@v1
+        with:
+          version: '1'
+      - uses: julia-actions/julia-buildpkg@v1
+      - run: julia -e 'using Pkg; Pkg.add("Aqua")'
+      - run: julia --project=@. -e 'using Aqua, NestedSamplers; Aqua.test_all(NestedSamplers)'
