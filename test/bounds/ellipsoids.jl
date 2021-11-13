@@ -11,7 +11,8 @@ const NMAX = 20
         @test volume(ell) ≈ volume_prefactor(N) * scale^N
         axs, axlens = decompose(ell)
         @test axlens ≈ fill(scale, N)
-        @test axs ≈ Bounds.axes(ell) ≈ scale * Matrix(I, N, N)
+        @test axs ≈ Bounds.axes(ell)
+        @test norm.(eachcol(axs)) == fill(scale, N)
     end
 
     @testset "Scaling" begin
