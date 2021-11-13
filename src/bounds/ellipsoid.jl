@@ -38,7 +38,9 @@ volume(ell::Ellipsoid) = ell.volume
 # Returns the principal axes
 axes(ell::Ellipsoid) = ell.axes
 
-function decompose(A::AbstractMatrix)
+decompose(A::AbstractMatrix) = decompose(Symmetric(A))  # ensure that eigen() always returns real values
+
+function decompose(A::Symmetric)
     E = eigen(A)
     axlens = @. 1 / sqrt(E.values)
     axes = E.vectors * Diagonal(axlens)
