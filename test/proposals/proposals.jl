@@ -15,7 +15,7 @@ const BOUNDS = [
 @testset "interface - $(typeof(prop))" for prop in PROPOSALS, bound in BOUNDS
     logl(X) = -sum(x->x^2, X)
     prior(u) = 2u .- 1 # Uniform -1, to 1
-    us = rand(rng, 2, 10)
+    us = 0.7 .* rand(rng, 2, 10)  # live points should be within the ellipsoid
     point, _bound = Bounds.rand_live(rng, bound, us)
     loglstar = logl(prior(point))
     u, v, logL = prop(rng, point, loglstar, _bound, logl, prior)

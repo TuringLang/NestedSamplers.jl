@@ -107,8 +107,7 @@ function rand_live(rng::AbstractRNG, me::MultiEllipsoid, us)
     idxs = findall(ell -> u ∈ ell, me.ellipsoids)
     # TODO if point isn't bounded, update bounds
     if isempty(idxs)
-        @warn "You have an unbounded point, somehow. Future PR will re-fit bounds. For now, using a workaround"
-        return rand_live(rng, me, us)
+        return u, nothing
     end
 
     # pick random encompassing ellipsoid

@@ -60,7 +60,8 @@ Returns a random live point and the bounds associated with it.
 """
 function rand_live(rng::AbstractRNG, B::AbstractBoundingSpace, us)
     idx = rand(rng, Base.axes(us, 2))
-    return us[:, idx], B
+    u = us[:, idx]
+    return u, u ∈ B ? B : nothing
 end
 rand_live(B::AbstractBoundingSpace, us) = rand_live(GLOBAL_RNG, B, us)
 
