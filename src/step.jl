@@ -92,7 +92,7 @@ function step(rng, model, sampler, state; kwargs...)
     logz = logaddexp(state.logz, logwt)
     h = (exp(logwt - logz) * logl_dead +
          exp(state.logz - logz) * (state.h + state.logz) - logz)
-    logzerr = h >= 0 ? sqrt(h / sampler.nactive) : NaN
+    logzerr = h ≥ 0 ? sqrt(h / sampler.nactive) : NaN
     logvol = state.logvol - 1 / sampler.nactive
 
     ## prepare returns
