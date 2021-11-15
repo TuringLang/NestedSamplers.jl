@@ -22,6 +22,7 @@ Nested
 
 ```@docs
 Bounds
+Bounds.AbstractBoundingSpace
 Bounds.NoBounds
 Bounds.Ellipsoid
 Bounds.MultiEllipsoid
@@ -31,6 +32,7 @@ Bounds.MultiEllipsoid
 
 ```@docs
 Proposals
+Proposals.AbstractProposal
 Proposals.Uniform
 Proposals.RWalk
 Proposals.RStagger
