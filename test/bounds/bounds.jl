@@ -12,6 +12,13 @@ const BOUNDST = [
     Bounds.MultiEllipsoid
 ]
 
+@testset "pathological cases" begin
+    A_almost_symmetric = [2.6081830533175096e8 -5.4107420917559285e6 -1.9314298704966028e9 -2.360066561768968e9; -5.410742091755895e6 379882.440454782 6.715028007245775e7 2.0195280814040575e7; -1.931429870496611e9 6.715028007245693e7 9.811342987452753e10 -4.6579127705367036e7; -2.3600665617689605e9 2.0195280814042665e7 -4.6579127705418006e7 9.80946804720486e10]
+    # shouldn't fail:
+    ell = Bounds.Ellipsoid(zeros(4), A_almost_symmetric)
+    Bounds.volume(ell)
+end
+
 @testset "interface - $B, $T, D=$D" for B in BOUNDST, T in [Float32, Float64], D in 1:20
     # creation, inspection
     bound = B(T, D)
