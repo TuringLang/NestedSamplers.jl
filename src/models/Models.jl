@@ -14,5 +14,6 @@ using LogExpFunctions
 
 include("shells.jl")
 include("correlated.jl")
+include("eggbox.jl")
 
 end # module

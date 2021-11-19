@@ -14,7 +14,8 @@ makedocs(
         "Home" => "index.md",
         "Examples" => [
             "Gaussian Shells" => "examples/shells.md",
-            "Correlated Gaussian" => "examples/correlated.md"
+            "Correlated Gaussian" => "examples/correlated.md",
+            "Eggbox" => "examples/eggbox.md",
         ],
         "API/Reference" => "api.md"
     ],
