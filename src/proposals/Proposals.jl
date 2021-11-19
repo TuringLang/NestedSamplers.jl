@@ -4,7 +4,7 @@
 This module contains the different algorithms for proposing new points within a bounding volume in unit space.
 
 The available implementations are
-* [`Proposals.Uniform`](@ref) - samples uniformly within the bounding volume
+* [`Proposals.Rejection`](@ref) - samples uniformly within the bounding volume
 * [`Proposals.RWalk`](@ref) - random walks to a new point given an existing one
 * [`Proposals.RStagger`](@ref) - random staggering away to a new point given an existing one
 * [`Proposals.Slice`](@ref) - slicing away to a new point given an existing one
@@ -41,18 +41,20 @@ abstract type AbstractProposal end
 unitcheck(us) = all(u -> 0 < u < 1, us)
 
 """
-    Proposals.Uniform(;maxiter=100_000)
+    Proposals.Rejection(;maxiter=100_000)
 
-Propose a new live point by uniformly sampling within the bounding volume.
+Propose a new live point by uniformly sampling within the bounding volume and rejecting samples that do not meet the likelihood constraints.
 
 ## Parameters
 - `maxiter` is the maximum number of samples that can be rejected before giving up and throwing an error.
 """
-Base.@kwdef struct Uniform <: AbstractProposal
+Base.@kwdef struct Rejection <: AbstractProposal
     maxiter::Int = 100_000
 end
 
-function (prop::Uniform)(rng::AbstractRNG,
+@deprecate Uniform() Rejection()
+
+function (prop::Rejection)(rng::AbstractRNG,
     point::AbstractVector,
     logl_star,
     bounds::AbstractBoundingSpace,
@@ -71,7 +73,7 @@ function (prop::Uniform)(rng::AbstractRNG,
     throw(ErrorException("Couldn't generate a proper point after $(prop.maxiter) attempts including $ncall likelihood calls. Bounds=$bounds, logl_star=$logl_star."))
 end
 
-Base.show(io::IO, p::Uniform) = print(io, "NestedSamplers.Proposals.Uniform")
+Base.show(io::IO, p::Rejection) = print(io, "NestedSamplers.Proposals.Rejection")
 
 """
     Proposals.RWalk(;ratio=0.5, walks=25, scale=1)
