@@ -41,13 +41,18 @@ abstract type AbstractProposal end
 unitcheck(us) = all(u -> 0 < u < 1, us)
 
 """
-    Proposals.Uniform()
+    Proposals.Uniform(;maxiter=100_000)
 
 Propose a new live point by uniformly sampling within the bounding volume.
-"""
-struct Uniform <: AbstractProposal end
 
-function (::Uniform)(rng::AbstractRNG,
+## Parameters
+- `maxiter` is the maximum number of samples that can be rejected before giving up and throwing an error.
+"""
+Base.@kwdef struct Uniform <: AbstractProposal
+    maxiter::Int = 100_000
+end
+
+function (prop::Uniform)(rng::AbstractRNG,
     point::AbstractVector,
     logl_star,
     bounds::AbstractBoundingSpace,
@@ -55,7 +60,7 @@ function (::Uniform)(rng::AbstractRNG,
     prior_transform)
     
     ncall = 0
-    while true
+    for _ in 1:prop.maxiter
         u = rand(rng, bounds)
         unitcheck(u) || continue
         v = prior_transform(u)
@@ -63,6 +68,7 @@ function (::Uniform)(rng::AbstractRNG,
         ncall += 1
         logl ≥ logl_star && return u, v, logl, ncall
     end
+    throw(ErrorException("Couldn't generate a proper point after $(prop.maxiter) attempts including $ncall likelihood calls. Bounds=$bounds, logl_star=$logl_star."))
 end
 
 Base.show(io::IO, p::Uniform) = print(io, "NestedSamplers.Proposals.Uniform")
