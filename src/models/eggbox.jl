@@ -4,7 +4,7 @@
 Eggbox/Egg carton likelihood function
 
 ```math
-z(x, y) = \left[a + \sin\frac{x}{b} + \sin\frac{x}{b} \right]^5
+z(x, y) = \left[a + \cos\frac{x}{b} \cdot \cos\frac{x}{b} \right]^5
 ```
 
 # Examples

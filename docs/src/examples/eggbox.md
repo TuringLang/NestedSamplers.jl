@@ -35,12 +35,10 @@ y = range(0, 1, length=1000)
 logf = [model.loglike([xi, yi]) for yi in y, xi in x]
 heatmap(
     x, y, logf,
-    aspect_ratio=1,
     xlims=extrema(x),
     ylims=extrema(y),
     xlabel="x",
     ylabel="y",
-    size=(400, 400)
 )
 ```
 
@@ -51,7 +49,7 @@ using MCMCChains
 using StatsBase
 # using multi-ellipsoid for bounds
 # using default rejection sampler for proposals
-sampler = Nested(2, 1000)
+sampler = Nested(2, 500)
 chain, state = sample(model, sampler; dlogz=0.01, param_names=["x", "y"])
 # resample chain using statistical weights
 chain_resampled = sample(chain, Weights(vec(chain[:weights])), length(chain));
@@ -73,7 +71,8 @@ plot!(ylims=(0, 1), sp=3)
 
 ```@example eggbox
 density(chain_resampled, xlims=(0, 1))
-vline!(0:0.25:1, c=:black, ls=:dash, sp=[1, 2])
+vline!(0.1:0.2:0.9, c=:black, ls=:dash, sp=1)
+vline!(0.1:0.2:0.9, c=:black, ls=:dash, sp=2)
 ```
 
 ```@example eggbox

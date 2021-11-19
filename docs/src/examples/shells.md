@@ -31,16 +31,14 @@ let's take a look at a couple of parameters to see what the likelihood surface l
 using StatsPlots
 
 x = range(-6, 6, length=1000)
-y = range(-6, 6, length=1000)
+y = range(-2.5, 2.5, length=1000)
 logf = [model.loglike([xi, yi]) for yi in y, xi in x]
 heatmap(
     x, y, exp.(logf),
-    aspect_ratio=1,
     xlims=extrema(x),
     ylims=extrema(y),
     xlabel="x",
     ylabel="y",
-    size=(400, 400)
 )
 ```
 
@@ -66,6 +64,9 @@ chain_resampled
 
 ```@example shells
 marginalkde(chain[:x], chain[:y])
+plot!(xlims=(-6, 6), ylims=(-2.5, 2.5), sp=2)
+plot!(xlims=(-6, 6), sp=1)
+plot!(ylims=(-2.5, 2.5), sp=3)
 ```
 
 ```@example shells
