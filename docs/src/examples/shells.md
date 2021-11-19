@@ -75,15 +75,11 @@ vline!([-2, 2], c=:black, ls=:dash, sp=2)
 ```
 
 ```@example shells
-using Crayons, Measurements
+using Measurements
 logz_est = state.logz ± state.logzerr
 diff = logz_est - logz
 println("logz: $logz")
 println("estimate: $logz_est")
-if 2 * Measurements.uncertainty(diff) > Measurements.value(diff) 
-    println(crayon"green", "diff: $diff")
-else
-    println(crayon"red", "diff: $diff")
-end
+println("diff: $diff")
 nothing # hide
 ```

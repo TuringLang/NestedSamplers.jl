@@ -40,7 +40,7 @@ nothing # hide
 using Distributions
 using LinearAlgebra
 using NestedSamplers
-using StatsFuns: logaddexp
+using LogExpFunctions: logaddexp
 
 # Gaussian mixture model
 σ = 0.1
