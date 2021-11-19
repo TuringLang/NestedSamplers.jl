@@ -1,5 +1,3 @@
-using StatsFuns
-
 """
     Models.GaussianShells()
 

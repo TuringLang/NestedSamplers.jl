@@ -10,7 +10,7 @@ using ..NestedSamplers
 
 using Distributions
 using LinearAlgebra
-using StatsFuns
+using LogExpFunctions
 
 include("shells.jl")
 include("correlated.jl")

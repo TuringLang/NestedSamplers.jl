@@ -22,8 +22,7 @@ using Distributions: quantile, UnivariateDistribution
 using MCMCChains: Chains
 using ProgressLogging
 import StatsBase
-using StatsFuns: logaddexp,
-                 log1mexp
+using LogExpFunctions: logaddexp, log1mexp
 
 
 export Bounds,
