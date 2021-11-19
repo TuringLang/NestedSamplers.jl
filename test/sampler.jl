@@ -1,7 +1,7 @@
 using NestedSamplers: default_update_interval
 
 @testset "default helpers" begin
-    @test default_update_interval(Proposals.Uniform(), 3) == 1.5
+    @test default_update_interval(Proposals.Rejection(), 3) == 1.5
     @test default_update_interval(Proposals.RWalk(), 10) == 3.75
     @test default_update_interval(Proposals.RWalk(walks=10), 10) == 1.5
     @test default_update_interval(Proposals.RStagger(), 10) == 3.75
@@ -13,7 +13,7 @@ using NestedSamplers: default_update_interval
 end
 
 spl = Nested(3, 100)
-@test spl.proposal isa Proposals.Uniform
+@test spl.proposal isa Proposals.Rejection
 @test spl.bounds == Bounds.MultiEllipsoid
 @test spl.update_interval == 150
 @test spl.enlarge == 1.25

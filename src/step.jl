@@ -16,7 +16,7 @@ function step(rng, model, sampler::Nested; kwargs...)
     # sample a new live point without bounds
     point = rand(rng, eltype(us), sampler.ndims)
     bound = Bounds.fit(Bounds.NoBounds, us)
-    proposal = Proposals.Uniform()
+    proposal = Proposals.Rejection()
     u, v, ll, nc = proposal(rng, v_dead, logl_dead, bound, model.loglike, model.prior_transform)
 
     us[:, idx_dead] .= u
@@ -79,7 +79,7 @@ function step(rng, model, sampler, state; kwargs...)
     else
         point = rand(rng, eltype(state.us), sampler.ndims)
         bound = Bounds.fit(Bounds.NoBounds, state.us)
-        proposal = Proposals.Uniform()
+        proposal = Proposals.Rejection()
         u, v, logl, nc = proposal(rng, point, logl_dead, bound, model.loglike, model.prior_transform)
     end
 

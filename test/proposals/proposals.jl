@@ -1,5 +1,5 @@
 const PROPOSALS = [
-    Proposals.Uniform(),
+    Proposals.Rejection(),
     Proposals.RWalk(),
     Proposals.RStagger(),
     Proposals.Slice(),
@@ -27,9 +27,9 @@ const BOUNDS = [
     @test logl(v) == logL ≥ loglstar
 end
 
-@testset "Uniform" begin
+@testset "Rejection" begin
     # printing
-    @test sprint(show, Proposals.Uniform()) == "NestedSamplers.Proposals.Uniform"
+    @test sprint(show, Proposals.Rejection()) == "NestedSamplers.Proposals.Rejection"
 end
 
 @testset "RWalk" begin

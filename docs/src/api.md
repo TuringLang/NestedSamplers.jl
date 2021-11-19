@@ -33,7 +33,7 @@ Bounds.MultiEllipsoid
 ```@docs
 Proposals
 Proposals.AbstractProposal
-Proposals.Uniform
+Proposals.Rejection
 Proposals.RWalk
 Proposals.RStagger
 Proposals.Slice

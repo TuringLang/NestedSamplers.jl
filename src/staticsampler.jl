@@ -28,16 +28,16 @@ Static nested sampler with `nactive` active points and `ndims` parameters.
 ## Bounds and Proposals
 
 `bounds` declares the Type of [`Bounds.AbstractBoundingSpace`](@ref) to use in the prior volume. The available bounds are described by [`Bounds`](@ref). `proposal` declares the algorithm used for proposing new points. The available proposals are described in [`Proposals`](@ref). If `proposal` is `:auto`, will choose the proposal based on `ndims`
-* `ndims < 10` - [`Proposals.Uniform`](@ref)
+* `ndims < 10` - [`Proposals.Rejection`](@ref)
 * `10 ≤ ndims ≤ 20` - [`Proposals.RWalk`](@ref)
 * `ndims > 20` - [`Proposals.Slice`](@ref)
 
-The original nested sampling algorithm is roughly equivalent to using `Bounds.Ellipsoid` with `Proposals.Uniform`. The MultiNest algorithm is roughly equivalent to `Bounds.MultiEllipsoid` with `Proposals.Uniform`. The PolyChord algorithm is roughly equivalent to using `Proposals.RSlice`.
+The original nested sampling algorithm is roughly equivalent to using `Bounds.Ellipsoid` with `Proposals.Rejection`. The MultiNest algorithm is roughly equivalent to `Bounds.MultiEllipsoid` with `Proposals.Rejection`. The PolyChord algorithm is roughly equivalent to using `Proposals.RSlice`.
 
 ## Other Parameters
 * `enlarge` - When fitting the bounds to live points, they will be enlarged (in terms of volume) by this linear factor.
 * `update_interval` - How often to refit the live points with the bounds as a fraction of `nactive`. By default this will be determined using `default_update_interval` for the given proposal
-    * `Proposals.Uniform` - `1.5`
+    * `Proposals.Rejection` - `1.5`
     * `Proposals.RWalk` and `Proposals.RStagger` - `0.15 * walks`
     * `Proposals.Slice` - `0.9 * ndims * slices`
     * `Proposals.RSlice` - `2 * slices`
@@ -58,7 +58,7 @@ function Nested(ndims,
     # get proposal
     if proposal === :auto
         proposal = if ndims < 10
-            Proposals.Uniform()
+            Proposals.Rejection()
         elseif 10 ≤ ndims ≤ 20
             Proposals.RWalk() 
         else
@@ -81,7 +81,7 @@ function Nested(ndims,
         dlv)
 end
 
-default_update_interval(p::Proposals.Uniform, ndims) = 1.5
+default_update_interval(p::Proposals.Rejection, ndims) = 1.5
 default_update_interval(p::Proposals.RWalk, ndims) = 0.15 * p.walks
 default_update_interval(p::Proposals.RStagger, ndims) = 0.15 * p.walks
 default_update_interval(p::Proposals.Slice, ndims) = 0.9 * ndims * p.slices
