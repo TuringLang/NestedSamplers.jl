@@ -13,9 +13,9 @@ module Bounds
 using LinearAlgebra
 using Random: GLOBAL_RNG, AbstractRNG
 
-using StatsBase: mean_and_cov
 using Clustering
 using Distributions: Categorical, Uniform
+using StatsBase: mean_and_cov
 
 export AbstractBoundingSpace, rand_live, randoffset
 

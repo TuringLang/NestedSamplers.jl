@@ -1,11 +1,11 @@
 using AbstractMCMC
 using Distributions
 using LinearAlgebra
+using LogExpFunctions
 using MCMCChains
 using NestedSamplers
 using StableRNGs
 using StatsBase
-using StatsFuns
 using Test
 
 rng = StableRNG(8425)
