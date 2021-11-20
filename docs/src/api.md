@@ -46,4 +46,5 @@ Proposals.RSlice
 Models
 Models.GaussianShells
 Models.CorrelatedGaussian
+Models.Eggbox
 ```

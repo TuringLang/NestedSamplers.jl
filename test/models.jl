@@ -1,5 +1,5 @@
 const test_bounds = [Bounds.Ellipsoid, Bounds.MultiEllipsoid]
-const test_props = [Proposals.Rejection(), Proposals.RWalk(ratio=0.9, walks=50), Proposals.RStagger(ratio=0.9, walks=75), Proposals.Slice(slices=10), Proposals.RSlice()]
+const test_props = [Proposals.Rejection(maxiter=Int(1e6)), Proposals.RWalk(ratio=0.9, walks=50), Proposals.RStagger(ratio=0.9, walks=75), Proposals.Slice(slices=10), Proposals.RSlice()]
 
 
 @testset "$(nameof(bound)), $(nameof(typeof(proposal)))" for bound in test_bounds, proposal in test_props
@@ -67,7 +67,7 @@ const test_props = [Proposals.Rejection(), Proposals.RWalk(ratio=0.9, walks=50),
         chain_res = sample(chain, Weights(vec(chain[:weights])), length(chain))
 
         diff = state.logz - analytic_logz
-        atol = 5state.logzerr
+        atol = 6state.logzerr
         if diff > atol
             @warn "logz estimate is poor" bound proposal error = diff tolerance = atol
         end
@@ -79,6 +79,22 @@ const test_props = [Proposals.Rejection(), Proposals.RWalk(ratio=0.9, walks=50),
         ymodes = sort!(findpeaks(chain_res[:, 2, 1])[1:2])
         @test ymodes[1] ≈ -1 atol = σ
         @test ymodes[2] ≈ 1 atol = σ
+    end
+
+    @testset "Eggbox" begin
+        model, logz = Models.Eggbox()
+
+        sampler = Nested(2, 1000; bounds=bound, proposal=proposal)
+
+        chain, state = sample(rng, model, sampler; dlogz=0.1)
+
+        @test state.logz ≈ logz atol = 5state.logzerr
+
+        chain_res = sample(chain, Weights(vec(chain[:weights])), length(chain))
+        xmodes = sort!(findpeaks(chain_res[:, 1, 1])[1:5])
+        @test all(isapprox.(xmodes, 0.1:0.2:0.9, atol=0.2))
+        ymodes = sort!(findpeaks(chain_res[:, 2, 1])[1:5])
+        @test all(isapprox.(ymodes, 0.1:0.2:0.9, atol=0.2))
     end
 end
 
