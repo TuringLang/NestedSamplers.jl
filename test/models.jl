@@ -67,7 +67,7 @@ const test_props = [Proposals.Rejection(maxiter=Int(1e6)), Proposals.RWalk(ratio
         chain_res = sample(chain, Weights(vec(chain[:weights])), length(chain))
 
         diff = state.logz - analytic_logz
-        atol = 5state.logzerr
+        atol = 6state.logzerr
         if diff > atol
             @warn "logz estimate is poor" bound proposal error = diff tolerance = atol
         end
