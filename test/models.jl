@@ -84,18 +84,17 @@ const test_props = [Proposals.Rejection(maxiter=Int(1e6)), Proposals.RWalk(ratio
     @testset "Eggbox" begin
         model, logz = Models.Eggbox()
 
-        sampler = Nested(2, 500; bounds=bound, proposal=proposal)
+        sampler = Nested(2, 1000; bounds=bound, proposal=proposal)
 
         chain, state = sample(rng, model, sampler; dlogz=0.1)
-        global max_error
-        # logz
-        @test state.logz ≈ logz atol = 2state.logzerr
+
+        @test state.logz ≈ logz atol = 5state.logzerr
 
         chain_res = sample(chain, Weights(vec(chain[:weights])), length(chain))
         xmodes = sort!(findpeaks(chain_res[:, 1, 1])[1:5])
-        @test all(isapprox.(xmodes, 0.1:0.2:0.9, atol=0.1))
+        @test all(isapprox.(xmodes, 0.1:0.2:0.9, atol=0.2))
         ymodes = sort!(findpeaks(chain_res[:, 2, 1])[1:5])
-        @test all(isapprox.(ymodes, 0.1:0.2:0.9, atol=0.1))
+        @test all(isapprox.(ymodes, 0.1:0.2:0.9, atol=0.2))
     end
 end
 
