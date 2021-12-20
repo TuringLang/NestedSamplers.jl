@@ -29,18 +29,19 @@ For in-depth usage, see the [online documentation](https://turinglang.github.io/
 ```julia
 using NestedSamplers
 using Distributions
+using LinearAlgebra
 
-logl(X) = exp(-(X - [1, -1]) / 2)
+logl(X) = logpdf(MvNormal([1, -1], I), X)
 prior(X) = 4 .* (X .- 0.5)
 # or equivalently
-prior = [Uniform(-2, 2), Uniform(-2, 2)]
-model = NestedModel(logl, prior)
+priors = [Uniform(-2, 2), Uniform(-2, 2)]
+model = NestedModel(logl, priors)
 ```
 
 after defining the model, set up the nested sampler. This will involve choosing the bounding space and proposal scheme, or you can rely on the defaults. In addition, we need to define the dimensionality of the problem and the number of live points. More points results in a more precise evidence estimate at the cost of runtime. For more information, see the docs.
 
 ```julia
-bounds = Bounds.MultiElliipsoid
+bounds = Bounds.MultiEllipsoid
 prop = Proposals.Slice(slices=10)
 # 1000 live points
 sampler = Nested(2, 1000; bounds=bounds, proposal=prop)
