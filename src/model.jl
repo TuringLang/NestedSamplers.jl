@@ -37,17 +37,22 @@ function NestedModel(loglike, priors::AbstractVector{<:UnivariateDistribution})
     return NestedModel(loglike, prior_transform)
 end
 
+function prior_transform(model, args...)
+    return first(prior_transform_and_loglikelihood(model, args...))
+end
+
 function prior_transform(model::NestedModel{<:PriorTransformAndLogLike}, args...)
     return prior_transform(model.prior_transform_and_loglike, args...)
+end
+
+function loglikelihood(model, args...)
+    return last(prior_transform_and_loglikelihood(model, args...))
 end
 
 function loglikelihood(model::NestedModel{<:PriorTransformAndLogLike}, args...)
     return loglikelihood(model.prior_transform_and_loglike, args...)
 end
 
-function prior_transform_and_loglikelihood(
-    model::NestedModel{<:PriorTransformAndLogLike},
-    args...
-)
+function prior_transform_and_loglikelihood(model::NestedModel, args...)
     return prior_transform_and_loglikelihood(model.prior_transform_and_loglike, args...)
 end
