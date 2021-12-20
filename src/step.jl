@@ -177,14 +177,23 @@ init_particles(rng, model, sampler) =
 # will retry 100 times before erroring
 function init_particles(rng, T, ndims, nactive, model)
     us = rand(rng, T, ndims, nactive)
-    vs = mapslices(Base.Fix1(prior_transform, model), us, dims=1)
-    logl = dropdims(mapslices(Base.Fix1(loglikelihood, model), vs, dims=1), dims=1)
-        ntries = 1
+    vs_and_logl = mapslices(
+        Base.Fix1(prior_transform_and_loglikelihood, model), us;
+        dims=1
+    )
+    vs = map(first, vs_and_logl)
+    logl = map(last, vs_and_logl)
+
+    ntries = 1
     while true
         any(isfinite, logl) && break
         us .= rand(rng, T, ndims, nactive)
-        vs .= mapslices(Base.Fix1(prior_transform, model), us, dims=1)
-        logl .= mapslices(Base.Fix1(loglikelihood, model), vs, dims=1)
+        vs_and_logl .= mapslices(
+            Base.Fix1(prior_transform_and_loglikelihood, model), us;
+            dims=1
+        )
+        vs. = map(first, vs_and_logl)
+        logl. = map(last, vs_and_logl)
         ntries += 1
         ntries > 100 && error("After 100 attempts, could not initialize any live points with finite loglikelihood. Please check your prior transform and loglikelihood methods.")
     end
