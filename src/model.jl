@@ -54,5 +54,5 @@ function loglikelihood(model::NestedModel{<:PriorTransformAndLogLike}, args...)
 end
 
 function prior_transform_and_loglikelihood(model::NestedModel, args...)
-    return prior_transform_and_loglikelihood(model.prior_transform_and_loglike, args...)
+    return model.prior_transform_and_loglike(args...)
 end
