@@ -131,7 +131,7 @@ function (prop::RWalk)(
             end
         end
         # check proposed point
-        v_prop, logl_prop = prior_transfrom_and_loglike(model, u_prop)
+        v_prop, logl_prop = prior_transform_and_loglikelihood(model, u_prop)
         if logl_prop ≥ logl_star
             u = u_prop
             v = v_prop

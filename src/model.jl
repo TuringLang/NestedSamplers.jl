@@ -26,7 +26,7 @@ prior_transform_and_loglikelihood(f::PriorTransformAndLogLikelihood, u) = f(u)
 `loglike` is the only function used for likelihood calculations. This means if you want your priors to be used for the likelihood calculations they must be manually included in the `loglike` function.
 """
 struct NestedModel{F} <: AbstractModel
-    prior_transform_and_loglike::F
+    prior_transform_and_loglikelihood::F
 end
 
 function NestedModel(loglike, prior_transform)
@@ -43,17 +43,17 @@ function prior_transform(model, args...)
 end
 
 function prior_transform(model::NestedModel{<:PriorTransformAndLogLikelihood}, args...)
-    return prior_transform(model.prior_transform_and_loglike, args...)
+    return prior_transform(model.prior_transform_and_loglikelihood, args...)
 end
 
-function loglikelihood(model, args...)
+function loglikelihood_from_uniform(model, args...)
     return last(prior_transform_and_loglikelihood(model, args...))
 end
 
-function loglikelihood(model::NestedModel{<:PriorTransformAndLogLikelihood}, args...)
-    return loglikelihood(model.prior_transform_and_loglike, args...)
+function loglikelihood_from_uniform(model::NestedModel{<:PriorTransformAndLogLikelihood}, args...)
+    return loglikelihood_from_uniform(model.prior_transform_and_loglikelihood, args...)
 end
 
 function prior_transform_and_loglikelihood(model::NestedModel, args...)
-    return model.prior_transform_and_loglike(args...)
+    return model.prior_transform_and_loglikelihood(args...)
 end
