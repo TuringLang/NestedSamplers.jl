@@ -3,15 +3,16 @@ struct PriorTransformAndLogLikelihood{T,L}
     loglikelihood::L
 end
 
-function (f::PriorTransformAndLogLikelihood)(args...)
-    return f.prior_transform(args...), f.loglikelihood(args...)
+function (f::PriorTransformAndLogLikelihood)(u)
+    v = f.prior_transform(u)
+    return (v, f.loglikelihood(v))
 end
 
-prior_transform(f::PriorTransformAndLogLikelihood, args...) = f.prior_transform(args...)
-loglikelihood(f::PriorTransformAndLogLikelihood, args...) = f.loglikelihood(args...)
-function prior_transform_and_loglikelihood(f::PriorTransformAndLogLikelihood, args...)
-    return f.prior_transform(args...), f.loglikelihood(args...)
+prior_transform(f::PriorTransformAndLogLikelihood, u) = f.prior_transform(u)
+function loglikelihood_from_uniform(f::PriorTransformAndLogLikelihood, u)
+    return last(prior_transform_and_loglikelihood(f, u))
 end
+prior_transform_and_loglikelihood(f::PriorTransformAndLogLikelihood, u) = f(u)
 
 """
     NestedModel(loglike, prior_transform)
