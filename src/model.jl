@@ -1,15 +1,15 @@
-struct PriorTransformAndLogLike{T,L}
+struct PriorTransformAndLogLikelihood{T,L}
     prior_transform::T
     loglikelihood::L
 end
 
-function (f::PriorTransformAndLogLike)(args...)
+function (f::PriorTransformAndLogLikelihood)(args...)
     return f.prior_transform(args...), f.loglikelihood(args...)
 end
 
-prior_transform(f::PriorTransformAndLogLike, args...) = f.prior_transform(args...)
-loglikelihood(f::PriorTransformAndLogLike, args...) = f.loglikelihood(args...)
-function prior_transform_and_loglikelihood(f::PriorTransformAndLogLike, args...)
+prior_transform(f::PriorTransformAndLogLikelihood, args...) = f.prior_transform(args...)
+loglikelihood(f::PriorTransformAndLogLikelihood, args...) = f.loglikelihood(args...)
+function prior_transform_and_loglikelihood(f::PriorTransformAndLogLikelihood, args...)
     return f.prior_transform(args...), f.loglikelihood(args...)
 end
 
@@ -29,7 +29,7 @@ struct NestedModel{F} <: AbstractModel
 end
 
 function NestedModel(loglike, prior_transform)
-    return NestedModel(PriorTransformAndLogLike(prior_transform, loglike))
+    return NestedModel(PriorTransformAndLogLikelihood(prior_transform, loglike))
 end
 
 function NestedModel(loglike, priors::AbstractVector{<:UnivariateDistribution})
@@ -41,7 +41,7 @@ function prior_transform(model, args...)
     return first(prior_transform_and_loglikelihood(model, args...))
 end
 
-function prior_transform(model::NestedModel{<:PriorTransformAndLogLike}, args...)
+function prior_transform(model::NestedModel{<:PriorTransformAndLogLikelihood}, args...)
     return prior_transform(model.prior_transform_and_loglike, args...)
 end
 
@@ -49,7 +49,7 @@ function loglikelihood(model, args...)
     return last(prior_transform_and_loglikelihood(model, args...))
 end
 
-function loglikelihood(model::NestedModel{<:PriorTransformAndLogLike}, args...)
+function loglikelihood(model::NestedModel{<:PriorTransformAndLogLikelihood}, args...)
     return loglikelihood(model.prior_transform_and_loglike, args...)
 end
 
