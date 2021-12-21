@@ -428,7 +428,7 @@ function sample_slice(rng, axis, u, logl_star, model, nc, nexpand, ncontract)
         r = rand(rng)
         u_prop = @. u_l + r * u_hat
         if unitcheck(u_prop)
-            u_prop, logl_prop = prior_transform_and_loglikelihood(model, u_prop)
+            v_prop, logl_prop = prior_transform_and_loglikelihood(model, u_prop)
         else
             logl_prop = -Inf
         end
