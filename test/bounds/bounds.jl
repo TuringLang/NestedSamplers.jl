@@ -73,7 +73,7 @@ end
     @test point ∈ _bound && point ∈ bound
 end
 
-@testset "interface - NoBounds, $T, D=$D" for T in [Float16, Float32, Float64], D in 1:20
+@testset "interface - NoBounds, $T, D=$D" for T in [Float32, Float64], D in 1:20
     # creation, inspection
     bound = Bounds.NoBounds(T, D)
     @test bound == Bounds.NoBounds{T}(D)

@@ -8,7 +8,7 @@ using StableRNGs
 using StatsBase
 using Test
 
-rng = StableRNG(8425)
+rng = StableRNG(1234)
 AbstractMCMC.setprogress!(get(ENV, "CI", "false") == "false")
 
 include("utils.jl")
