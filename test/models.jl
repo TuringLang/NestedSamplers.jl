@@ -1,5 +1,25 @@
-const test_bounds = [Bounds.Ellipsoid, Bounds.MultiEllipsoid]
-const test_props = [Proposals.Rejection(maxiter=Int(1e6)), Proposals.RWalk(ratio=0.9, walks=50), Proposals.RStagger(ratio=0.9, walks=75), Proposals.Slice(slices=10), Proposals.RSlice()]
+const test_bounds = [
+    Bounds.Ellipsoid,
+    Bounds.MultiEllipsoid
+]
+const test_props = [
+    Proposals.Rejection(maxiter=Int(1e6)),
+    Proposals.RWalk(ratio=0.5, walks=50),
+    Proposals.RStagger(ratio=0.5, walks=50),
+    Proposals.Slice(slices=10),
+    Proposals.RSlice(slices=10)
+]
+
+const MAXZSCORES = Dict(zip(
+    Iterators.product(test_bounds, test_props),
+    [3, 3, 5, 6, 6, 3, 5, 7, 4, 3]
+))
+
+function test_logz(measured, actual, error, bound, proposal)
+    diff = measured - actual
+    zscore = abs(diff) / error
+    @test measured ≈ actual atol=MAXZSCORES[(bound, proposal)] * error
+end
 
 
 @testset "$(nameof(bound)), $(nameof(typeof(proposal)))" for bound in test_bounds, proposal in test_props
@@ -21,14 +41,7 @@ const test_props = [Proposals.Rejection(maxiter=Int(1e6)), Proposals.RWalk(ratio
         @test all(@.(abs(means - expected) < tols))
 
         # logz
-        if proposal isa Proposals.RWalk || proposal isa Proposals.RStagger
-            # bump to 6sigma because RWalk and RStagger _struggle_
-            # better approach for this?? TODO
-            tol = 6state.logzerr
-        else
-            tol = 5state.logzerr
-        end
-        @test state.logz ≈ logz atol = tol
+        test_logz(state.logz, logz, state.logzerr, bound, proposal)
     end
 
     @testset "Gaussian Shells" begin
@@ -39,7 +52,7 @@ const test_props = [Proposals.Rejection(maxiter=Int(1e6)), Proposals.RWalk(ratio
         chain, state = sample(rng, model, sampler; dlogz=0.01)
 
         # logz
-        @test state.logz ≈ logz atol = 5state.logzerr
+        test_logz(state.logz, logz, state.logzerr, bound, proposal)
     end
 
     @testset "Gaussian Mixture Model" begin
@@ -56,7 +69,7 @@ const test_props = [Proposals.Rejection(maxiter=Int(1e6)), Proposals.RWalk(ratio
             return logaddexp(f1, f2)
         end
 
-        prior(X) = 10 .* X .- 5
+        prior(X) = muladd.(10, X, -5)
         model = NestedModel(logl, prior)
 
         analytic_logz = log(4π * σ^2 / 100)
@@ -66,13 +79,8 @@ const test_props = [Proposals.Rejection(maxiter=Int(1e6)), Proposals.RWalk(ratio
         chain, state = sample(rng, model, spl; dlogz=0.01)
         chain_res = sample(rng, chain, Weights(vec(chain[:weights])), length(chain))
 
-        diff = state.logz - analytic_logz
-        atol = 6state.logzerr
-        if diff > atol
-            @warn "logz estimate is poor" bound proposal error = diff tolerance = atol
-        end
+        test_logz(state.logz, analytic_logz, state.logzerr, bound, proposal)
 
-        @test state.logz ≈ analytic_logz atol = atol # within 1σ
         xmodes = sort!(findpeaks(chain_res[:, 1, 1])[1:2])
         @test xmodes[1] ≈ -1 atol = σ
         @test xmodes[2] ≈ 1 atol = σ
@@ -88,7 +96,7 @@ const test_props = [Proposals.Rejection(maxiter=Int(1e6)), Proposals.RWalk(ratio
 
         chain, state = sample(rng, model, sampler; dlogz=0.1)
 
-        @test state.logz ≈ logz atol = 5state.logzerr
+        test_logz(state.logz, logz, state.logzerr, bound, proposal)
 
         chain_res = sample(rng, chain, Weights(vec(chain[:weights])), length(chain))
         xmodes = sort!(findpeaks(chain_res[:, 1, 1])[1:5])
@@ -97,4 +105,3 @@ const test_props = [Proposals.Rejection(maxiter=Int(1e6)), Proposals.RWalk(ratio
         @test all(isapprox.(ymodes, 0.1:0.2:0.9, atol=0.2))
     end
 end
-
