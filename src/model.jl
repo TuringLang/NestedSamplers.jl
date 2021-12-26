@@ -1,3 +1,18 @@
+struct PriorTransformAndLogLikelihood{T,L}
+    prior_transform::T
+    loglikelihood::L
+end
+
+function (f::PriorTransformAndLogLikelihood)(u)
+    v = f.prior_transform(u)
+    return (v, f.loglikelihood(v))
+end
+
+prior_transform(f::PriorTransformAndLogLikelihood, u) = f.prior_transform(u)
+function loglikelihood_from_uniform(f::PriorTransformAndLogLikelihood, u)
+    return last(prior_transform_and_loglikelihood(f, u))
+end
+prior_transform_and_loglikelihood(f::PriorTransformAndLogLikelihood, u) = f(u)
 
 """
     NestedModel(loglike, prior_transform)
@@ -10,12 +25,35 @@
 **Note:**
 `loglike` is the only function used for likelihood calculations. This means if you want your priors to be used for the likelihood calculations they must be manually included in the `loglike` function.
 """
-struct NestedModel <: AbstractModel
-    loglike::Function
-    prior_transform::Function
+struct NestedModel{F} <: AbstractModel
+    prior_transform_and_loglikelihood::F
+end
+
+function NestedModel(loglike, prior_transform)
+    return NestedModel(PriorTransformAndLogLikelihood(prior_transform, loglike))
 end
 
 function NestedModel(loglike, priors::AbstractVector{<:UnivariateDistribution})
     prior_transform(X) = quantile.(priors, X)
     return NestedModel(loglike, prior_transform)
+end
+
+function prior_transform(model, args...)
+    return first(prior_transform_and_loglikelihood(model, args...))
+end
+
+function prior_transform(model::NestedModel{<:PriorTransformAndLogLikelihood}, args...)
+    return prior_transform(model.prior_transform_and_loglikelihood, args...)
+end
+
+function loglikelihood_from_uniform(model, args...)
+    return last(prior_transform_and_loglikelihood(model, args...))
+end
+
+function loglikelihood_from_uniform(model::NestedModel{<:PriorTransformAndLogLikelihood}, args...)
+    return loglikelihood_from_uniform(model.prior_transform_and_loglikelihood, args...)
+end
+
+function prior_transform_and_loglikelihood(model::NestedModel, args...)
+    return model.prior_transform_and_loglikelihood(args...)
 end

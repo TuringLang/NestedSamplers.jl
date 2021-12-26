@@ -9,7 +9,7 @@ const test_props = [Proposals.Rejection(maxiter=Int(1e6)), Proposals.RWalk(ratio
         sampler = Nested(D, 50D; bounds=bound, proposal=proposal)
 
         chain, state = sample(rng, model, sampler; dlogz=0.01)
-        chain_res = sample(chain, Weights(vec(chain[:weights])), length(chain))
+        chain_res = sample(rng, chain, Weights(vec(chain[:weights])), length(chain))
         # test posteriors
         vals = Array(chain_res)
         means = mean(vals, dims=1)
@@ -64,7 +64,7 @@ const test_props = [Proposals.Rejection(maxiter=Int(1e6)), Proposals.RWalk(ratio
 
         spl = Nested(2, 1000, bounds=bound, proposal=proposal)
         chain, state = sample(rng, model, spl; dlogz=0.01)
-        chain_res = sample(chain, Weights(vec(chain[:weights])), length(chain))
+        chain_res = sample(rng, chain, Weights(vec(chain[:weights])), length(chain))
 
         diff = state.logz - analytic_logz
         atol = 6state.logzerr
@@ -90,7 +90,7 @@ const test_props = [Proposals.Rejection(maxiter=Int(1e6)), Proposals.RWalk(ratio
 
         @test state.logz ≈ logz atol = 5state.logzerr
 
-        chain_res = sample(chain, Weights(vec(chain[:weights])), length(chain))
+        chain_res = sample(rng, chain, Weights(vec(chain[:weights])), length(chain))
         xmodes = sort!(findpeaks(chain_res[:, 1, 1])[1:5])
         @test all(isapprox.(xmodes, 0.1:0.2:0.9, atol=0.2))
         ymodes = sort!(findpeaks(chain_res[:, 2, 1])[1:5])

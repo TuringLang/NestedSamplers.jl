@@ -18,7 +18,7 @@ const BOUNDS = [
     us = 0.7 .* rand(rng, 2, 10)  # live points should be within the ellipsoid
     point, _bound = Bounds.rand_live(rng, bound, us)
     loglstar = logl(prior(point))
-    u, v, logL = prop(rng, point, loglstar, _bound, logl, prior)
+    u, v, logL = prop(rng, point, loglstar, _bound, NestedSamplers.PriorTransformAndLogLikelihood(prior, logl))
     # simple bounds checks
     @test all(x -> 0 < x < 1, u)
     @test all(x -> -1 < x < 1, v)

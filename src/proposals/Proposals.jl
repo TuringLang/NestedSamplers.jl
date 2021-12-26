@@ -12,6 +12,7 @@ The available implementations are
 """
 module Proposals
 
+using ..NestedSamplers: prior_transform_and_loglikelihood
 using ..Bounds
 
 using Random
@@ -54,19 +55,19 @@ end
 
 @deprecate Uniform() Rejection()
 
-function (prop::Rejection)(rng::AbstractRNG,
+function (prop::Rejection)(
+    rng::AbstractRNG,
     point::AbstractVector,
     logl_star,
     bounds::AbstractBoundingSpace,
-    loglike,
-    prior_transform)
+    model
+)
     
     ncall = 0
     for _ in 1:prop.maxiter
         u = rand(rng, bounds)
         unitcheck(u) || continue
-        v = prior_transform(u)
-        logl = loglike(v)
+        v, logl = prior_transform_and_loglikelihood(model, u)
         ncall += 1
         logl ≥ logl_star && return u, v, logl, ncall
     end
@@ -95,13 +96,14 @@ Propose a new live point by random walking away from an existing live point.
     @assert scale ≥ 0 "Proposal scale must be non-negative"
 end
 
-function (prop::RWalk)(rng::AbstractRNG,
-                       point::AbstractVector,
-                       logl_star,
-                       bounds::AbstractBoundingSpace,
-                       loglike,
-                       prior_transform;
-                       kwargs...)
+function (prop::RWalk)(
+    rng::AbstractRNG,
+    point::AbstractVector,
+    logl_star,
+    bounds::AbstractBoundingSpace,
+    model;
+    kwargs...
+)
     # setup
     n = length(point)
     scale_init = prop.scale
@@ -129,8 +131,7 @@ function (prop::RWalk)(rng::AbstractRNG,
             end
         end
         # check proposed point
-        v_prop = prior_transform(u_prop)
-        logl_prop = loglike(v_prop)
+        v_prop, logl_prop = prior_transform_and_loglikelihood(model, u_prop)
         if logl_prop ≥ logl_star
             u = u_prop
             v = v_prop
@@ -188,13 +189,14 @@ proposals.
     @assert scale ≥ 0 "Proposal scale must be non-negative"
 end
 
-function (prop::RStagger)(rng::AbstractRNG,
-                          point::AbstractVector,
-                          logl_star,
-                          bounds::AbstractBoundingSpace,
-                          loglike,
-                          prior_transform;
-                          kwargs...)
+function (prop::RStagger)(
+    rng::AbstractRNG,
+    point::AbstractVector,
+    logl_star,
+    bounds::AbstractBoundingSpace,
+    model;
+    kwargs...
+)
     #setup
     n = length(point)
     scale_init = prop.scale
@@ -223,8 +225,7 @@ function (prop::RStagger)(rng::AbstractRNG,
             end
         end 
         # check proposed point
-        v_prop = prior_transform(u_prop)
-        logl_prop = loglike(v_prop)
+        v_prop, logl_prop = prior_transform_and_loglikelihood(model, u_prop)
         if logl_prop ≥ logl_star
             u = u_prop
             v = v_prop
@@ -276,13 +277,14 @@ This is a standard _Gibbs-like_ implementation where a single multivariate slice
     @assert scale ≥ 0 "Proposal scale must be non-negative"
 end
 
-function (prop::Slice)(rng::AbstractRNG,
-                       point::AbstractVector,
-                       logl_star,
-                       bounds::AbstractBoundingSpace,
-                       loglike,
-                       prior_transform;
-                       kwargs...)
+function (prop::Slice)(
+    rng::AbstractRNG,
+    point::AbstractVector,
+    logl_star,
+    bounds::AbstractBoundingSpace,
+    model;
+    kwargs...
+)
     # setup
     n = length(point)
     nc = nexpand = ncontract = 0
@@ -303,8 +305,11 @@ function (prop::Slice)(rng::AbstractRNG,
             # select axis
             axis = axes[idx, :]
             
-            u, v, logl, nc, nexpand, ncontract = sample_slice(rng, axis, point, logl_star, loglike, 
-                                                              prior_transform, nc, nexpand, ncontract)
+            u, v, logl, nc, nexpand, ncontract = sample_slice(
+                rng, axis, point, logl_star,
+                model,
+                nc, nexpand, ncontract
+            )
         end # end of slice sample along a random direction             
     end # end of slice sampling loop    
     
@@ -330,13 +335,14 @@ This is a standard _random_ implementation where each slice is along a random di
     @assert scale ≥ 0 "Proposal scale must be non-negative"
 end
 
-function (prop::RSlice)(rng::AbstractRNG,
-                       point::AbstractVector,
-                       logl_star,
-                       bounds::AbstractBoundingSpace,
-                       loglike,
-                       prior_transform;
-                       kwargs...)
+function (prop::RSlice)(
+    rng::AbstractRNG,
+    point::AbstractVector,
+    logl_star,
+    bounds::AbstractBoundingSpace,
+    model;
+    kwargs...
+)
     # setup
     n = length(point)
     nc = nexpand = ncontract = 0
@@ -350,8 +356,11 @@ function (prop::RSlice)(rng::AbstractRNG,
         
         # transform and scale into parameter space
         axis = prop.scale .* (Bounds.axes(bounds) * drhat)
-        u, v, logl, nc, nexpand, ncontract = sample_slice(rng, axis, point, logl_star, loglike,
-                                                          prior_transform, nc, nexpand, ncontract)
+        u, v, logl, nc, nexpand, ncontract = sample_slice(
+            rng, axis, point, logl_star,
+            model,
+            nc, nexpand, ncontract
+        )
     end # end of random slice sampling loop
     
     # update random slice proposal scale based on the relative size of the slices compared to the initial guess
@@ -361,13 +370,12 @@ function (prop::RSlice)(rng::AbstractRNG,
 end # end of function RSlice
 
 # Method for slice sampling
-function sample_slice(rng, axis, u, logl_star, loglike, prior_transform, nc, nexpand, ncontract) 
+function sample_slice(rng, axis, u, logl_star, model, nc, nexpand, ncontract)
     # define starting window
     r = rand(rng)  # initial scale/offset
     u_l = @. u - r * axis  # left bound
     if unitcheck(u_l)
-        v_l = prior_transform(u_l)
-        logl_l = loglike(v_l)
+        v_l, logl_l = prior_transform_and_loglikelihood(model, u_l)
     else
         logl_l = -Inf
     end
@@ -376,8 +384,7 @@ function sample_slice(rng, axis, u, logl_star, loglike, prior_transform, nc, nex
 
     u_r = u_l .+ axis # right bound
     if unitcheck(u_r)
-        v_r = prior_transform(u_r)
-        logl_r = loglike(v_r)
+        v_r, logl_r = prior_transform_and_loglikelihood(model, u_r)
     else
         logl_r = -Inf
     end    
@@ -387,9 +394,8 @@ function sample_slice(rng, axis, u, logl_star, loglike, prior_transform, nc, nex
     # stepping out left and right bounds
     while logl_l ≥ logl_star
         u_l .-= axis
-        if unitcheck(u_l)   
-            v_l = prior_transform(u_l)
-            logl_l = loglike(v_l)
+        if unitcheck(u_l)
+            v_l, logl_l = prior_transform_and_loglikelihood(model, u_l)
         else
             logl_l = -Inf
         end
@@ -399,9 +405,8 @@ function sample_slice(rng, axis, u, logl_star, loglike, prior_transform, nc, nex
 
     while logl_r ≥ logl_star
         u_r .+= axis
-        if unitcheck(u_r)   
-            v_r = prior_transform(u_r)
-            logl_r = loglike(v_r)
+        if unitcheck(u_r)
+            v_r, logl_r = prior_transform_and_loglikelihood(model, u_r)
         else
             logl_r = -Inf
         end
@@ -422,9 +427,8 @@ function sample_slice(rng, axis, u, logl_star, loglike, prior_transform, nc, nex
         # propose a new position
         r = rand(rng)
         u_prop = @. u_l + r * u_hat
-        if unitcheck(u_prop) 
-            v_prop = prior_transform(u_prop)
-            logl_prop = loglike(v_prop)
+        if unitcheck(u_prop)
+            v_prop, logl_prop = prior_transform_and_loglikelihood(model, u_prop)
         else
             logl_prop = -Inf
         end

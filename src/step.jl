@@ -17,7 +17,7 @@ function step(rng, model, sampler::Nested; kwargs...)
     point = rand(rng, eltype(us), sampler.ndims)
     bound = Bounds.fit(Bounds.NoBounds, us)
     proposal = Proposals.Rejection()
-    u, v, ll, nc = proposal(rng, v_dead, logl_dead, bound, model.loglike, model.prior_transform)
+    u, v, ll, nc = proposal(rng, v_dead, logl_dead, bound, model)
 
     us[:, idx_dead] .= u
     vs[:, idx_dead] .= v
@@ -75,12 +75,12 @@ function step(rng, model, sampler, state; kwargs...)
             since_update = 0
             point, bound = rand_live(rng, active_bound, point[:, :])
         end
-        u, v, logl, nc = sampler.proposal(rng, point, logl_dead, bound, model.loglike, model.prior_transform)
+        u, v, logl, nc = sampler.proposal(rng, point, logl_dead, bound, model)
     else
         point = rand(rng, eltype(state.us), sampler.ndims)
         bound = Bounds.fit(Bounds.NoBounds, state.us)
         proposal = Proposals.Rejection()
-        u, v, logl, nc = proposal(rng, point, logl_dead, bound, model.loglike, model.prior_transform)
+        u, v, logl, nc = proposal(rng, point, logl_dead, bound, model)
     end
 
     state.us[:, idx_dead] .= u
@@ -167,24 +167,33 @@ end
 
 ## Helpers
 
-init_particles(rng, ndims, nactive, prior, loglike) =
-    init_particles(rng, Float64, ndims, nactive, prior, loglike)
+init_particles(rng, ndims, nactive, model) =
+    init_particles(rng, Float64, ndims, nactive, model)
 
 init_particles(rng, model, sampler) =
-    init_particles(rng, sampler.ndims, sampler.nactive, model.prior_transform, model.loglike)
+    init_particles(rng, sampler.ndims, sampler.nactive, model)
 
 # loop and fill arrays, checking validity of points
 # will retry 100 times before erroring
-function init_particles(rng, T, ndims, nactive, prior, loglike)
+function init_particles(rng, T, ndims, nactive, model)
     us = rand(rng, T, ndims, nactive)
-    vs = mapslices(prior, us, dims=1)
-    logl = dropdims(mapslices(loglike, vs, dims=1), dims=1)
-        ntries = 1
+    vs_and_logl = mapslices(
+        Base.Fix1(prior_transform_and_loglikelihood, model), us;
+        dims=1
+    )
+    vs = mapreduce(first, hcat, vs_and_logl)
+    logl = dropdims(map(last, vs_and_logl), dims=1)
+
+    ntries = 1
     while true
         any(isfinite, logl) && break
-        us .= rand(rng, T, ndims, nactive)
-        vs .= mapslices(prior, us, dims=1)
-        logl .= mapslices(loglike, vs, dims=1)
+        rand!(rng, us)
+        vs_and_logl .= mapslices(
+            Base.Fix1(prior_transform_and_loglikelihood, model), us;
+            dims=1
+        )
+        vs .= mapreduce(first, hcat, vs_and_logl)
+        map!(last, logl, vs_and_logl)
         ntries += 1
         ntries > 100 && error("After 100 attempts, could not initialize any live points with finite loglikelihood. Please check your prior transform and loglikelihood methods.")
     end
