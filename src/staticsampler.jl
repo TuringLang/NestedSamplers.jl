@@ -41,8 +41,10 @@ The original nested sampling algorithm is roughly equivalent to using `Bounds.El
     * `Proposals.RWalk` and `Proposals.RStagger` - `0.15 * walks`
     * `Proposals.Slice` - `0.9 * ndims * slices`
     * `Proposals.RSlice` - `2 * slices`
-* `min_ncall` - The minimum number of iterations before trying to fit the first bound
-* `min_eff` - The maximum efficiency before trying to fit the first bound
+* `min_ncall`: The minimum number of iterations before fitting the first bound; used to 
+avoid shrinking the bounds before burn-in is completed. By default 2*`nactive`.
+* `min_eff`: Minimum efficiency `(samples accepted / samples generated)` before fitting the 
+first bound; used to avoid shrinking the bounds before burn-in is completed By default 0.1.
 """
 function Nested(ndims,
     nactive;
