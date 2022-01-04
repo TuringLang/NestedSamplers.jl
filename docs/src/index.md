@@ -24,6 +24,10 @@ To use the nested samplers first install this library
 julia> ]add NestedSamplers
 ```
 
+## Background
+
+For statistical background and a more in-depth introduction to nested sampling, I recommend the [dynesty documentation](https://dynesty.readthedocs.io/en/latest/overview.html). In short, nested sampling is a technique for simultaneously estimating the Bayesian evidence and the posterior distribution (according to [Bayes' theorem](https://en.wikipedia.org/wiki/Bayes%27_theorem)) from nested iso-likelihood shells. These shells allow a quadrature estimate of the integral for the Bayesian evidence, which we can use for model selection, as well as the statistical weights for the underlying "live" points, which is where we get our posterior samples from!
+
 ## Usage
 
 The samplers are built using the [AbstractMCMC](https://github.com/turinglang/abstractmcmc.jl) interface. To use it, we need to create a [`NestedModel`](@ref).

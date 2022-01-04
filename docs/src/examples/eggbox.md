@@ -32,7 +32,8 @@ using StatsPlots
 
 x = range(0, 1, length=1000)
 y = range(0, 1, length=1000)
-logf = [model.loglike([xi, yi]) for yi in y, xi in x]
+loglike = model.prior_transform_and_loglikelihood.loglikelihood
+logf = [loglike([xi, yi]) for yi in y, xi in x]
 heatmap(
     x, y, logf,
     xlims=extrema(x),
