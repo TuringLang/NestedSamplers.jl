@@ -34,7 +34,8 @@ using StatsPlots
 
 θ1 = range(-1, 1, length=1000)
 θ2 = range(-1, 1, length=1000)
-logf = [model.loglike([t1, t2, 0, 0]) for t2 in θ2, t1 in θ1]
+loglike = model.prior_transform_and_loglikelihood.loglikelihood
+logf = [loglike([t1, t2, 0, 0]) for t2 in θ2, t1 in θ1]
 heatmap(
     θ1, θ2, exp.(logf),
     aspect_ratio=1,
