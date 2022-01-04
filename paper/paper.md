@@ -36,6 +36,6 @@ NestedSamplers.jl currently uses a static nested sampler (integrator), where the
 
 # Comparisons to existing software
 
-NestedSamplers.jl has many features similar to dynesty, and the predecessor code nestle.
+NestedSamplers.jl has many features similar to dynesty, and the predecessor code nestle. dynesty currently has more features, including a dynamic nested sampler, Hamiltonian slice sampling, and ball and cube distributions. The recent ultranest code has a subset of the features of dynesty. MultiNest can be reproduced by using our `MultiEllipsoid` bounding distribution, and the exact algorithm can be reproduced with an appropriate `Rejection` proposal algorithm. `Polychord` can be reproduced by using the `RSlice` algorithm, with typically an `Ellipsoid` bounding distribution. `DNest4` is ______ 
 
 # References
