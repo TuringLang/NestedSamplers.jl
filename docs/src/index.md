@@ -112,6 +112,8 @@ analytic_logz = log(4π * σ^2 / 100)
 
 ## Contributions and Support
 
+[![ColPrac: Contributor's Guide on Collaborative Practices for Community Packages](https://img.shields.io/badge/ColPrac-Contributor's%20Guide-blueviolet)](https://github.com/SciML/ColPrac)
+
 **Primary Author:** Miles Lucas ([@mileslucas](https://github.com/mileslucas))
 
-Contributions are always welcome! Take a look at the [issues](https://github.com/TuringLang/NestedSamplers.jl/issues) for ideas of open problems! To discuss ideas or plan contributions, open a [discussion](https://github.com/TuringLang/NestedSamplers.jl/discussions).
+Contributions are always welcome! In general, contributions should follow [ColPrac](https://github.com/SciML/ColPrac). Take a look at the [issues](https://github.com/TuringLang/NestedSamplers.jl/issues) for ideas of open problems! To discuss ideas or plan contributions, open a [discussion](https://github.com/TuringLang/NestedSamplers.jl/discussions).
