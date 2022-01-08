@@ -1,18 +1,17 @@
 
 # NestedSamplers.jl
 
-[![Build Status](https://github.com/turinglang/NestedSamplers.jl/workflows/CI/badge.svg?branch=main)](https://github.com/turinglang/NestedSamplers.jl/actions)
+[![Build Status](https://github.com/TuringLang/NestedSamplers.jl/workflows/CI/badge.svg?branch=main)](https://github.com/TuringLang/NestedSamplers.jl/actions)
 [![PkgEval](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/N/NestedSamplers.svg)](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/report.html)
-[![Coverage](https://codecov.io/gh/turinglang/NestedSamplers.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/turinglang/NestedSamplers.jl)
+[![Coverage](https://codecov.io/gh/TuringLang/NestedSamplers.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/TuringLang/NestedSamplers.jl)
 [![LICENSE](https://img.shields.io/github/license/TuringLang/NestedSamplers.jl?color=yellow)](LICENSE)
 
-[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://turinglang.github.io/NestedSamplers.jl/stable)
-[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://turinglang.github.io/NestedSamplers.jl/dev)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3950594.svg)](https://doi.org/10.5281/zenodo.3950594)
+[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://TuringLang.github.io/NestedSamplers.jl/stable)
+[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://TuringLang.github.io/NestedSamplers.jl/dev)
 
-A Julian implementation of single- and multi-ellipsoidal nested sampling algorithms using the [AbstractMCMC](https://github.com/turinglang/abstractmcmc.jl) interface.
+Implementations of single- and multi-ellipsoidal nested sampling algorithms in pure Julia. We implement the [AbstractMCMC.jl](https://github.com/TuringLang/abstractmcmc.jl) interface, allowing straightforward sampling from a variety of statistical models.
 
-This package was heavily influenced by [`nestle`](https://github.com/kbarbary/nestle), [`dynesty`](https://github.com/joshspeagle/dynesty), and [`NestedSampling.jl`](https://github.com/kbarbary/NestedSampling.jl).
+This package was heavily influenced by [nestle](https://github.com/kbarbary/nestle), [dynesty](https://github.com/joshspeagle/dynesty), and [NestedSampling.jl](https://github.com/kbarbary/NestedSampling.jl).
 
 ## Citing
 
@@ -30,7 +29,7 @@ julia> ]add NestedSamplers
 
 ## Usage
 
-For in-depth usage, see the [online documentation](https://turinglang.github.io/NestedSamplers.jl/dev/). In general, you'll need to write a log-likelihood function and a prior transform function. These are supplied to a `NestedModel`, defining the statistical model
+For in-depth usage, see the [online documentation](https://TuringLang.github.io/NestedSamplers.jl/dev/). In general, you'll need to write a log-likelihood function and a prior transform function. These are supplied to a `NestedModel`, defining the statistical model
 
 ```julia
 using NestedSamplers
@@ -77,9 +76,8 @@ using Measurements
 state.logz ± state.logzerr
 ```
 
-
-## Contributing
+## Contributions and Support
 
 **Primary Author:** Miles Lucas ([@mileslucas](https://github.com/mileslucas))
 
-Contributions are always welcome! Take a look at the [issues](https://github.com/turinglang/nestedsamplers.jl/issues) for ideas of open problems! To discuss ideas or plan contributions, open a [discussion](https://github.com/TuringLang/NestedSamplers.jl/discussions).
+Contributions are always welcome! Take a look at the [issues](https://github.com/TuringLang/NestedSamplers.jl/issues) for ideas of open problems! To discuss ideas or plan contributions, open a [discussion](https://github.com/TuringLang/NestedSamplers.jl/discussions).

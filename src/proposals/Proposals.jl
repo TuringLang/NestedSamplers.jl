@@ -83,7 +83,7 @@ Base.show(io::IO, p::Rejection) = print(io, "NestedSamplers.Proposals.Rejection"
 
 Propose a new live point by random walking away from an existing live point. This follows the algorithm outlined in Skilling (2006).[^1]
 
-[^1] Skilling, 2006, Bayesian Anal. 1(4), ["Nested sampling for general Bayesian computation"](https://projecteuclid.org/journals/bayesian-analysis/volume-1/issue-4/Nested-sampling-for-general-Bayesian-computation/10.1214/06-BA127.full)
+[^1]: Skilling, 2006, Bayesian Anal. 1(4), ["Nested sampling for general Bayesian computation"](https://projecteuclid.org/journals/bayesian-analysis/volume-1/issue-4/Nested-sampling-for-general-Bayesian-computation/10.1214/06-BA127.full)
 
 ## Parameters
 - `ratio` is the target acceptance ratio
@@ -178,7 +178,7 @@ This differs from the random walk proposal in that the step size here is exponen
 to reach a target acceptance rate _during_ each proposal, in addition to _between_
 proposals. This follows the algorithm outlined in Skilling (2006).[^1]
 
-[^1] Skilling, 2006, Bayesian Anal. 1(4), ["Nested sampling for general Bayesian computation"](https://projecteuclid.org/journals/bayesian-analysis/volume-1/issue-4/Nested-sampling-for-general-Bayesian-computation/10.1214/06-BA127.full)
+[^1]: Skilling, 2006, Bayesian Anal. 1(4), ["Nested sampling for general Bayesian computation"](https://projecteuclid.org/journals/bayesian-analysis/volume-1/issue-4/Nested-sampling-for-general-Bayesian-computation/10.1214/06-BA127.full)
 
 ## Parameters
 - `ratio` is the target acceptance ratio

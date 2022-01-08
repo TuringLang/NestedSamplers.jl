@@ -10,9 +10,9 @@ CurrentModule = NestedSamplers
 [![Coverage](https://codecov.io/gh/TuringLang/NestedSamplers.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/turinglang/NestedSamplers.jl)
 [![LICENSE](https://img.shields.io/github/license/TuringLang/NestedSamplers.jl?color=yellow)](https://github.com/TuringLang/NestedSamplers.jl/blob/main/LICENSE)
 
-A Julian implementation of single- and multi-ellipsoidal nested sampling algorithms using the [AbstractMCMC](https://github.com/turinglang/abstractmcmc.jl) interface.
+Implementations of single- and multi-ellipsoidal nested sampling algorithms in pure Julia. We implement the [AbstractMCMC.jl](https://github.com/turinglang/abstractmcmc.jl) interface, allowing straightforward sampling from a variety of statistical models.
 
-This package was heavily influenced by [`nestle`](https://github.com/kbarbary/nestle), [`dynesty`](https://github.com/joshspeagle/dynesty), and [`NestedSampling.jl`](https://github.com/kbarbary/NestedSampling.jl).
+This package was heavily influenced by [nestle](https://github.com/kbarbary/nestle), [dynesty](https://github.com/joshspeagle/dynesty), and [NestedSampling.jl](https://github.com/kbarbary/NestedSampling.jl).
 
 ## Citing
 
@@ -101,15 +101,17 @@ density(chain_res)
 vline!([-1, 1], c=:black, ls=:dash, subplot=1)
 vline!([-1, 1], c=:black, ls=:dash, subplot=2)
 ```
+
 and compare our estimate of the Bayesian (log-)evidence to the analytical value
+
 ```@example usage
 analytic_logz = log(4π * σ^2 / 100)
 # within 2-sigma
 @assert isapprox(analytic_logz, state.logz, atol=2state.logzerr)
 ```
 
-## Contributing
+## Contributions and Support
 
 **Primary Author:** Miles Lucas ([@mileslucas](https://github.com/mileslucas))
 
-Contributions are always welcome! Take a look at the [issues](https://github.com/turinglang/nestedsamplers.jl/issues) for ideas of open problems! To discuss ideas or plan contributions, open a [discussion](https://github.com/TuringLang/NestedSamplers.jl/discussions).
+Contributions are always welcome! Take a look at the [issues](https://github.com/TuringLang/NestedSamplers.jl/issues) for ideas of open problems! To discuss ideas or plan contributions, open a [discussion](https://github.com/TuringLang/NestedSamplers.jl/discussions).
