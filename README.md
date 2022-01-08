@@ -9,7 +9,7 @@
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://TuringLang.github.io/NestedSamplers.jl/stable)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://TuringLang.github.io/NestedSamplers.jl/dev)
 
-Implementations of single- and multi-ellipsoidal nested sampling algorithms in pure Julia. We implement the [AbstractMCMC.jl](https://github.com/TuringLang/abstractmcmc.jl) interface, allowing straightforward sampling from a variety of statistical models.
+Implementations of single- and multi-ellipsoidal nested sampling algorithms in pure Julia. We implement the [AbstractMCMC.jl](https://github.com/TuringLang/AbstractMCMC.jl) interface, allowing straightforward sampling from a variety of statistical models.
 
 This package was heavily influenced by [nestle](https://github.com/kbarbary/nestle), [dynesty](https://github.com/joshspeagle/dynesty), and [NestedSampling.jl](https://github.com/kbarbary/NestedSampling.jl).
 
@@ -52,7 +52,7 @@ prop = Proposals.Slice(slices=10)
 sampler = Nested(2, 1000; bounds=bounds, proposal=prop)
 ```
 
-once the sampler is set up, we can leverage all of the [AbstractMCMC](https://github.com/turinglang/abstractmcmc.jl) interface, including the step iterator, transducer, and a convenience `sample` method. The `sample` method takes keyword arguments for the convergence criteria.
+once the sampler is set up, we can leverage all of the [AbstractMCMC.jl](https://github.com/TuringLang/AbstractMCMC.jl) interface, including the step iterator, transducer, and a convenience `sample` method. The `sample` method takes keyword arguments for the convergence criteria.
 
 **Note:** both the samples *and* the sampler state will be returned by `sample`
 
@@ -67,7 +67,7 @@ you can resample taking into account the statistical weights, again using StatsB
 chain_resampled = sample(chain, Weights(vec(chain["weights"])), length(chain))
 ```
 
-These are chains from [MCMCChains](https://github.com/turinglang/mcmcchains.jl), which offer a lot of flexibility in exploring posteriors, combining data, and offering lots of convenient conversions (like to `DataFrame`s).
+These are chains from [MCMCChains.jl](https://github.com/TuringLang/MCMCChains.jl), which offer a lot of flexibility in exploring posteriors, combining data, and offering lots of convenient conversions (like to `DataFrame`s).
 
 Finally, we can see the estimate of the Bayesian evidence
 

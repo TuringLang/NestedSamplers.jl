@@ -7,10 +7,10 @@ CurrentModule = NestedSamplers
 [![GitHub](https://img.shields.io/badge/Code-GitHub-black.svg)](https://github.com/TuringLang/NestedSamplers.jl)
 [![Build Status](https://github.com/TuringLang/NestedSamplers.jl/workflows/CI/badge.svg?branch=main)](https://github.com/TuringLang/NestedSamplers.jl/actions)
 [![PkgEval](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/N/NestedSamplers.svg)](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/report.html)
-[![Coverage](https://codecov.io/gh/TuringLang/NestedSamplers.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/turinglang/NestedSamplers.jl)
+[![Coverage](https://codecov.io/gh/TuringLang/NestedSamplers.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/TuringLang/NestedSamplers.jl)
 [![LICENSE](https://img.shields.io/github/license/TuringLang/NestedSamplers.jl?color=yellow)](https://github.com/TuringLang/NestedSamplers.jl/blob/main/LICENSE)
 
-Implementations of single- and multi-ellipsoidal nested sampling algorithms in pure Julia. We implement the [AbstractMCMC.jl](https://github.com/turinglang/abstractmcmc.jl) interface, allowing straightforward sampling from a variety of statistical models.
+Implementations of single- and multi-ellipsoidal nested sampling algorithms in pure Julia. We implement the [AbstractMCMC.jl](https://github.com/TuringLang/AbstractMCMC.jl) interface, allowing straightforward sampling from a variety of statistical models.
 
 This package was heavily influenced by [nestle](https://github.com/kbarbary/nestle), [dynesty](https://github.com/joshspeagle/dynesty), and [NestedSampling.jl](https://github.com/kbarbary/NestedSampling.jl).
 
@@ -34,7 +34,7 @@ For statistical background and a more in-depth introduction to nested sampling, 
 
 ## Usage
 
-The samplers are built using the [AbstractMCMC](https://github.com/turinglang/abstractmcmc.jl) interface. To use it, we need to create a [`NestedModel`](@ref).
+The samplers are built using the [AbstractMCMC.jl](https://github.com/TuringLang/AbstractMCMC.jl) interface. To use it, we need to create a [`NestedModel`](@ref).
 
 ```@example usage
 using Random
