@@ -9,8 +9,8 @@ authors:
   - name: Miles Lucas
     orcid: 0000-0001-6341-310X
     affiliation: 1
-  - name: Michael Bottom
-    orcid: 0000-0003-1341-5531
+  - name: Saranjeet Kaur Bhogal
+    orcid: 0000-0002-7038-1457
     affiliation: 2
   - name: Hong Ge
     orcid: 0000-0001-9421-2677
@@ -18,7 +18,7 @@ authors:
 affiliations:
  - name: Institute for Astronomy, University of Hawaii, Honolulu, HI, USA
    index: 1
- - name: Institute for Astronomy, University of Hawaii, Hilo, HI, USA
+ - name: Department of Statistics, Savitribai Phule Pune University, Pune, India
    index: 2
  - name: University of Cambridge, Cambridge, UK
    index: 3
