@@ -9,6 +9,10 @@ An `N`-dimensional ellipsoid defined by
 ```
 
 where `size(center) == (N,)` and `size(A) == (N,N)`.
+
+This implementation follows the algorithm presented in Mukherjee et al. (2006).[^1]
+
+[^1]: Pia Mukherjee, et al., 2006, ApJ 638 L51 ["A Nested Sampling Algorithm for Cosmological Model Selection"](https://iopscience.iop.org/article/10.1086/501068)
 """
 mutable struct Ellipsoid{T} <: AbstractBoundingSpace{T}
     center::Vector{T}

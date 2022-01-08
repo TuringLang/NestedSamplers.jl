@@ -3,7 +3,21 @@
     Bounds.MultiEllipsoid([T=Float64], ndims)
     Bounds.MultiEllipsoid(::AbstractVector{Ellipsoid})
 
-Use multiple [`Ellipsoid`](@ref)s in an optimal clustering to bound prior space. For more details about the bounding algorithm, see the extended help (`??Bounds.MultiEllipsoid`)
+Use multiple [`Ellipsoid`](@ref)s in an optimal clustering to bound prior space. This implementation follows the MultiNest implementation outlined in Feroz et al. (2009).[^1] For more details about the bounding algorithm, see the extended help (`??Bounds.MultiEllipsoid`)
+
+[^1]: Feroz et al., 2009, MNRAS 398, 4 ["MultiNest: an efficient and robust Bayesian inference tool for cosmology and particle physics"](https://academic.oup.com/mnras/article/398/4/1601/981502)
+
+## Extended help
+
+The multiple-ellipsoidal implementation is defined as follows:
+
+1. Fit a [`Bounds.Ellipsoid`](@ref) to the sample.
+2. Perform K-means clustering (here using [Clustering.jl](https://github.com/JuliaStats/Clustering.jl)) centered at the endpoints of the bounding ellipsoid. This defines two clusters within the sample.
+3. If either cluster has fewer than two points, consider it ill-defined and end any recursion.
+4. Fit [`Bounds.Ellipsoid`](@ref) to each of the clusters assigned in (2).
+5. If the volume of the parent ellipsoid is more than twice the volume of the two child ellipsoids, recurse (1-5) to each child.
+
+To sample from this distribution, a random ellipsoid is selected, and a random sample is sampled from that ellipsoid. We then reverse this and find all of the ellipsoids which enclose the sampled point, and select one of those randomly for the enclosing bound.
 """
 struct MultiEllipsoid{T} <: AbstractBoundingSpace{T}
     ellipsoids::Vector{Ellipsoid{T}}

@@ -5,16 +5,20 @@ CurrentModule = NestedSamplers
 # NestedSamplers.jl
 
 [![GitHub](https://img.shields.io/badge/Code-GitHub-black.svg)](https://github.com/TuringLang/NestedSamplers.jl)
-[![Build Status](https://github.com/turinglang/NestedSamplers.jl/workflows/CI/badge.svg?branch=main)](https://github.com/turinglang/NestedSamplers.jl/actions)
+[![Build Status](https://github.com/TuringLang/NestedSamplers.jl/workflows/CI/badge.svg?branch=main)](https://github.com/TuringLang/NestedSamplers.jl/actions)
 [![PkgEval](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/N/NestedSamplers.svg)](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/report.html)
-[![Coverage](https://codecov.io/gh/turinglang/NestedSamplers.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/turinglang/NestedSamplers.jl)
-
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3950594.svg)](https://doi.org/10.5281/zenodo.3950594)
+[![Coverage](https://codecov.io/gh/TuringLang/NestedSamplers.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/turinglang/NestedSamplers.jl)
+[![LICENSE](https://img.shields.io/github/license/TuringLang/NestedSamplers.jl?color=yellow)](https://github.com/TuringLang/NestedSamplers.jl/blob/main/LICENSE)
 
 A Julian implementation of single- and multi-ellipsoidal nested sampling algorithms using the [AbstractMCMC](https://github.com/turinglang/abstractmcmc.jl) interface.
 
 This package was heavily influenced by [`nestle`](https://github.com/kbarbary/nestle), [`dynesty`](https://github.com/joshspeagle/dynesty), and [`NestedSampling.jl`](https://github.com/kbarbary/NestedSampling.jl).
 
+## Citing
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3950594.svg)](https://doi.org/10.5281/zenodo.3950594)
+
+If you use this library, or a derivative of it, in your work, please consider citing it. This code is built off a multitude of academic works, which have been noted in the docstrings where appropriate. These references, along with references for the more general calculations, can all be found in [CITATIONS.bib](https://github.com/TuringLang/NestedSamplers.jl/blob/main/CITATIONS.bib)
 
 ## Installation
 

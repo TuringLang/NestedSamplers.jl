@@ -77,7 +77,9 @@ end
 """
     Bounds.NoBounds([T=Float64], N)
 
-Unbounded prior volume; equivalent to the unit cube in `N` dimensions.
+Unbounded prior volume; equivalent to the unit cube in `N` dimensions. This matches the original nested sampling derivation in Skilling (2004).[^1]
+
+[^1]: John Skilling, 2004, AIP 735, 395  ["Nested Sampling"](https://aip.scitation.org/doi/abs/10.1063/1.1835238)
 """
 struct NoBounds{T} <: AbstractBoundingSpace{T}
     ndims::Int
