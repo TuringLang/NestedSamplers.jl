@@ -18,7 +18,7 @@ This package was heavily influenced by [`nestle`](https://github.com/kbarbary/ne
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3950594.svg)](https://doi.org/10.5281/zenodo.3950594)
 
-If you use this library, or a derivative of it, in your work, please consider citing it. This code is built off a multitude of academic works, which have been noted in the docstrings where appropriate. These references, along with references for the more general calculations, can all be found in [CITATIONS.bib](CITATIONS.bib)
+If you use this library, or a derivative of it, in your work, please consider citing it. This code is built off a multitude of academic works, which have been noted in the docstrings where appropriate. These references, along with references for the more general calculations, can all be found in [CITATION.bib](CITATION.bib)
 
 ## Installation
 

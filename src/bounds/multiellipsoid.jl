@@ -3,9 +3,10 @@
     Bounds.MultiEllipsoid([T=Float64], ndims)
     Bounds.MultiEllipsoid(::AbstractVector{Ellipsoid})
 
-Use multiple [`Ellipsoid`](@ref)s in an optimal clustering to bound prior space. This implementation follows the MultiNest implementation outlined in Feroz et al. (2009).[^1] For more details about the bounding algorithm, see the extended help (`??Bounds.MultiEllipsoid`)
+Use multiple [`Ellipsoid`](@ref)s in an optimal clustering to bound prior space. This implementation follows the MultiNest implementation outlined in Feroz et al. (2008,2009).[^1][^2] For more details about the bounding algorithm, see the extended help (`??Bounds.MultiEllipsoid`)
 
-[^1]: Feroz et al., 2009, MNRAS 398, 4 ["MultiNest: an efficient and robust Bayesian inference tool for cosmology and particle physics"](https://academic.oup.com/mnras/article/398/4/1601/981502)
+[^1]: Feroz and Hobson, 2008, MNRAS 384, 2 ["Multimodal nested sampling: an efficient and robust alternative to Markov Chain Monte Carlo methods for astronomical data analyses"](https://academic.oup.com/mnras/article/384/2/449/1023701)
+[^2]: Feroz et al., 2009, MNRAS 398, 4 ["MultiNest: an efficient and robust Bayesian inference tool for cosmology and particle physics"](https://academic.oup.com/mnras/article/398/4/1601/981502)
 
 ## Extended help
 
