@@ -17,6 +17,7 @@ makedocs(
             "Correlated Gaussian" => "examples/correlated.md",
             "Eggbox" => "examples/eggbox.md",
         ],
+        "Benchmarks" => "benchmarks.md",
         "API/Reference" => "api.md"
     ],
     format = Documenter.HTML(prettyurls = get(ENV, "CI", nothing) == "true"),

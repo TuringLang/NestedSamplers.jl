@@ -7,3 +7,5 @@ Manifest.toml
 *.png
 *.py
 .vscode
+
+.CondaPkg
