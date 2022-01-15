@@ -100,7 +100,7 @@ function step(rng, model, sampler, state; kwargs...)
     logzterm = exp(state.logl_dead - logz + logdvol) * state.logl_dead +
                exp(logl_dead - logz + logdvol) * logl_dead
     h = logzterm + exp(state.logz - logz) * (state.h + state.logz) - logz
-    logzerr = h ≥ 0 ? sqrt(state.logzerr^2 + (h - state.h) * sampler.dlv) : NaN
+    logzerr = sqrt(state.logzerr^2 + (h - state.h) * sampler.dlv)
 
     ## prepare returns
     sample = (u = u_dead, v = v_dead, logwt = logwt, logl = logl_dead)
