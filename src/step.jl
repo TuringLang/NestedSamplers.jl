@@ -10,11 +10,8 @@ function step(rng, model, sampler::Nested; kwargs...)
     v_dead = vs[:, idx_dead]
 
     # update weight using trapezoidal rule
-    # logvol = log1mexp(-1 / sampler.nactive)
     logvol = -sampler.dlv
-    # logdvol = log(exp(0.5) * sum(exp(logvol + sample.dlv, -logvol))))
     logdvol = logvol - log(sampler.nactive) - log(2)
-    # logwt = logl_dead + logvol
     logwt = logl_dead + logdvol
 
     # sample a new live point without bounds
@@ -30,10 +27,8 @@ function step(rng, model, sampler::Nested; kwargs...)
 
     # update evidence and information
     logz = logwt
-    h = logl_dead - logz
-    logzerr = sqrt(h / sampler.nactive)
-    # # logvol -= 1 / sampler.nactive
-    # logvol -= sampler.dlv
+    h = exp(logl_dead - logz + logdvol) * logl_dead - logz
+    logzerr = sqrt(h * sampler.dlv)
 
     sample = (u = u_dead, v = v_dead, logwt = logwt, logl = logl_dead)
     state = (it = 1, ncall = ncall, us = us, vs = vs, logl = logl, logl_dead = logl_dead,
@@ -96,19 +91,16 @@ function step(rng, model, sampler, state; kwargs...)
     since_update += nc
 
     # update weight using trapezoidal rule
-    # logvol = log1mexp(-1 / sampler.nactive)
     logvol = state.logvol - sampler.dlv
-    # logdvol = log(exp(0.5) * sum(exp(logvol + sample.dlv, -logvol))))
     logdvol = logvol - log(sampler.nactive) - log(2)
-    # logwt = state.logvol + logl_dead
     logwt = logaddexp(state.logl_dead, logl_dead) + logdvol
 
     # update evidence and information
     logz = logaddexp(state.logz, logwt)
-    h = (exp(logwt - logz) * logl_dead +
-         exp(state.logz - logz) * (state.h + state.logz) - logz)
-    logzerr = h ≥ 0 ? sqrt(h / sampler.nactive) : NaN
-    logvol = state.logvol - 1 / sampler.nactive
+    logzterm = exp(state.logl_dead - logz + logdvol) * state.logl_dead +
+               exp(logl_dead - logz + logdvol) * logl_dead
+    h = logzterm + exp(state.logz - logz) * (state.h + state.logz) - logz
+    logzerr = h ≥ 0 ? sqrt(state.logzerr^2 + (h - state.h) * sampler.dlv) : NaN
 
     ## prepare returns
     sample = (u = u_dead, v = v_dead, logwt = logwt, logl = logl_dead)
