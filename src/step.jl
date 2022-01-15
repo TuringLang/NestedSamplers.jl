@@ -10,11 +10,14 @@ function step(rng, model, sampler::Nested; kwargs...)
     v_dead = vs[:, idx_dead]
 
     # update weight using trapezoidal rule
-    logvol = log1mexp(-1 / sampler.nactive)
-    logwt = logl_dead + logvol
+    # logvol = log1mexp(-1 / sampler.nactive)
+    logvol = -sampler.dlv
+    # logdvol = log(exp(0.5) * sum(exp(logvol + sample.dlv, -logvol))))
+    logdvol = logvol - log(sampler.nactive) - log(2)
+    # logwt = logl_dead + logvol
+    logwt = logl_dead + logdvol
 
     # sample a new live point without bounds
-    point = rand(rng, eltype(us), sampler.ndims)
     bound = Bounds.fit(Bounds.NoBounds, us)
     proposal = Proposals.Rejection()
     u, v, ll, nc = proposal(rng, v_dead, logl_dead, bound, model)
@@ -29,7 +32,8 @@ function step(rng, model, sampler::Nested; kwargs...)
     logz = logwt
     h = logl_dead - logz
     logzerr = sqrt(h / sampler.nactive)
-    logvol -= 1 / sampler.nactive
+    # # logvol -= 1 / sampler.nactive
+    # logvol -= sampler.dlv
 
     sample = (u = u_dead, v = v_dead, logwt = logwt, logl = logl_dead)
     state = (it = 1, ncall = ncall, us = us, vs = vs, logl = logl, logl_dead = logl_dead,
@@ -91,8 +95,13 @@ function step(rng, model, sampler, state; kwargs...)
     ncall = state.ncall + nc
     since_update += nc
 
-    # update weight
-    logwt = state.logvol + logl_dead
+    # update weight using trapezoidal rule
+    # logvol = log1mexp(-1 / sampler.nactive)
+    logvol = state.logvol - sampler.dlv
+    # logdvol = log(exp(0.5) * sum(exp(logvol + sample.dlv, -logvol))))
+    logdvol = logvol - log(sampler.nactive) - log(2)
+    # logwt = state.logvol + logl_dead
+    logwt = logaddexp(state.logl_dead, logl_dead) + logdvol
 
     # update evidence and information
     logz = logaddexp(state.logz, logwt)
