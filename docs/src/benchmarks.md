@@ -60,16 +60,16 @@ Environment:
 
 ## Highly-correlated multivariate Guassian
 
-This benchmark uses [`Models.CorrelatedGaussian`](@ref) and simply measures the time it takes to fully sample down to `dlogz=0.01`. This benchmark is exactly the same as the benchmark detailed in the [JAXNS paper](https://ui.adsabs.harvard.edu/abs/2020arXiv201215286A/abstract).
+This benchmark uses [`Models.CorrelatedGaussian`](@ref) and simply measures the time it takes to fully sample down to `dlogz=0.01`. This benchmark is exactly the same as the first benchmark detailed in the [JAXNS paper](https://ui.adsabs.harvard.edu/abs/2020arXiv201215286A/abstract).
 
 ### Timing
 
 ```@example sample-benchmark
-using CSV, DataFrames, Plots # hide
+using CSV, DataFrames, NestedSamplers, Plots # hide
 benchdir = joinpath(dirname(pathof(NestedSamplers)), "..", "bench") # hide
 results = DataFrame(CSV.File(joinpath(benchdir, "sampling_results.csv"))) # hide
-plot(results.D, results.t, label="NestedSamplers.jl", marker=:o, yscale=:log10 # hide
-    ylabel="runtime (s)", xlabel="prior dimension", leg=:topleft) # hide
+plot(results.D, results.t, label="NestedSamplers.jl", marker=:o, yscale=:log10, # hide
+    ylabel="runtime (s)", xlabel="prior dimension", leg=:topleft, ylims=(1e-2, 1e4)) # hide
 ```
 
 ### Accuracy
@@ -79,5 +79,5 @@ The following shows the Bayesian evidence estmiate as compared to the true value
 ```@example sample-benchmark
 plot(results.D, results.dlnZ, yerr=results.lnZstd, label="NestedSamplers.jl", # hide
     marker=:o, ylabel="ΔlnZ", xlabel="prior dimension", leg=:topleft) # hide
-hlines([0.0], c=:black, ls=:dash, alpha=0.7, label="") # hide
+hline!([0.0], c=:black, ls=:dash, alpha=0.7, label="") # hide
 ```
