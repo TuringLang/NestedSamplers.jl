@@ -81,9 +81,9 @@ Base.show(io::IO, p::Rejection) = print(io, "NestedSamplers.Proposals.Rejection"
 """
     Proposals.RWalk(;ratio=0.5, walks=25, scale=1)
 
-Propose a new live point by random walking away from an existing live point. This follows the algorithm outlined in Skilling (2006).[^1]
+Propose a new live point by random walking away from an existing live point. This follows the algorithm outlined in Skilling (2006).[^5]
 
-[^1]: Skilling, 2006, Bayesian Anal. 1(4), ["Nested sampling for general Bayesian computation"](https://projecteuclid.org/journals/bayesian-analysis/volume-1/issue-4/Nested-sampling-for-general-Bayesian-computation/10.1214/06-BA127.full)
+[^5]: Skilling, 2006, Bayesian Anal. 1(4), ["Nested sampling for general Bayesian computation"](https://projecteuclid.org/journals/bayesian-analysis/volume-1/issue-4/Nested-sampling-for-general-Bayesian-computation/10.1214/06-BA127.full)
 
 ## Parameters
 - `ratio` is the target acceptance ratio
@@ -176,9 +176,9 @@ end
 Propose a new live point by random staggering away from an existing live point. 
 This differs from the random walk proposal in that the step size here is exponentially adjusted
 to reach a target acceptance rate _during_ each proposal, in addition to _between_
-proposals. This follows the algorithm outlined in Skilling (2006).[^1]
+proposals. This follows the algorithm outlined in Skilling (2006).[^5]
 
-[^1]: Skilling, 2006, Bayesian Anal. 1(4), ["Nested sampling for general Bayesian computation"](https://projecteuclid.org/journals/bayesian-analysis/volume-1/issue-4/Nested-sampling-for-general-Bayesian-computation/10.1214/06-BA127.full)
+[^5]: Skilling, 2006, Bayesian Anal. 1(4), ["Nested sampling for general Bayesian computation"](https://projecteuclid.org/journals/bayesian-analysis/volume-1/issue-4/Nested-sampling-for-general-Bayesian-computation/10.1214/06-BA127.full)
 
 ## Parameters
 - `ratio` is the target acceptance ratio
@@ -269,9 +269,9 @@ end
     Proposals.Slice(;slices=5, scale=1)
 
 Propose a new live point by a series of random slices away from an existing live point.
-This is a standard _Gibbs-like_ implementation where a single multivariate slice is a combination of `slices` univariate slices through each axis. This follows the algorithm outlined in Neal (2003).[^1]
+This is a standard _Gibbs-like_ implementation where a single multivariate slice is a combination of `slices` univariate slices through each axis. This follows the algorithm outlined in Neal (2003).[^6]
 
-[^1]: Neal, 2003, Ann. Statist. 31(3), ["Slice Sampling"](https://projecteuclid.org/journals/annals-of-statistics/volume-31/issue-3/Slice-sampling/10.1214/aos/1056562461.full)
+[^6]: Neal, 2003, Ann. Statist. 31(3), ["Slice Sampling"](https://projecteuclid.org/journals/annals-of-statistics/volume-31/issue-3/Slice-sampling/10.1214/aos/1056562461.full)
 
 ## Parameters
 - `slices` is the minimum number of slices
@@ -330,10 +330,10 @@ end   # end of function Slice
 """
     Proposals.RSlice(;slices=5, scale=1)
 
-Propose a new live point by a series of random slices away from an existing live point. This is a standard _random_ implementation where each slice is along a random direction based on the provided axes. This more closely matches the PolyChord implementation outlined in Handley et al. (2015a,b).[^1][^2]
+Propose a new live point by a series of random slices away from an existing live point. This is a standard _random_ implementation where each slice is along a random direction based on the provided axes. This more closely matches the PolyChord implementation outlined in Handley et al. (2015a,b).[^7][^8]
 
-[^1]: Handley, et al., 2015a, MNRAS 450(1), ["polychord: nested sampling for cosmology"](https://academic.oup.com/mnrasl/article/450/1/L61/986122)
-[^2]: Handley, et al., 2015b, MNRAS 453(4), ["polychord: next-generation nested sampling"](https://academic.oup.com/mnras/article/453/4/4384/2593718)
+[^7]: Handley, et al., 2015a, MNRAS 450(1), ["polychord: nested sampling for cosmology"](https://academic.oup.com/mnrasl/article/450/1/L61/986122)
+[^8]: Handley, et al., 2015b, MNRAS 453(4), ["polychord: next-generation nested sampling"](https://academic.oup.com/mnras/article/453/4/4384/2593718)
 
 ## Parameters
 - `slices` is the minimum number of slices
