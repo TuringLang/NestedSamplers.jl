@@ -2,27 +2,25 @@
 using BenchmarkTools
 using CSV
 using NestedSamplers
-using PythonCall
+using ProgressLogging
+using StableRNGs
 using Statistics
 using StatsBase
 
+rng = StableRNG(112358)
 
 rows = []
-dims = [2, 4, 8, 16, 32]
-for D in dims
-    
+dims = 2 .^ (1:5)
+@progress for D in dims
     model, true_lnZ = Models.CorrelatedGaussian(D)
-    splr = Nested(D, 50D; proposal=Proposals.Slice(), bounds=Bounds.Ellipsoid)
+    splr = Nested(D, 50D; proposal=Proposals.Slice(slices=5), bounds=Bounds.Ellipsoid)
     # run once to extract values from state, also precompile
-    ch, state = sample(model, splr; dlogz=0.01, chain_type=Array)
-    lnZ = state.logz
-    lnZstd = state.logzerr
+    ch, state = sample(rng, model, splr; dlogz=0.01, chain_type=Array)
+    t = @belapsed sample($rng, $model, $splr; dlogz=0.01, chain_type=Array)
 
-    tt = @belapsed sample($model, $splr; dlogz=0.01, chain_type=Array)
+    dlnZ = state.logz - true_lnZ
 
-    dlnZ = abs(true_lnZ - lnZ)
-
-    row = (; library="NestedSamplers.jl", D, t=median(tt), lnZ, lnZstd, dlnZ)
+    row = (; library="NestedSamplers.jl", D, t=t, lnZ=state.logz, lnZstd=state.logzerr, dlnZ)
     @info "$row"
     push!(rows, row)
 end
