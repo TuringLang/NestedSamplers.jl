@@ -31,8 +31,8 @@ function step(rng, model, sampler::Nested; kwargs...)
     logzerr = sqrt(h * sampler.dlv)
 
     sample = (u = u_dead, v = v_dead, logwt = logwt, logl = logl_dead)
-    state = (it = 1, ncall = ncall, us = us, vs = vs, logl = logl, logl_dead = logl_dead,
-             logz = logz, logzerr = logzerr, h = h, logvol = logvol,
+    state = (it = 1, ncall = ncall, us = us, vs = vs, logl = logl, 
+             logl_dead = logl_dead, logz = logz, logzerr = logzerr, h = h, logvol = logvol,
              since_update = since_update, has_bounds = false, active_bound = nothing)
 
     return sample, state
@@ -104,8 +104,8 @@ function step(rng, model, sampler, state; kwargs...)
 
     ## prepare returns
     sample = (u = u_dead, v = v_dead, logwt = logwt, logl = logl_dead)
-    state = (it = it, ncall = ncall, us = state.us, vs = state.vs, logl = state.logl, logl_dead = logl_dead,
-             logz = logz, logzerr = logzerr, h = h, logvol = logvol,
+    state = (it = it, ncall = ncall, us = state.us, vs = state.vs, logl = state.logl, 
+             logl_dead = logl_dead, logz = logz, logzerr = logzerr, h = h, logvol = logvol,
              since_update = since_update, has_bounds = has_bounds, active_bound = active_bound)
 
     return sample, state
@@ -208,36 +208,46 @@ end
 
 # add remaining live points to `samples`
 function add_live_points(samples, model, sampler, state)
-    logvol = -state.it / sampler.nactive - log(sampler.nactive)
-
+    prev_logvol = state.logvol
     prev_logz = state.logz
     prev_h = state.h
+    prev_logzerr = state.logzerr
+    prev_logl_dead = state.logl_dead
 
-    local logl, logz, h, logzerr 
+    local logz, h, logzerr, logl_dead, logvol
     N = length(samples)
 
     @inbounds for (i, idx) in enumerate(eachindex(state.logl))
         # get new point
         u = state.us[:, idx]
         v = state.vs[:, idx]
-        logl = state.logl[idx]
+        logl_dead = state.logl[idx]
 
-        # update sampler
-        logwt = logvol + logl
+        # update weight using trapezoidal rule
+        logvol = state.logvol + log1p(-i / (sampler.nactive + 1))
+        dlv = prev_logvol - logvol
+        logdvol = logvol + log(exp(dlv) - 1) - log(2)
+        logwt = logaddexp(prev_logl_dead, logl_dead) + logdvol
+
+        # update evidence and information
         logz = logaddexp(prev_logz, logwt)
-        h = (exp(logwt - logz) * logl +
-             exp(prev_logz - logz) * (prev_h + prev_logz) - logz)
-        logzerr = sqrt(h / sampler.nactive)
+        logzterm = exp(prev_logl_dead - logz + logdvol) * prev_logl_dead +
+                   exp(logl_dead - logz + logdvol) * logl_dead
+        h = logzterm + exp(prev_logz - logz) * (prev_h + prev_logz) - logz
+        logzerr = sqrt(max(zero(h), prev_logzerr^2 + (h - prev_h) * dlv))
 
+        prev_logvol = logvol
         prev_logz = logz
         prev_h = h
+        prev_logzerr = logzerr
+        prev_logl_dead = logl_dead
 
-        sample = (u = u, v = v, logwt = logwt, logl = logl)
+        sample = (u = u, v = v, logwt = logwt, logl = logl_dead)
         save!!(samples, sample, N + i, model, sampler)
     end
 
-    state = (it = state.it + sampler.nactive, us = state.us, vs = state.vs, logl = logl,
-            logz = logz, logzerr = logzerr, logvol = logvol,
-            since_update = state.since_update, has_bounds = state.has_bounds, active_bound = state.active_bound)
+    state = (it = state.it + sampler.nactive, us = state.us, vs = state.vs, logl = state.logl, 
+             logl_dead = logl_dead, logz = logz, logzerr = logzerr, h = h, logvol = logvol,
+             since_update = state.since_update, has_bounds = state.has_bounds, active_bound = state.active_bound)
     return samples, state
 end
