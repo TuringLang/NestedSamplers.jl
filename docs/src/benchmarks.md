@@ -65,11 +65,14 @@ This benchmark uses [`Models.CorrelatedGaussian`](@ref) and simply measures the 
 ### Timing
 
 ```@example sample-benchmark
-using CSV, DataFrames, NestedSamplers, Plots # hide
+using CSV, DataFrames, NestedSamplers, StatsPlots # hide
 benchdir = joinpath(dirname(pathof(NestedSamplers)), "..", "bench") # hide
 results = DataFrame(CSV.File(joinpath(benchdir, "sampling_results.csv"))) # hide
-plot(results.D, results.t, label="NestedSamplers.jl", marker=:o, yscale=:log10, # hide
-    ylabel="runtime (s)", xlabel="prior dimension", leg=:topleft, ylims=(1e-2, 1e4)) # hide
+groups = groupby(results, :library) # hide
+@df groups[1] plot(:D, :t, label="NestedSamplers.jl", marker=:o, yscale=:log10, # hide
+    ylabel="runtime (s)", xlabel="prior dimension", leg=:topleft, # hide
+    ylims=(1e-2, 1e4), markerstrokecolor=:auto) # hide
+@df groups[2] plot!(:D, :t, label="dynesty", marker=:triangle, markerstrokecolor=:auto) # hide
 ```
 
 ### Accuracy
@@ -77,7 +80,10 @@ plot(results.D, results.t, label="NestedSamplers.jl", marker=:o, yscale=:log10, 
 The following shows the Bayesian evidence estmiate as compared to the true value
 
 ```@example sample-benchmark
-plot(results.D, results.dlnZ, yerr=results.lnZstd, label="NestedSamplers.jl", # hide
-    marker=:o, ylabel="ΔlnZ", xlabel="prior dimension", leg=:topleft) # hide
+@df groups[1] plot(:D, :dlnZ, yerr=:lnZstd, label="NestedSamplers.jl", # hide
+    marker=:o, ylabel="ΔlnZ", xlabel="prior dimension", # hide
+    leg=:topleft, markerstrokecolor=:auto) # hide
+@df groups[2] plot!(:D, :dlnZ, yerr=:lnZstd, label="dynesty", # hide
+    marker=:o, markerstrokecolor=:auto) # hide
 hline!([0.0], c=:black, ls=:dash, alpha=0.7, label="") # hide
 ```
