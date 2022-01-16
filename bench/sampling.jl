@@ -19,7 +19,7 @@ dims = 2 .^ (1:4)
     splr = Nested(D, 50D; proposal=Proposals.Slice(slices=5), bounds=Bounds.Ellipsoid)
     # run once to extract values from state, also precompile
     ch, state = sample(rng, model, splr; dlogz=0.01, chain_type=Array)
-    t = @belapsed sample($rng, $model, $splr; dlogz=0.01, chain_type=Array)
+    t = @elapsed sample(rng, model, splr; dlogz=0.01, chain_type=Array)
 
     dlnZ = state.logz - true_lnZ
 
@@ -28,7 +28,7 @@ dims = 2 .^ (1:4)
     push!(rows, row)
 end
 
-@progress name="dynesty" for D in dims[begin:end-1]
+@progress name="dynesty" for D in dims
     model, true_lnZ = Models.CorrelatedGaussian(D)
     splr = dy.NestedSampler(
         model.prior_transform_and_loglikelihood.loglikelihood,
