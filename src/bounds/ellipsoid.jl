@@ -167,7 +167,7 @@ end
 
 function make_eigvals_positive!(cov::AbstractMatrix, targetprod)
     E = eigen(cov)
-    mask = E.values .< 1e-10
+    mask = (E.values ./ maximum(E.values)) .< 1e-10
     if any(mask)
         nzprod = prod(E.values[.!mask])
         nzeros = count(mask)
