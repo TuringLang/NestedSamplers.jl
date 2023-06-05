@@ -21,5 +21,4 @@ LogExpFunctions = "0.3"
 MCMCChains = "5"
 StableRNGs = "1"
 StatsBase = "0.33"
-StatsFuns = "0.9"
-
+StatsFuns = "0.9, 1"
