@@ -1,7 +1,7 @@
 name = "NestedSamplers"
 uuid = "41ceaf6f-1696-4a54-9b49-2e7a9ec3782e"
 authors = ["Miles Lucas <mdlucas@hawaii.edu>"]
-version = "0.8.2"
+version = "0.8.3"
 
 [deps]
 AbstractMCMC = "80f14c24-f653-4e6a-9b94-39d6b0f70001"
@@ -18,11 +18,11 @@ StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 
 [compat]
 AbstractMCMC = "3.0.2, 4"
-Clustering = "0.13, 0.14"
+Clustering = "0.13, 0.14, 0.15"
 Distributions = "0.21,0.22,0.23, 0.24, 0.25"
 LogExpFunctions = "0.3"
-MCMCChains = "3, 4, 5"
+MCMCChains = "3, 4, 5, 6"
 Parameters = "0.12"
 ProgressLogging = "0.1"
-StatsBase = "0.32, 0.33"
+StatsBase = "0.32, 0.33, 0.34"
 julia = "1.3"
