@@ -1,5 +1,30 @@
 
-function step(rng, model, sampler::Nested; kwargs...)
+#TODO it would be cool to make these parametric 
+struct NestedState
+    it::Int
+    ncall::Int
+    us
+    vs
+    logl
+    logl_dead
+    logz
+    logzerr
+    h
+    logvol
+    since_update::Int
+    has_bounds::Bool
+    active_bound::Bool
+end
+
+struct NestedTransition
+    θ
+    u
+    v
+    logwt
+    logl
+end
+
+function step(rng::Random.AbstractRNG, model, sampler::Nested; kwargs...)
     # Initialize particles
     # us are in unit space, vs are in prior space
     us, vs, logl = init_particles(rng, model, sampler)
@@ -31,15 +56,15 @@ function step(rng, model, sampler::Nested; kwargs...)
     logzerr = sqrt(h / sampler.nactive)
     logvol -= 1 / sampler.nactive
 
-    sample = (u = u_dead, v = v_dead, logwt = logwt, logl = logl_dead)
-    state = (it = 1, ncall = ncall, us = us, vs = vs, logl = logl, logl_dead = logl_dead,
-             logz = logz, logzerr = logzerr, h = h, logvol = logvol,
-             since_update = since_update, has_bounds = false, active_bound = nothing)
+    sample = NestedTransition(u, u_dead, v_dead, logwt, logl_dead)
+    state = NestedState(1, ncall, us, vs, logl, logl_dead,
+        logz, logzerr, h, logvol,
+        since_update, false, nothing)
 
     return sample, state
 end
 
-function step(rng, model, sampler, state; kwargs...)
+function step(rng::Random.AbstractRNG, model, sampler::Nested, state::NestedState; kwargs...)
     ## Update bounds
     pointvol = exp(state.logvol) / sampler.nactive
     # check if ready for first update
@@ -102,23 +127,24 @@ function step(rng, model, sampler, state; kwargs...)
     logvol = state.logvol - 1 / sampler.nactive
 
     ## prepare returns
-    sample = (u = u_dead, v = v_dead, logwt = logwt, logl = logl_dead)
-    state = (it = it, ncall = ncall, us = state.us, vs = state.vs, logl = state.logl, logl_dead = logl_dead,
-             logz = logz, logzerr = logzerr, h = h, logvol = logvol,
-             since_update = since_update, has_bounds = has_bounds, active_bound = active_bound)
+    sample = NestedTransition(u_dead, v_dead, logwt, logl_dead)
+    state = NestedState(it, ncall, sate.us, state.vs, state.logl, logl_dead,
+        logz, logzerr, h, logvol,
+        since_update, has_bounds, active_bound)
 
     return sample, state
 end
 
-function bundle_samples(samples,
-        model::AbstractModel,
-        sampler::Nested,
-        state,
-        ::Type{Chains};
-        add_live=true,
-        param_names=missing,
-        check_wsum=true,
-        kwargs...)
+function bundle_samples(
+    samples,
+    model::AbstractModel,
+    sampler::Nested,
+    state::NestedState,
+    ::Type{Chains};
+    add_live=true,
+    param_names=missing,
+    check_wsum=true,
+    kwargs...)
 
     if add_live
         samples, state = add_live_points(samples, model, sampler, state)
