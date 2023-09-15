@@ -1,4 +1,3 @@
-
 #TODO it would be cool to make these parametric 
 struct NestedState
     it::Int
@@ -24,10 +23,20 @@ struct NestedTransition
     logl
 end
 
-function step(rng::Random.AbstractRNG, model, sampler::Nested; kwargs...)
+function step(
+    rng::Random.AbstractRNG, 
+    model, 
+    sampler::Nested; 
+    init_params = nothing,
+    kwargs...)
     # Initialize particles
     # us are in unit space, vs are in prior space
-    us, vs, logl = init_particles(rng, model, sampler)
+    if init_params == nothing
+        us = rand(rng, T, sampler.ndims, sampler.nactive)
+    else
+        us = init_params
+    end
+    vs, logl = init_particles(rng, us, model)
 
     # Find least likely point
     logl_dead, idx_dead = findmin(logl)
@@ -57,14 +66,20 @@ function step(rng::Random.AbstractRNG, model, sampler::Nested; kwargs...)
     logvol -= 1 / sampler.nactive
 
     sample = NestedTransition(u, u_dead, v_dead, logwt, logl_dead)
-    state = NestedState(1, ncall, us, vs, logl, logl_dead,
+    state = NestedState(
+        1, ncall, us, vs, logl, logl_dead,
         logz, logzerr, h, logvol,
         since_update, false, nothing)
 
     return sample, state
 end
 
-function step(rng::Random.AbstractRNG, model, sampler::Nested, state::NestedState; kwargs...)
+function step(
+    rng::Random.AbstractRNG, 
+    model, 
+    sampler::Nested, 
+    state::NestedState; 
+    kwargs...)
     ## Update bounds
     pointvol = exp(state.logvol) / sampler.nactive
     # check if ready for first update
@@ -128,7 +143,8 @@ function step(rng::Random.AbstractRNG, model, sampler::Nested, state::NestedStat
 
     ## prepare returns
     sample = NestedTransition(u_dead, v_dead, logwt, logl_dead)
-    state = NestedState(it, ncall, sate.us, state.vs, state.logl, logl_dead,
+    state = NestedState(
+        it, ncall, sate.us, state.vs, state.logl, logl_dead,
         logz, logzerr, h, logvol,
         since_update, has_bounds, active_bound)
 
@@ -192,17 +208,23 @@ function bundle_samples(samples,
 end
 
 ## Helpers
+init_particles(rng::Random.AbstractRNG, T::Type, ndims::Int, nactive::Int, model) =
+    init_particles(rng, rand(rng, T, ndims, nactive), model)
 
-init_particles(rng, ndims, nactive, model) =
+init_particles(rng::Random.AbstractRNG, ndims::Int, nactive::Int, model) =
     init_particles(rng, Float64, ndims, nactive, model)
 
-init_particles(rng, model, sampler) =
+init_particles(rng::Random.AbstractRNG, model, sampler::Nested) =
     init_particles(rng, sampler.ndims, sampler.nactive, model)
 
 # loop and fill arrays, checking validity of points
 # will retry 100 times before erroring
-function init_particles(rng, T, ndims, nactive, model)
-    us = rand(rng, T, ndims, nactive)
+function init_particles(
+    rng::Random.AbstractRNG,
+    us::Matrix, 
+    model
+    )
+
     vs_and_logl = mapslices(
         Base.Fix1(prior_transform_and_loglikelihood, model), us;
         dims=1
@@ -229,7 +251,6 @@ function init_particles(rng, T, ndims, nactive, model)
 
     return us, vs, logl
 end
-
 
 # add remaining live points to `samples`
 function add_live_points(samples, model, sampler, state)
