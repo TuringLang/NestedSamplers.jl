@@ -142,15 +142,15 @@ function step(
     return sample, state
 end
 
-function bundle_samples(
-    model::AbstractModel,
-    sampler::Nested,
-    state::NestedState,
-    ::Type{Chains};
-    add_live=true,
-    param_names=missing,
-    check_wsum=true,
-    kwargs...)
+function bundle_samples(samples,
+        model::AbstractModel,
+        sampler::Nested,
+        state,
+        ::Type{Chains};
+        add_live=true,
+        param_names=missing,
+        check_wsum=true,
+        kwargs...)
 
     if add_live
         samples, state = add_live_points(samples, model, sampler, state)
