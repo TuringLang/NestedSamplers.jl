@@ -143,7 +143,6 @@ function step(
 end
 
 function bundle_samples(
-    samples,
     model::AbstractModel,
     sampler::Nested,
     state::NestedState,
