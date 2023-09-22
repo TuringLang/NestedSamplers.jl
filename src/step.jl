@@ -32,7 +32,7 @@ function step(
     # Initialize particles
     # us are in unit space, vs are in prior space
     if init_params == nothing
-        us = rand(rng, T, sampler.ndims, sampler.nactive)
+        us = rand(rng, Float64, sampler.ndims, sampler.nactive)
     else
         us = init_params
     end
@@ -222,7 +222,40 @@ init_particles(rng::Random.AbstractRNG, model, sampler::Nested) =
 function init_particles(
     rng::Random.AbstractRNG,
     us::Matrix, 
-    model
+    model::AbstractModel
+    )
+
+    vs_and_logl = mapslices(
+        Base.Fix1(prior_transform_and_loglikelihood, model), us;
+        dims=1
+    )
+    vs = mapreduce(first, hcat, vs_and_logl)
+    logl = dropdims(map(last, vs_and_logl), dims=1)
+
+    ntries = 1
+    while true
+        any(isfinite, logl) && break
+        rand!(rng, us)
+        vs_and_logl .= mapslices(
+            Base.Fix1(prior_transform_and_loglikelihood, model), us;
+            dims=1
+        )
+        vs .= mapreduce(first, hcat, vs_and_logl)
+        map!(last, logl, vs_and_logl)
+        ntries += 1
+        ntries > 100 && error("After 100 attempts, could not initialize any live points with finite loglikelihood. Please check your prior transform and loglikelihood methods.")
+    end
+
+    # force -Inf to be a finite but small number to keep estimators from breaking
+    @. logl[logl == -Inf] = -1e300
+
+    return us, vs, logl
+end
+
+function init_particles(
+    rng::Random.AbstractRNG,
+    us::Matrix, 
+    model::LogDensityModel
     )
 
     vs_and_logl = mapslices(
