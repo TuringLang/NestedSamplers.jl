@@ -16,7 +16,7 @@ struct NestedState
 end
 
 struct NestedTransition
-    θ
+    #θ
     u
     v
     logwt
@@ -60,7 +60,7 @@ function step(
     logzerr = sqrt(h / sampler.nactive)
     logvol -= 1 / sampler.nactive
 
-    sample = NestedTransition(u, u_dead, v_dead, logwt, logl_dead)
+    sample = NestedTransition(u_dead, v_dead, logwt, logl_dead)
     state = NestedState(1, ncall, us, vs, logl, logl_dead,
         logz, logzerr, h, logvol, since_update, false, nothing)
 
@@ -135,7 +135,7 @@ function step(
     logvol = state.logvol - 1 / sampler.nactive
 
     ## prepare returns
-    sample = NestedTransition(u, u_dead, v_dead, logwt, logl_dead)
+    sample = NestedTransition(u_dead, v_dead, logwt, logl_dead)
     state = NestedState(it, ncall, state.us, state.vs, state.logl, logl_dead,
         logz, logzerr, h, logvol, since_update, has_bounds, active_bound)
 
@@ -145,7 +145,7 @@ end
 function bundle_samples(samples,
         model::AbstractModel,
         sampler::Nested,
-        state,
+        state::NestedState,
         ::Type{Chains};
         add_live=true,
         param_names=missing,
@@ -175,7 +175,7 @@ end
 function bundle_samples(samples,
         model::AbstractModel,
         sampler::Nested,
-        state,
+        state::NestedState,
         ::Type{Array};
         add_live=true,
         check_wsum=true,
@@ -236,7 +236,7 @@ function init_particles(rng::Random.AbstractRNG, T::Type, ndims::Int, nactive::I
     return us, vs, logl
 end
 
-function init_particles(rng::Random.AbstractRNG, T::Type, ndims::Int, nactive::Int, model::AbstractModel)
+function init_particles(rng::Random.AbstractRNG, T::Type, ndims::Int, nactive::Int, model::LogDensityModel)
     us = rand(rng, T, ndims, nactive)
     vs_and_logl = mapslices(
         Base.Fix1(prior_transform_and_loglikelihood, model), us;
