@@ -34,6 +34,7 @@ function step(
     if init_params != nothing && size(init_params) == (sampler.ndims,sampler.nactive)
         us = init_params
     else
+        @warn "Init params have wrong dimensions, sampling new ones!"
         us = rand(rng, sampler.type, sampler.ndims, sampler.nactive)
     end
     us, vs, logl = init_particles(rng, us, model)
@@ -65,7 +66,8 @@ function step(
     logzerr = sqrt(h / sampler.nactive)
     logvol -= 1 / sampler.nactive
 
-    sample = (u = u_dead, v = v_dead, logwt = logwt, logl = logl_dead) #NestedTransition(u_dead, v_dead, logwt, logl_dead)
+    sample = (u = u_dead, v = v_dead, logwt = logwt, logl = logl_dead) 
+    #sample = NestedTransition(u_dead, v_dead, logwt, logl_dead)
     state = NestedState(1, ncall, us, vs, logl, logl_dead,
         logz, logzerr, h, logvol, since_update, false, nothing)
 
@@ -140,7 +142,8 @@ function step(
     logvol = state.logvol - 1 / sampler.nactive
 
     ## prepare returns
-    sample = (u = u_dead, v = v_dead, logwt = logwt, logl = logl_dead) #NestedTransition(u_dead, v_dead, logwt, logl_dead)
+    sample = (u = u_dead, v = v_dead, logwt = logwt, logl = logl_dead) 
+    #sample = NestedTransition(u_dead, v_dead, logwt, logl_dead)
     state = NestedState(it, ncall, state.us, state.vs, state.logl, logl_dead,
         logz, logzerr, h, logvol, since_update, has_bounds, active_bound)
 
@@ -241,31 +244,23 @@ function init_particles(rng::Random.AbstractRNG, us::Matrix, model::AbstractMode
 end
 
 function init_particles(rng::Random.AbstractRNG, us::Matrix, model::LogDensityModel)
-    vs_and_logl = mapslices(
-        Base.Fix1(prior_transform_and_loglikelihood, model), us;
-        dims=1
-    )
-    vs = mapreduce(first, hcat, vs_and_logl)
-    logl = dropdims(map(last, vs_and_logl), dims=1)
+    logdensity = model.logdensity
+    dims, nactive = size(us)
+    logls = [logdensity(us[:, i]) for i in 1:nactive]
 
     ntries = 1
     while true
-        any(isfinite, logl) && break
+        any(isfinite, logls) && break
         rand!(rng, us)
-        vs_and_logl .= mapslices(
-            Base.Fix1(prior_transform_and_loglikelihood, model), us;
-            dims=1
-        )
-        vs .= mapreduce(first, hcat, vs_and_logl)
-        map!(last, logl, vs_and_logl)
+        logls = [logdensity(us[:, i]) for i in 1:nactive]
         ntries += 1
         ntries > 100 && error("After 100 attempts, could not initialize any live points with finite loglikelihood. Please check your prior transform and loglikelihood methods.")
     end
 
     # force -Inf to be a finite but small number to keep estimators from breaking
-    @. logl[logl == -Inf] = -1e300
+    @. logls[logls == -Inf] = -1e300
 
-    return us, vs, logl
+    return us, us, logls
 end
 
 # add remaining live points to `samples`
