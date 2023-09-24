@@ -31,7 +31,12 @@ function step(
     kwargs...)
     # Initialize particles
     # us are in unit space, vs are in prior space
-    us, vs, logl = init_particles(rng, model, sampler)
+    if init_params != nothing && size(init_params) == (sampler.ndims,sampler.nactive)
+        us = init_params
+    else
+        us = rand(rng, sampler.type, sampler.ndims, sampler.nactive)
+    end
+    us, vs, logl = init_particles(rng, us, model)
 
     # Find least likely point
     logl_dead, idx_dead = findmin(logl)
@@ -60,7 +65,7 @@ function step(
     logzerr = sqrt(h / sampler.nactive)
     logvol -= 1 / sampler.nactive
 
-    sample = NestedTransition(u_dead, v_dead, logwt, logl_dead)
+    sample = (u = u_dead, v = v_dead, logwt = logwt, logl = logl_dead) #NestedTransition(u_dead, v_dead, logwt, logl_dead)
     state = NestedState(1, ncall, us, vs, logl, logl_dead,
         logz, logzerr, h, logvol, since_update, false, nothing)
 
@@ -135,7 +140,7 @@ function step(
     logvol = state.logvol - 1 / sampler.nactive
 
     ## prepare returns
-    sample = NestedTransition(u_dead, v_dead, logwt, logl_dead)
+    sample = (u = u_dead, v = v_dead, logwt = logwt, logl = logl_dead) #NestedTransition(u_dead, v_dead, logwt, logl_dead)
     state = NestedState(it, ncall, state.us, state.vs, state.logl, logl_dead,
         logz, logzerr, h, logvol, since_update, has_bounds, active_bound)
 
@@ -207,8 +212,7 @@ init_particles(rng, model, sampler) =
 
 # loop and fill arrays, checking validity of points
 # will retry 100 times before erroring
-function init_particles(rng::Random.AbstractRNG, T::Type, ndims::Int, nactive::Int, model::AbstractModel)
-    us = rand(rng, T, ndims, nactive)
+function init_particles(rng::Random.AbstractRNG, us::Matrix, model::AbstractModel)
     vs_and_logl = mapslices(
         Base.Fix1(prior_transform_and_loglikelihood, model), us;
         dims=1
@@ -236,8 +240,7 @@ function init_particles(rng::Random.AbstractRNG, T::Type, ndims::Int, nactive::I
     return us, vs, logl
 end
 
-function init_particles(rng::Random.AbstractRNG, T::Type, ndims::Int, nactive::Int, model::LogDensityModel)
-    us = rand(rng, T, ndims, nactive)
+function init_particles(rng::Random.AbstractRNG, us::Matrix, model::LogDensityModel)
     vs_and_logl = mapslices(
         Base.Fix1(prior_transform_and_loglikelihood, model), us;
         dims=1
