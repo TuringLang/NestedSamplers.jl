@@ -17,7 +17,7 @@ Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 
 [compat]
-AbstractMCMC = "3.0.2, 4"
+AbstractMCMC = "3.0.2, 4, 5"
 Clustering = "0.13, 0.14, 0.15"
 Distributions = "0.21,0.22,0.23, 0.24, 0.25"
 LogExpFunctions = "0.3"
