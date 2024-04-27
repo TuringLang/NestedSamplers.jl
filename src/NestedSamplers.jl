@@ -40,4 +40,16 @@ include("sample.jl")        # Custom sampling (extends AbstractMCMC)
 include("models/Models.jl")
 using .Models
 
+if !isdefined(Base, :get_extension)
+    using Requires
+end
+
+@static if !isdefined(Base, :get_extension)
+    function __init__()
+        @require DynamicPPL = "366bfd00-2699-11ea-058f-f148b4cae6d8" include(
+            "../ext/NestedSamplersDynamicPPLExt.jl"
+        )
+    end
+end
+
 end
