@@ -1,6 +1,7 @@
 # Sampler and model implementations
 
 struct Nested{B, P <: AbstractProposal} <: AbstractSampler
+    type::Type
     ndims::Int
     nactive::Int
     bounds::B
@@ -53,6 +54,7 @@ function Nested(ndims,
     enlarge = 1.25,
     min_ncall=2nactive,
     min_eff=0.10,
+    type = Float64,
     kwargs...)
 
     nactive < 2ndims && @warn "Using fewer than 2ndim ($(2ndims)) active points is discouraged"
@@ -72,7 +74,9 @@ function Nested(ndims,
 
     update_interval_frac = get(kwargs, :update_interval, default_update_interval(proposal, ndims))
     update_interval = round(Int, update_interval_frac * nactive)
-    return Nested(ndims,
+    return Nested(
+        type,
+        ndims,
         nactive,
         bounds,
         enlarge,

@@ -6,6 +6,7 @@ using Random: AbstractRNG, GLOBAL_RNG
 
 using AbstractMCMC
 using AbstractMCMC: AbstractSampler,
+                    LogDensityModel,
                     AbstractModel,
                     samples,
                     save!!
