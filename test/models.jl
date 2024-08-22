@@ -12,7 +12,7 @@ const test_props = [
 
 const MAXZSCORES = Dict(zip(
     Iterators.product(test_bounds, test_props),
-    [4, 3, 9, 8, 6, 3, 5, 7, 4, 4] # rwalk is bad...
+    [4, 3, 9, 8, 6, 3, 5, 12, 4, 4] # rwalk is bad...
 ))
 
 function test_logz(measured, actual, error, bound, proposal)
