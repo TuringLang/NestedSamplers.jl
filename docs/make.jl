@@ -29,5 +29,3 @@ makedocs(
         r"(Array{[a-zA-Z0-9]+,\s?2}|Matrix{[a-zA-Z0-9]+})",
     ]
 )
-
-deploydocs(repo = "github.com/TuringLang/NestedSamplers.jl.git", push_preview=true, devbranch="main")
